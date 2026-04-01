@@ -1,0 +1,108 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+
+export default function LoginPage() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showTotp, setShowTotp] = useState(false);
+  const [totp, setTotp] = useState('');
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showTotp) {
+      setShowTotp(true);
+      return;
+    }
+    navigate('/');
+  };
+
+  const inputClass = "w-full bg-input border border-border/60 rounded-xl px-4 py-3.5 text-sm text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors";
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-bg p-5 relative overflow-hidden">
+      {/* Atmospheric background glow */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[400px] h-[400px] rounded-full bg-accent/[0.03] blur-[100px] pointer-events-none" />
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+        className="w-full max-w-sm relative z-10"
+      >
+        {/* Logo */}
+        <motion.div
+          className="text-center mb-10"
+          animate={{ scale: [1, 1.02, 1] }}
+          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          <span className="text-accent text-3xl">&#10022;</span>
+          <h1 className="font-display text-2xl text-text-p mt-3">InkFlow</h1>
+          <p className="text-xs text-text-t mt-1.5 tracking-wider uppercase">Studio Management</p>
+        </motion.div>
+
+        {/* Form */}
+        <div className="bg-surface/60 border border-border/30 rounded-2xl p-6 backdrop-blur-sm">
+          <form onSubmit={handleLogin} className="space-y-4">
+            {!showTotp ? (
+              <>
+                <div>
+                  <label className="text-xs text-text-t uppercase tracking-wider mb-1.5 block font-medium">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={inputClass}
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-text-t uppercase tracking-wider mb-1.5 block font-medium">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+              </>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+              >
+                <label className="text-xs text-text-t uppercase tracking-wider mb-1.5 block font-medium">
+                  Authentication Code
+                </label>
+                <input
+                  type="text"
+                  value={totp}
+                  onChange={(e) => setTotp(e.target.value)}
+                  placeholder="000000"
+                  maxLength={6}
+                  className={`${inputClass} text-center tracking-[0.5em] text-lg`}
+                  autoFocus
+                />
+                <p className="text-xs text-text-t mt-3 text-center">
+                  Enter the code from your authenticator app
+                </p>
+              </motion.div>
+            )}
+
+            <button
+              type="submit"
+              className="w-full py-3.5 bg-accent text-bg text-sm rounded-xl font-medium cursor-pointer press-scale transition-all active:shadow-glow mt-2"
+            >
+              {showTotp ? 'Verify' : 'Sign In'}
+            </button>
+          </form>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
