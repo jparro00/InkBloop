@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import {
   format,
   isSameDay,
@@ -5,7 +6,10 @@ import {
   startOfWeek,
   endOfWeek,
   eachDayOfInterval,
+  addDays,
+  subDays,
 } from 'date-fns';
+import { motion } from 'framer-motion';
 import { ChevronLeft, Plus } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 import { useBookingStore } from '../../stores/bookingStore';
@@ -34,6 +38,7 @@ export default function DayView() {
   const { calendarDate, setCalendarDate, setCalendarView, openBookingForm, setSelectedBookingId, setPrefillBookingData } = useUIStore();
   const bookings = useBookingStore((s) => s.bookings);
   const getClient = useClientStore((s) => s.getClient);
+  const timelineRef = useRef<HTMLDivElement>(null);
 
   const weekStart = startOfWeek(calendarDate, { weekStartsOn: 0 });
   const weekEnd = endOfWeek(calendarDate, { weekStartsOn: 0 });
@@ -61,6 +66,22 @@ export default function DayView() {
     setCalendarView('month');
   };
 
+  const handleTimelineSwipe = (_: unknown, info: { offset: { x: number }; velocity: { x: number } }) => {
+    const swipeThreshold = 50;
+    const velocityThreshold = 300;
+    if (info.offset.x < -swipeThreshold || info.velocity.x < -velocityThreshold) {
+      setCalendarDate(addDays(calendarDate, 1));
+    } else if (info.offset.x > swipeThreshold || info.velocity.x > velocityThreshold) {
+      setCalendarDate(subDays(calendarDate, 1));
+    }
+  };
+
+  const handleWeekStripSwipe = (_: unknown, info: { offset: { y: number }; velocity: { y: number } }) => {
+    if (info.offset.y < -30 || info.velocity.y < -200) {
+      setCalendarView('month');
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       {/* Header */}
@@ -80,8 +101,14 @@ export default function DayView() {
         </button>
       </div>
 
-      {/* Week strip */}
-      <div className="grid grid-cols-7 px-6 py-2 border-b border-border/30 shrink-0">
+      {/* Week strip — swipe up to go to month view */}
+      <motion.div
+        drag="y"
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={0.15}
+        onDragEnd={handleWeekStripSwipe}
+        className="grid grid-cols-7 px-6 py-2 border-b border-border/30 shrink-0 cursor-grab active:cursor-grabbing"
+      >
         {weekDays.map((day) => {
           const today = isToday(day);
           const selected = isSameDay(day, calendarDate);
@@ -115,25 +142,37 @@ export default function DayView() {
             </button>
           );
         })}
-      </div>
+      </motion.div>
 
-      {/* Timeline */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="relative" style={{ minHeight: hours.length * hourHeight }}>
+      {/* Timeline — swipe left/right to change day */}
+      <div ref={timelineRef} className="flex-1 overflow-y-auto">
+        <motion.div
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.2}
+          onDragEnd={handleTimelineSwipe}
+          className="relative"
+          style={{ minHeight: hours.length * hourHeight, touchAction: 'pan-y' }}
+        >
           {/* Hour grid */}
-          {hours.map((hour) => (
-            <div
-              key={hour}
-              className="absolute w-full border-b border-border/15 flex active:bg-elevated/20 cursor-pointer transition-colors"
-              style={{ top: hour * hourHeight, height: hourHeight }}
-              onClick={() => handleSlotClick(hour)}
-            >
-              <div className="w-16 text-xs text-text-t py-2 text-right pr-4 shrink-0">
-                {format(new Date(2026, 0, 1, hour), 'h a')}
+          {hours.map((hour) => {
+            const isOffHours = hour < 8;
+            return (
+              <div
+                key={hour}
+                className={`absolute w-full border-b border-border/15 flex active:bg-elevated/20 cursor-pointer transition-colors ${
+                  isOffHours ? 'bg-white/[0.015]' : ''
+                }`}
+                style={{ top: hour * hourHeight, height: hourHeight }}
+                onClick={() => handleSlotClick(hour)}
+              >
+                <div className={`w-16 text-xs py-2 text-right pr-4 shrink-0 ${isOffHours ? 'text-text-t/50' : 'text-text-t'}`}>
+                  {format(new Date(2026, 0, 1, hour), 'h a')}
+                </div>
+                <div className="flex-1 border-l border-border/20" />
               </div>
-              <div className="flex-1 border-l border-border/20" />
-            </div>
-          ))}
+            );
+          })}
 
           {/* Booking blocks */}
           {dayBookings.map((booking) => {
@@ -165,7 +204,7 @@ export default function DayView() {
               </button>
             );
           })}
-        </div>
+        </motion.div>
       </div>
     </div>
   );

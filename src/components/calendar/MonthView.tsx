@@ -153,7 +153,7 @@ export default function MonthView() {
             <div
               key={format(month, 'yyyy-MM')}
               ref={isCurrent ? currentMonthRef : undefined}
-              className="mb-6"
+              className="mb-2"
             >
               {/* Month name */}
               <h2 className="font-display text-xl text-text-p pt-4 pb-3">
