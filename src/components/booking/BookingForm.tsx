@@ -1,11 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { Calendar, UserPlus } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 import Modal from '../common/Modal';
 import ClientForm from '../client/ClientForm';
+import ImagePicker from './ImagePicker';
+import ImageThumbnailGrid from './ImageThumbnailGrid';
+import ImageViewer from './ImageViewer';
 import { useUIStore } from '../../stores/uiStore';
 import { useBookingStore } from '../../stores/bookingStore';
 import { useClientStore } from '../../stores/clientStore';
+import { useImageStore } from '../../stores/imageStore';
+import { useBookingImages } from '../../hooks/useBookingImages';
 import type { Booking, BookingType, BookingStatus } from '../../types';
 import { typeColor } from '../../types';
 
@@ -38,7 +44,13 @@ export default function BookingForm() {
   const [clientSearch, setClientSearch] = useState('');
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [showNewClient, setShowNewClient] = useState(false);
+  const [viewingImageId, setViewingImageId] = useState<string | null>(null);
   const [form, setForm] = useState(defaultForm);
+
+  const tempBookingId = useRef(crypto.randomUUID());
+  const imageBookingId = editingBookingId ?? tempBookingId.current;
+  const { thumbnails, addImages, removeImage, getOriginalUrl } = useBookingImages(imageBookingId);
+  const remapBookingImages = useImageStore((s) => s.remapBookingImages);
 
   useEffect(() => {
     if (booking) {
@@ -92,7 +104,8 @@ export default function BookingForm() {
     if (editingBookingId) {
       updateBooking(editingBookingId, data);
     } else {
-      addBooking(data);
+      const newBooking = addBooking(data);
+      remapBookingImages(tempBookingId.current, newBooking.id);
     }
     closeBookingForm();
   };
@@ -242,6 +255,18 @@ export default function BookingForm() {
           />
         </div>
 
+        {/* Reference Images */}
+        <div>
+          <label className={labelClass}>Reference Images</label>
+          <ImageThumbnailGrid
+            thumbnails={thumbnails}
+            editable
+            onRemove={removeImage}
+            onView={(id) => setViewingImageId(id)}
+          />
+          <ImagePicker onFiles={addImages} />
+        </div>
+
         {/* Save */}
         <div className="flex flex-col lg:flex-row lg:justify-end gap-3 pt-4 border-t border-border/40 sticky bottom-0 bg-elevated pb-2">
           <button
@@ -260,6 +285,17 @@ export default function BookingForm() {
         </div>
       </div>
     </Modal>
+
+    <AnimatePresence>
+      {viewingImageId && (
+        <ImageViewer
+          thumbnails={thumbnails}
+          initialId={viewingImageId}
+          getOriginalUrl={getOriginalUrl}
+          onClose={() => setViewingImageId(null)}
+        />
+      )}
+    </AnimatePresence>
 
     {showNewClient && (
       <ClientForm

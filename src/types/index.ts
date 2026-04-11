@@ -64,4 +64,19 @@ export interface AgeVerificationLog {
   notes?: string;
 }
 
+export type ImageSyncStatus = 'local' | 'uploading' | 'synced' | 'error';
+
+export interface BookingImage {
+  id: string;
+  booking_id: string;
+  created_at: string;
+  filename: string;
+  mime_type: string;
+  size_bytes: number;
+  width: number;
+  height: number;
+  sync_status: ImageSyncStatus;
+  remote_path?: string;
+}
+
 export type CalendarView = 'year' | 'month' | 'day';

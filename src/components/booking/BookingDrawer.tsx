@@ -1,11 +1,16 @@
-import { useRef, useEffect } from 'react';
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
+import { useRef, useEffect, useState } from 'react';
+import { motion, useMotionValue, useTransform, animate, AnimatePresence } from 'framer-motion';
 import { useDrag } from '@use-gesture/react';
 import { format } from 'date-fns';
 import { ArrowLeft, Edit, Trash2, User } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 import { useBookingStore } from '../../stores/bookingStore';
 import { useClientStore } from '../../stores/clientStore';
+import { useImageStore } from '../../stores/imageStore';
+import { useBookingImages } from '../../hooks/useBookingImages';
+import { deleteImage as deleteImageBlob } from '../../lib/imageDb';
+import ImageThumbnailGrid from './ImageThumbnailGrid';
+import ImageViewer from './ImageViewer';
 import { useNavigate } from 'react-router-dom';
 import type { BookingStatus } from '../../types';
 
@@ -18,6 +23,10 @@ export default function BookingDrawer() {
   const updateBooking = useBookingStore((s) => s.updateBooking);
   const deleteBooking = useBookingStore((s) => s.deleteBooking);
   const client = useClientStore((s) => s.getClient(booking?.client_id ?? ''));
+  const removeImagesForBooking = useImageStore((s) => s.removeImagesForBooking);
+  const bookingImages = useImageStore((s) => s.getImagesForBooking(selectedBookingId ?? ''));
+  const { thumbnails, getOriginalUrl } = useBookingImages(selectedBookingId ?? undefined);
+  const [viewingImageId, setViewingImageId] = useState<string | null>(null);
 
   const dragY = useMotionValue(0);
   const backdropOpacity = useTransform(dragY, [0, 400], [1, 0]);
@@ -108,6 +117,9 @@ export default function BookingDrawer() {
 
   const handleDelete = () => {
     const bookingCopy = { ...booking };
+    // Clean up images from IndexedDB
+    bookingImages.forEach((img) => deleteImageBlob(img.id));
+    removeImagesForBooking(booking.id);
     deleteBooking(booking.id);
     setSelectedBookingId(null);
     addToast('Booking deleted', {
@@ -216,6 +228,20 @@ export default function BookingDrawer() {
               </>
             )}
 
+            {/* Images */}
+            {thumbnails.length > 0 && (
+              <>
+                <div className="h-px bg-border/40" />
+                <div>
+                  <div className="text-sm text-text-t uppercase tracking-wider mb-2.5 font-medium">Reference Images</div>
+                  <ImageThumbnailGrid
+                    thumbnails={thumbnails}
+                    onView={(id) => setViewingImageId(id)}
+                  />
+                </div>
+              </>
+            )}
+
             {/* Status */}
             <div className="h-px bg-border/40" />
             <div>
@@ -257,6 +283,17 @@ export default function BookingDrawer() {
           </div>
         </div>
       </motion.div>
+
+      <AnimatePresence>
+        {viewingImageId && (
+          <ImageViewer
+            thumbnails={thumbnails}
+            initialId={viewingImageId}
+            getOriginalUrl={getOriginalUrl}
+            onClose={() => setViewingImageId(null)}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }
