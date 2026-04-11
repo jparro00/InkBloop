@@ -19,7 +19,7 @@ export async function parseBookingWithAI(text: string, apiKey: string): Promise<
 
   const systemPrompt = `You extract booking details from text for a tattoo studio. Return a JSON object.
 
-Today: ${now.toISOString().split('T')[0]} (${now.toLocaleDateString('en-US', { weekday: 'long' })}).
+Today: ${now.toISOString().split('T')[0]} (${now.toLocaleDateString('en-US', { weekday: 'long' })}). Current year: ${now.getFullYear()}.
 
 Clients: ${clientList.map((c) => `${c.id}="${c.name}"`).join(', ')}
 
@@ -27,7 +27,7 @@ Types: "Regular", "Touch Up", "Consultation", "Full Day"
 
 JSON fields (omit any you can't determine, NEVER add error messages):
 - client_id: match to an ID above (fuzzy first-name match OK). If no match, omit this field entirely.
-- date: ISO 8601 datetime (e.g. "2026-04-15T14:00:00")
+- date: ISO 8601 datetime (e.g. "2026-04-15T14:00:00"). Day names like "Sunday" or "next Thursday" mean the NEXT upcoming occurrence from today. Two adjacent digits like "52" or "five two" mean month/day (e.g. "52" = May 2nd, "121" = December 1st, "415" = April 15th).
 - duration: number (hours). ONLY include if the user explicitly mentions a duration. Do NOT guess or infer a duration.
 - type: one of the types above
 - estimate: number (dollars)
