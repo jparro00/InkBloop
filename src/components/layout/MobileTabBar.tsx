@@ -53,25 +53,14 @@ export default function MobileTabBar() {
                     />
                     <span className="text-xs mt-1 font-medium">{label}</span>
                     {active && (
-                      <span className="absolute bottom-1 left-1/2 -translate-x-1/2" style={{ width: 44, height: 6 }}>
-                        {/* Core bright line */}
-                        <span
-                          className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 rounded-full"
-                          style={{
-                            width: 20,
-                            height: 2,
-                            background: 'rgba(176,140,232,0.8)',
-                            boxShadow: '0 0 6px rgba(176,140,232,0.6)',
-                          }}
-                        />
-                        {/* Wide diffused glow */}
-                        <span
-                          className="absolute inset-0 rounded-full"
-                          style={{
-                            background: 'radial-gradient(ellipse 100% 100% at center, rgba(176,140,232,0.35) 0%, rgba(176,140,232,0.08) 50%, transparent 100%)',
-                          }}
-                        />
-                      </span>
+                      <span
+                        className="absolute bottom-0.5 left-1/2 -translate-x-1/2 pointer-events-none"
+                        style={{
+                          width: 56,
+                          height: 8,
+                          background: 'radial-gradient(ellipse 40% 50% at center, rgba(176,140,232,0.9) 0%, rgba(176,140,232,0.4) 30%, rgba(176,140,232,0.1) 60%, transparent 100%)',
+                        }}
+                      />
                     )}
                   </>
                 );
