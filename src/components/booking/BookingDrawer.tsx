@@ -51,7 +51,7 @@ export default function BookingDrawer() {
       el.removeEventListener('touchstart', onTouchStart);
       el.removeEventListener('touchmove', onTouchMove);
     };
-  }, []);
+  }, [booking]);
 
   const dismiss = () => {
     if (isDismissing.current) return;
