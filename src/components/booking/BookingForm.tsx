@@ -32,6 +32,7 @@ const defaultForm = {
   type: 'Regular' as BookingType,
   estimate: '',
   status: 'Confirmed' as BookingStatus,
+  rescheduled: false,
   notes: '',
 };
 
@@ -63,6 +64,7 @@ export default function BookingForm() {
         type: booking.type,
         estimate: booking.estimate?.toString() ?? '',
         status: booking.status,
+        rescheduled: booking.rescheduled ?? false,
         notes: booking.notes ?? '',
       });
       const c = clients.find((c) => c.id === booking.client_id);
@@ -105,6 +107,7 @@ export default function BookingForm() {
       type: form.type,
       estimate: form.estimate ? parseFloat(form.estimate) : undefined,
       status: form.status,
+      rescheduled: form.rescheduled || undefined,
       notes: form.notes || undefined,
     };
 
@@ -263,6 +266,18 @@ export default function BookingForm() {
             className={`${inputClass} resize-none`}
           />
         </div>
+
+        {/* Rescheduled */}
+        <button
+          type="button"
+          onClick={() => setForm((f) => ({ ...f, rescheduled: !f.rescheduled }))}
+          className={`flex items-center gap-3 w-full text-left py-1 cursor-pointer press-scale min-h-[44px] transition-colors ${form.rescheduled ? 'text-danger' : 'text-text-s'}`}
+        >
+          <span className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 ${form.rescheduled ? 'border-danger bg-danger/20' : 'border-border'}`}>
+            {form.rescheduled && <span className="text-danger text-xs font-bold">✓</span>}
+          </span>
+          <span className="text-base">Needs Rescheduling</span>
+        </button>
 
         {/* Reference Images */}
         <div>
