@@ -12,7 +12,7 @@ import {
   subWeeks,
 } from 'date-fns';
 import { motion, useMotionValue, animate } from 'framer-motion';
-import { useDrag } from '@use-gesture/react';
+import { useDrag, usePinch } from '@use-gesture/react';
 import { ChevronLeft, Plus } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 import { useBookingStore } from '../../stores/bookingStore';
@@ -36,34 +36,36 @@ const statusDot: Record<BookingStatus, string> = {
 };
 
 const hours = Array.from({ length: 24 }, (_, i) => i);
-const HOUR_HEIGHT = 64;
+const DEFAULT_HOUR_HEIGHT = 64;
+const MIN_HOUR_HEIGHT = 32;
+const MAX_HOUR_HEIGHT = 128;
 const SWIPE_THRESHOLD = 50;
 const VELOCITY_THRESHOLD = 0.4;
 
-// Full day panel: hour labels + grid lines + bookings (everything slides together)
+// Full day panel: hour labels + grid lines + bookings
 function DayPanel({
-  day, bookings, getClient, onSlotClick, onBookingClick,
+  day, bookings, getClient, onSlotClick, onBookingClick, hourHeight,
 }: {
   day: Date;
   bookings: Booking[];
   getClient: (id: string) => { name: string; display_name?: string } | undefined;
   onSlotClick: (hour: number, day: Date) => void;
   onBookingClick: (id: string) => void;
+  hourHeight: number;
 }) {
   const dayBookings = bookings
     .filter((b) => isSameDay(new Date(b.date), day))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   return (
-    <div className="shrink-0 relative" style={{ minHeight: hours.length * HOUR_HEIGHT, width: 'calc(100% / 3)' }}>
-      {/* Hour labels + grid lines */}
+    <div className="shrink-0 relative" style={{ minHeight: hours.length * hourHeight, width: 'calc(100% / 3)' }}>
       {hours.map((hour) => {
         const isOffHours = hour < 8;
         return (
           <div
             key={hour}
             className={`absolute w-full border-b border-border/15 flex cursor-pointer transition-colors ${isOffHours ? 'bg-white/[0.015]' : ''}`}
-            style={{ top: hour * HOUR_HEIGHT, height: HOUR_HEIGHT }}
+            style={{ top: hour * hourHeight, height: hourHeight }}
             onClick={() => onSlotClick(hour, day)}
           >
             <div className={`w-16 text-xs py-2 text-right pr-4 shrink-0 ${isOffHours ? 'text-text-t/50' : 'text-text-t'}`}>
@@ -74,12 +76,11 @@ function DayPanel({
         );
       })}
 
-      {/* Booking blocks */}
       {dayBookings.map((booking) => {
         const d = new Date(booking.date);
         const startHour = d.getHours() + d.getMinutes() / 60;
-        const top = startHour * HOUR_HEIGHT;
-        const height = booking.duration * HOUR_HEIGHT;
+        const top = startHour * hourHeight;
+        const height = booking.duration * hourHeight;
         const client = getClient(booking.client_id ?? '');
         return (
           <button
@@ -156,18 +157,14 @@ export default function DayView() {
   const containerRef = useRef<HTMLDivElement>(null);
   const hasScrolledToStart = useRef(false);
 
-  // Scroll to 8am on first render
-  useEffect(() => {
-    if (!hasScrolledToStart.current && containerRef.current) {
-      containerRef.current.scrollTop = 8 * HOUR_HEIGHT;
-      hasScrolledToStart.current = true;
-    }
-  }, []);
   const weekStripRef = useRef<HTMLDivElement>(null);
   const stripX = useMotionValue(0);
   const weekX = useMotionValue(0);
   const isAnimating = useRef(false);
   const isWeekAnimating = useRef(false);
+
+  const [hourHeight, setHourHeight] = useState(DEFAULT_HOUR_HEIGHT);
+  const pinchStartHeight = useRef(DEFAULT_HOUR_HEIGHT);
 
   // pendingDate shows instantly in week strip while carousel animates
   const [pendingDate, setPendingDate] = useState<Date | null>(null);
@@ -178,6 +175,14 @@ export default function DayView() {
   const prevWeekDate = subWeeks(calendarDate, 1);
   const nextWeekDate = addWeeks(calendarDate, 1);
 
+  // Scroll to 8am on first render
+  useEffect(() => {
+    if (!hasScrolledToStart.current && containerRef.current) {
+      containerRef.current.scrollTop = 8 * hourHeight;
+      hasScrolledToStart.current = true;
+    }
+  }, [hourHeight]);
+
   const handleSlotClick = useCallback((hour: number, day: Date) => {
     const dateStr = new Date(day.getFullYear(), day.getMonth(), day.getDate(), hour, 0).toISOString();
     setPrefillBookingData({ date: dateStr });
@@ -187,6 +192,38 @@ export default function DayView() {
   const handleBookingClick = useCallback((id: string) => {
     setSelectedBookingId(id);
   }, [setSelectedBookingId]);
+
+  // Pinch-to-zoom: scale hour height
+  const pinchBind = usePinch(
+    ({ first, movement: [scale], origin: [, oy] }) => {
+      if (first) {
+        pinchStartHeight.current = hourHeight;
+      }
+
+      const container = containerRef.current;
+      if (!container) return;
+
+      // Calculate which hour is at the pinch center
+      const containerRect = container.getBoundingClientRect();
+      const pinchY = oy - containerRect.top + container.scrollTop;
+      const hourAtCenter = pinchY / hourHeight;
+
+      // Apply new height
+      const newHeight = Math.round(
+        Math.min(MAX_HOUR_HEIGHT, Math.max(MIN_HOUR_HEIGHT, pinchStartHeight.current * scale))
+      );
+      setHourHeight(newHeight);
+
+      // Adjust scroll to keep the same hour at the pinch point
+      const newPinchY = hourAtCenter * newHeight;
+      container.scrollTop = newPinchY - (oy - containerRect.top);
+    },
+    {
+      pointer: { touch: true },
+      scaleBounds: { min: MIN_HOUR_HEIGHT / DEFAULT_HOUR_HEIGHT, max: MAX_HOUR_HEIGHT / DEFAULT_HOUR_HEIGHT },
+      eventOptions: { passive: false },
+    }
+  );
 
   // Timeline carousel: horizontal swipe changes day
   const timelineBind = useDrag(
@@ -283,12 +320,12 @@ export default function DayView() {
       </div>
 
       {/* Timeline carousel: full day panels slide together */}
-      <div ref={containerRef} className="flex-1 overflow-y-auto overflow-x-hidden">
-        <div {...timelineBind()} style={{ touchAction: 'pan-y' }}>
+      <div ref={containerRef} className="flex-1 overflow-y-auto overflow-x-hidden" style={{ touchAction: 'pan-y' }}>
+        <div {...timelineBind()} {...pinchBind()} style={{ touchAction: 'pan-y' }}>
           <motion.div className="flex" style={{ x: stripX, width: '300%', marginLeft: '-100%' }}>
-            <DayPanel day={prevDay} bookings={bookings} getClient={getClient} onSlotClick={handleSlotClick} onBookingClick={handleBookingClick} />
-            <DayPanel day={calendarDate} bookings={bookings} getClient={getClient} onSlotClick={handleSlotClick} onBookingClick={handleBookingClick} />
-            <DayPanel day={nextDay} bookings={bookings} getClient={getClient} onSlotClick={handleSlotClick} onBookingClick={handleBookingClick} />
+            <DayPanel day={prevDay} bookings={bookings} getClient={getClient} onSlotClick={handleSlotClick} onBookingClick={handleBookingClick} hourHeight={hourHeight} />
+            <DayPanel day={calendarDate} bookings={bookings} getClient={getClient} onSlotClick={handleSlotClick} onBookingClick={handleBookingClick} hourHeight={hourHeight} />
+            <DayPanel day={nextDay} bookings={bookings} getClient={getClient} onSlotClick={handleSlotClick} onBookingClick={handleBookingClick} hourHeight={hourHeight} />
           </motion.div>
         </div>
       </div>
