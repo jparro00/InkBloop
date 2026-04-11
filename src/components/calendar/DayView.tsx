@@ -84,7 +84,7 @@ function DayPanel({
             style={{ top: hour * HOUR_HEIGHT, height: HOUR_HEIGHT }}
             onClick={() => onSlotClick(hour, day)}
           >
-            <div className={`w-16 text-lg text-right pr-4 shrink-0 ${isOffHours ? 'text-text-t/50' : 'text-text-t'}`} style={{ marginTop: -10 }}>
+            <div className={`w-16 text-[15px] text-right pr-4 shrink-0 ${isOffHours ? 'text-text-t/50' : 'text-text-t'}`} style={{ marginTop: -8 }}>
               {hour > 0 ? format(new Date(2026, 0, 1, hour), 'h a') : ''}
             </div>
             <div className="flex-1 border-t border-border/15" />
@@ -100,7 +100,7 @@ function DayPanel({
         return (
           <div className="absolute left-0 right-0 z-20 pointer-events-none flex items-center" style={{ top, transform: 'translateY(-50%)' }}>
             <div className="shrink-0 flex justify-end" style={{ width: 64 }}>
-              <span className="text-lg text-white font-medium bg-today rounded-md px-3 py-0.5">
+              <span className="text-[15px] text-white font-medium bg-today rounded-md px-3 py-0.5">
                 {format(now, 'h:mm')}
               </span>
             </div>
@@ -132,10 +132,10 @@ function DayPanel({
             }}
             onClick={(e) => { e.stopPropagation(); onBookingClick(booking.id); }}
           >
-            <div className="text-xl text-text-p font-medium truncate">
+            <div className="text-[17px] text-text-p font-medium truncate">
               {client?.display_name || client?.name || 'Walk-in'}
             </div>
-            <div className="text-lg text-text-s mt-0.5 truncate">
+            <div className="text-[15px] text-text-s mt-0.5 truncate">
               {format(d, 'h:mm a')} · {booking.duration}h
             </div>
           </button>
@@ -168,11 +168,11 @@ function WeekRow({ baseDate, selectedDate, onDayClick, bookings }: {
             onClick={() => onDayClick(day)}
             className="flex flex-col items-center gap-0.5 py-1 cursor-pointer transition-colors"
           >
-            <span className={`text-lg font-medium ${today && !selected ? 'text-today' : 'text-text-t'}`}>
+            <span className={`text-[15px] font-medium ${today && !selected ? 'text-today' : 'text-text-t'}`}>
               {format(day, 'EEEEE')}
             </span>
             <span
-              className={`w-12 h-12 flex items-center justify-center rounded-full text-xl font-medium transition-colors ${
+              className={`w-10 h-10 flex items-center justify-center rounded-full text-[17px] font-medium transition-colors ${
                 selected && today
                   ? 'bg-today text-white'
                   : selected
@@ -336,7 +336,7 @@ export default function DayView() {
           className="flex items-center gap-1 text-today active:opacity-70 transition-opacity cursor-pointer press-scale min-h-[44px]"
         >
           <ChevronLeft size={20} />
-          <span className="text-[27px] font-medium">{format(calendarDate, 'MMMM')}</span>
+          <span className="text-[22px] font-medium">{format(calendarDate, 'MMMM')}</span>
         </button>
         <button
           onClick={() => {
@@ -415,7 +415,7 @@ export default function DayView() {
             }
           });
         }}
-        className="fixed bottom-[100px] left-5 lg:left-auto lg:bottom-8 px-4 py-2.5 bg-elevated border border-border/60 text-text-p text-xl font-medium rounded-xl shadow-md cursor-pointer press-scale transition-all z-30"
+        className="fixed bottom-[100px] left-5 lg:left-auto lg:bottom-8 px-4 py-2.5 bg-elevated border border-border/60 text-text-p text-[17px] font-medium rounded-xl shadow-md cursor-pointer press-scale transition-all z-30"
       >
         Today
       </button>
