@@ -6,15 +6,7 @@ import { useClientStore } from '../stores/clientStore';
 import { useBookingStore } from '../stores/bookingStore';
 import { useUIStore } from '../stores/uiStore';
 import ClientForm from '../components/client/ClientForm';
-import type { BookingStatus } from '../types';
-
-const statusDot: Record<BookingStatus, string> = {
-  Confirmed: 'bg-[rgba(255,255,255,0.87)]',
-  Tentative: 'bg-[rgba(255,255,255,0.38)]',
-  Completed: 'bg-[#22D3EE]',
-  Cancelled: 'bg-[#CF6679]',
-  'No-show': 'bg-[#FFB74D]',
-};
+import { typeColor } from '../types';
 
 type Tab = 'overview' | 'appointments' | 'documents' | 'notes';
 
@@ -183,7 +175,7 @@ export default function ClientDetailPage() {
               onClick={() => setSelectedBookingId(b.id)}
               className="w-full text-left flex items-center gap-4 px-5 py-4 rounded-xl active:bg-elevated/40 transition-colors cursor-pointer press-scale min-h-[64px]"
             >
-              <span className={`w-3 h-3 rounded-full ${statusDot[b.status]} shrink-0`} />
+              <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: typeColor[b.type] }} />
               <div className="flex-1 min-w-0">
                 <div className="text-base text-text-p truncate">
                   {b.type}

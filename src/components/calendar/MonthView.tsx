@@ -16,15 +16,7 @@ import { ChevronLeft, Plus } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 import { useBookingStore } from '../../stores/bookingStore';
 import { useClientStore } from '../../stores/clientStore';
-import type { BookingStatus } from '../../types';
-
-const statusColor: Record<BookingStatus, string> = {
-  Confirmed: 'bg-accent/80',
-  Tentative: 'bg-[rgba(255,255,255,0.30)]',
-  Completed: 'bg-[#22D3EE]',
-  Cancelled: 'bg-[#CF6679]/60',
-  'No-show': 'bg-[#FFB74D]',
-};
+import { typeColor } from '../../types';
 
 const MONTHS_BUFFER = 6;
 
@@ -199,7 +191,8 @@ export default function MonthView() {
                           return (
                             <div
                               key={b.id}
-                              className={`${statusColor[b.status]} rounded-sm px-1 py-[1px] text-[10px] leading-tight overflow-hidden whitespace-nowrap`}
+                              className="rounded-sm px-1 py-[1px] text-[10px] leading-tight overflow-hidden whitespace-nowrap"
+                              style={{ backgroundColor: typeColor[b.type] }}
                             >
                               <span
                                 className="text-white"

@@ -8,14 +8,7 @@ import { useBookingStore } from '../../stores/bookingStore';
 import { useClientStore } from '../../stores/clientStore';
 import { useNavigate } from 'react-router-dom';
 import type { BookingStatus } from '../../types';
-
-const statusDot: Record<BookingStatus, string> = {
-  Confirmed: 'bg-[rgba(255,255,255,0.87)]',
-  Tentative: 'bg-[rgba(255,255,255,0.38)]',
-  Completed: 'bg-[#22D3EE]',
-  Cancelled: 'bg-[#CF6679]',
-  'No-show': 'bg-[#FFB74D]',
-};
+import { typeColor } from '../../types';
 
 const allStatuses: BookingStatus[] = ['Confirmed', 'Tentative', 'Completed', 'Cancelled', 'No-show'];
 
@@ -202,7 +195,8 @@ export default function BookingDrawer() {
 
             {/* Appointment */}
             <div>
-              <div className="text-text-p font-medium">
+              <div className="text-text-p font-medium flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: typeColor[booking.type] }} />
                 {booking.type} &middot; {format(d, 'EEEE, MMM d, yyyy')}
               </div>
               <div className="text-sm text-text-s mt-1">
@@ -229,7 +223,7 @@ export default function BookingDrawer() {
             <div>
               <div className="text-sm text-text-t uppercase tracking-wider mb-2.5 font-medium">Status</div>
               <div className="flex items-center gap-2.5 mb-4">
-                <span className={`w-3 h-3 rounded-full ${statusDot[booking.status]}`} />
+                <span className="w-3 h-3 rounded-full bg-text-s" />
                 <span className="text-base text-text-p">{booking.status}</span>
               </div>
               <div className="flex flex-wrap gap-3">

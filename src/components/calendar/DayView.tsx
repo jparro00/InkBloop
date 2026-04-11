@@ -17,24 +17,9 @@ import { ChevronLeft, Plus } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 import { useBookingStore } from '../../stores/bookingStore';
 import { useClientStore } from '../../stores/clientStore';
-import type { Booking, BookingStatus } from '../../types';
+import type { Booking } from '../../types';
 import { typeColor } from '../../types';
 
-const statusBg: Record<BookingStatus, string> = {
-  Confirmed: 'bg-[rgba(255,255,255,0.05)]',
-  Tentative: 'bg-[rgba(255,255,255,0.03)]',
-  Completed: 'bg-[rgba(34,211,238,0.08)]',
-  Cancelled: 'bg-[rgba(207,102,121,0.08)]',
-  'No-show': 'bg-[rgba(255,183,77,0.08)]',
-};
-
-const statusDot: Record<BookingStatus, string> = {
-  Confirmed: 'bg-[rgba(255,255,255,0.87)]',
-  Tentative: 'bg-[rgba(255,255,255,0.38)]',
-  Completed: 'bg-[#22D3EE]',
-  Cancelled: 'bg-[#CF6679]',
-  'No-show': 'bg-[#FFB74D]',
-};
 
 const hours = Array.from({ length: 24 }, (_, i) => i);
 const HOUR_HEIGHT = 48;
@@ -83,12 +68,12 @@ function DayPanel({
         return (
           <button
             key={booking.id}
-            className={`absolute left-16 right-1 rounded-[4px] p-3 ${statusBg[booking.status]} border border-border/30 cursor-pointer press-scale transition-all active:shadow-glow text-left`}
-            style={{ top, height: Math.max(height, 48), borderLeftWidth: 3, borderLeftColor: typeColor[booking.type] }}
+            className="absolute left-16 right-1 rounded-[4px] p-3 border border-border/30 cursor-pointer press-scale transition-all active:shadow-glow text-left"
+            style={{ top, height: Math.max(height, 48), borderLeftWidth: 3, borderLeftColor: typeColor[booking.type], backgroundColor: `${typeColor[booking.type]}12` }}
             onClick={(e) => { e.stopPropagation(); onBookingClick(booking.id); }}
           >
             <div className="flex items-center gap-2">
-              <span className={`w-2.5 h-2.5 rounded-full ${statusDot[booking.status]} shrink-0`} />
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: typeColor[booking.type] }} />
               <span className="text-base text-text-p font-medium truncate">
                 {client?.display_name || client?.name || 'Walk-in'}
               </span>

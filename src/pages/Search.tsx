@@ -6,15 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useClientStore } from '../stores/clientStore';
 import { useBookingStore } from '../stores/bookingStore';
 import { useUIStore } from '../stores/uiStore';
-import type { BookingStatus } from '../types';
-
-const statusDot: Record<BookingStatus, string> = {
-  Confirmed: 'bg-[rgba(255,255,255,0.87)]',
-  Tentative: 'bg-[rgba(255,255,255,0.38)]',
-  Completed: 'bg-[#22D3EE]',
-  Cancelled: 'bg-[#CF6679]',
-  'No-show': 'bg-[#FFB74D]',
-};
+import { typeColor } from '../types';
 
 export default function SearchOverlay() {
   const navigate = useNavigate();
@@ -122,7 +114,7 @@ export default function SearchOverlay() {
                     }}
                     className="w-full text-left px-5 py-4 active:bg-surface transition-colors cursor-pointer flex items-center gap-4 press-scale min-h-[56px]"
                   >
-                    <span className={`w-3 h-3 rounded-full ${statusDot[b.status]} shrink-0`} />
+                    <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: typeColor[b.type] }} />
                     <div className="min-w-0 flex-1">
                       <div className="text-base text-text-p truncate">
                         {getClientName(b.client_id)} &middot; {b.type}
