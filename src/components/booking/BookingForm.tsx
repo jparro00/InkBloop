@@ -171,16 +171,13 @@ export default function BookingForm() {
         {/* Date */}
         <div>
           <label className={labelClass}>Date *</label>
-          <div className="relative overflow-hidden">
-            <Calendar size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-t pointer-events-none z-10" />
-            <input
-              type="date"
-              value={form.date}
-              onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-              className={`${inputClass} pl-10 [color-scheme:dark]`}
-              style={{ maxWidth: '100%' }}
-            />
-          </div>
+          <input
+            type="date"
+            value={form.date}
+            onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
+            className="w-full bg-input border border-border/60 rounded-xl px-4 text-base text-text-p focus:outline-none focus:border-accent/40 transition-colors [color-scheme:dark] appearance-none"
+            style={{ height: 48, maxWidth: '100%', boxSizing: 'border-box' }}
+          />
         </div>
 
         {/* Time / Duration */}
@@ -191,7 +188,8 @@ export default function BookingForm() {
               type="time"
               value={form.time}
               onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))}
-              className={`${inputClass} [color-scheme:dark] h-[48px]`}
+              className="w-full bg-input border border-border/60 rounded-xl px-4 text-base text-text-p focus:outline-none focus:border-accent/40 transition-colors [color-scheme:dark] appearance-none"
+              style={{ height: 48, boxSizing: 'border-box' }}
             />
           </div>
           <div>
@@ -199,7 +197,8 @@ export default function BookingForm() {
             <select
               value={form.duration}
               onChange={(e) => setForm((f) => ({ ...f, duration: parseFloat(e.target.value) }))}
-              className={`${inputClass} cursor-pointer h-[48px]`}
+              className="w-full bg-input border border-border/60 rounded-xl px-4 text-base text-text-p focus:outline-none focus:border-accent/40 transition-colors cursor-pointer"
+              style={{ height: 48, boxSizing: 'border-box' }}
             >
               {[0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 7, 8].map((d) => (
                 <option key={d} value={d}>{d}h</option>

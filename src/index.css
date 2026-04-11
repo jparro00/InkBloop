@@ -56,6 +56,15 @@
   box-sizing: border-box;
 }
 
+/* Force consistent height on native date/time inputs on iOS */
+input[type="date"],
+input[type="time"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  min-height: 0;
+}
+
 html {
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
