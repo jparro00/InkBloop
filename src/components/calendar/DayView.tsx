@@ -364,41 +364,28 @@ export default function DayView() {
           const w = containerRef.current?.offsetWidth ?? 375;
           const sameWeek = isSameWeek(calendarDate, today, { weekStartsOn: 0 });
 
-          // Position today in the adjacent panel slot
-          // by setting calendarDate to one day before/after today
-          const adjacentDate = dir === 1 ? subDays(today, 1) : addDays(today, 1);
-          setCalendarDate(adjacentDate);
-          stripX.jump(0);
+          // Animate the current day off-screen, then swap to today
+          stripAnim.current?.stop();
+          stripAnim.current = animate(stripX, -dir * w, {
+            type: 'spring', stiffness: 300, damping: 30, mass: 0.8,
+            onComplete: () => {
+              stripX.jump(0);
+              setCalendarDate(today);
+              stripAnim.current = null;
+            },
+          });
 
-          // Now animate into today (which is in the next/prev slot)
-          requestAnimationFrame(() => {
-            stripAnim.current?.stop();
-            stripPendingDate.current = today;
-            stripAnim.current = animate(stripX, -dir * w, {
+          if (!sameWeek) {
+            const weekW = weekStripRef.current?.offsetWidth ?? 375;
+            weekAnim.current?.stop();
+            weekAnim.current = animate(weekX, -dir * weekW, {
               type: 'spring', stiffness: 300, damping: 30, mass: 0.8,
               onComplete: () => {
-                stripX.jump(0);
-                setCalendarDate(today);
-                stripAnim.current = null;
-                stripPendingDate.current = null;
+                weekX.jump(0);
+                weekAnim.current = null;
               },
             });
-
-            if (!sameWeek) {
-              const weekW = weekStripRef.current?.offsetWidth ?? 375;
-              weekX.jump(0);
-              weekAnim.current?.stop();
-              weekPendingDate.current = today;
-              weekAnim.current = animate(weekX, -dir * weekW, {
-                type: 'spring', stiffness: 300, damping: 30, mass: 0.8,
-                onComplete: () => {
-                  weekX.jump(0);
-                  weekAnim.current = null;
-                  weekPendingDate.current = null;
-                },
-              });
-            }
-          });
+          }
         }}
         className="fixed bottom-[100px] left-5 lg:left-auto lg:bottom-8 px-4 py-2.5 bg-elevated border border-border/60 text-text-p text-sm font-medium rounded-xl shadow-md cursor-pointer press-scale transition-all z-30"
       >
