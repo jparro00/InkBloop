@@ -168,28 +168,30 @@ export default function BookingForm() {
           )}
         </div>
 
-        {/* Date / Time / Duration */}
-        <div className="space-y-3">
-          <div>
-            <label className={labelClass}>Date *</label>
-            <div className="relative">
-              <Calendar size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-t pointer-events-none" />
-              <input
-                type="date"
-                value={form.date}
-                onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-                className={`${inputClass} pl-10 [color-scheme:dark]`}
-              />
-            </div>
+        {/* Date */}
+        <div>
+          <label className={labelClass}>Date *</label>
+          <div className="relative overflow-hidden">
+            <Calendar size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-t pointer-events-none z-10" />
+            <input
+              type="date"
+              value={form.date}
+              onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
+              className={`${inputClass} pl-10 [color-scheme:dark]`}
+              style={{ maxWidth: '100%' }}
+            />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+        </div>
+
+        {/* Time / Duration */}
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <label className={labelClass}>Time</label>
             <input
               type="time"
               value={form.time}
               onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))}
-              className={`${inputClass} [color-scheme:dark]`}
+              className={`${inputClass} [color-scheme:dark] h-[48px]`}
             />
           </div>
           <div>
@@ -197,13 +199,12 @@ export default function BookingForm() {
             <select
               value={form.duration}
               onChange={(e) => setForm((f) => ({ ...f, duration: parseFloat(e.target.value) }))}
-              className={`${inputClass} cursor-pointer`}
+              className={`${inputClass} cursor-pointer h-[48px]`}
             >
               {[0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 7, 8].map((d) => (
                 <option key={d} value={d}>{d}h</option>
               ))}
             </select>
-          </div>
           </div>
         </div>
 
