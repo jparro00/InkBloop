@@ -4,6 +4,7 @@ import { UserPlus } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import Modal from '../common/Modal';
 import ClientForm from '../client/ClientForm';
+import DatePicker from './DatePicker';
 import ImagePicker from './ImagePicker';
 import ImageThumbnailGrid from './ImageThumbnailGrid';
 import ImageViewer from './ImageViewer';
@@ -196,12 +197,10 @@ export default function BookingForm() {
         {/* Date */}
         <div>
           <label className={labelClass}>Date *</label>
-          <input
-            type="date"
+          <DatePicker
             value={form.date}
-            onChange={(e) => { setForm((f) => ({ ...f, date: e.target.value })); setMissingFields((s) => { const n = new Set(s); n.delete('date'); return n; }); }}
-            className={`w-full bg-input rounded-xl px-4 text-base text-text-p focus:outline-none transition-colors [color-scheme:dark] appearance-none ${missingFields.has('date') ? 'border-2 border-danger/60 focus:border-danger/40' : 'border border-border/60 focus:border-accent/40'}`}
-            style={{ height: 48, maxWidth: '100%', boxSizing: 'border-box' }}
+            onChange={(date) => { setForm((f) => ({ ...f, date })); setMissingFields((s) => { const n = new Set(s); n.delete('date'); return n; }); }}
+            missing={missingFields.has('date')}
           />
         </div>
 

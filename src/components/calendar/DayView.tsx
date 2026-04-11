@@ -40,6 +40,38 @@ function DayPanel({
     .filter((b) => isSameDay(new Date(b.date), day))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
+  // Compute side-by-side columns for overlapping bookings
+  const layoutBookings = dayBookings.map((booking) => {
+    const d = new Date(booking.date);
+    const start = d.getHours() + d.getMinutes() / 60;
+    const end = start + booking.duration;
+    return { booking, start, end, column: 0, totalColumns: 1 };
+  });
+
+  // Assign columns: for each booking, find first column not occupied
+  for (let i = 0; i < layoutBookings.length; i++) {
+    const occupied = new Set<number>();
+    for (let j = 0; j < i; j++) {
+      if (layoutBookings[j].end > layoutBookings[i].start && layoutBookings[j].start < layoutBookings[i].end) {
+        occupied.add(layoutBookings[j].column);
+      }
+    }
+    let col = 0;
+    while (occupied.has(col)) col++;
+    layoutBookings[i].column = col;
+  }
+
+  // Set totalColumns for each overlap group
+  for (let i = 0; i < layoutBookings.length; i++) {
+    let maxCol = layoutBookings[i].column;
+    for (let j = 0; j < layoutBookings.length; j++) {
+      if (i !== j && layoutBookings[j].end > layoutBookings[i].start && layoutBookings[j].start < layoutBookings[i].end) {
+        maxCol = Math.max(maxCol, layoutBookings[j].column);
+      }
+    }
+    layoutBookings[i].totalColumns = maxCol + 1;
+  }
+
   return (
     <div className="shrink-0 relative" style={{ minHeight: hours.length * HOUR_HEIGHT, width: 'calc(100% / 3)' }}>
       {hours.map((hour) => {
@@ -59,24 +91,34 @@ function DayPanel({
         );
       })}
 
-      {dayBookings.map((booking) => {
+      {layoutBookings.map(({ booking, column, totalColumns }) => {
         const d = new Date(booking.date);
         const startHour = d.getHours() + d.getMinutes() / 60;
         const top = startHour * HOUR_HEIGHT;
         const height = booking.duration * HOUR_HEIGHT;
         const client = getClient(booking.client_id ?? '');
+        const leftPct = (column / totalColumns) * 100;
+        const widthPct = 100 / totalColumns;
         return (
           <button
             key={booking.id}
-            className="absolute left-16 right-1 rounded-[4px] pt-1.5 px-3 pb-1 border border-border/30 cursor-pointer press-scale transition-all active:shadow-glow text-left overflow-hidden flex flex-col justify-start"
-            style={{ top, height: Math.max(height, 48), borderLeftWidth: 3, borderLeftColor: booking.rescheduled ? '#CF6679' : typeColor[booking.type], backgroundColor: `${typeColor[booking.type]}12` }}
+            className="absolute rounded-[4px] pt-1.5 px-2 pb-1 border border-border/30 cursor-pointer press-scale transition-all active:shadow-glow text-left overflow-hidden flex flex-col justify-start"
+            style={{
+              top,
+              height: Math.max(height, 48),
+              left: `calc(64px + (100% - 68px) * ${leftPct / 100})`,
+              width: `calc((100% - 68px) * ${widthPct / 100})`,
+              borderLeftWidth: 3,
+              borderLeftColor: booking.rescheduled ? '#CF6679' : typeColor[booking.type],
+              backgroundColor: `${typeColor[booking.type]}12`,
+            }}
             onClick={(e) => { e.stopPropagation(); onBookingClick(booking.id); }}
           >
-            <div className="text-base text-text-p font-medium truncate">
+            <div className="text-sm text-text-p font-medium truncate">
               {client?.display_name || client?.name || 'Walk-in'}
             </div>
-            <div className="text-sm text-text-s mt-0.5">
-              {format(d, 'h:mm a')} · {booking.type} · {booking.duration}h
+            <div className="text-xs text-text-s mt-0.5 truncate">
+              {format(d, 'h:mm a')} · {booking.duration}h
             </div>
           </button>
         );
