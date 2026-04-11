@@ -37,7 +37,7 @@ export default function MobileTabBar() {
               className={({ isActive }) =>
                 `flex flex-col items-center justify-center min-w-[60px] min-h-[48px] px-4 py-2 rounded-lg transition-all duration-200 press-scale ${
                   isActive && action !== 'search'
-                    ? 'bg-accent/12 text-accent'
+                    ? 'bg-accent/12 text-accent shadow-glow-strong'
                     : 'text-text-t active:text-text-s'
                 }`
               }

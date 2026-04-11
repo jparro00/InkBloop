@@ -373,11 +373,7 @@ export default function DayView() {
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div className="px-3 pt-4 pb-2 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-accent shrink-0 lg:hidden">
-            <path d="M12 2C12 2 9.5 8 9 12c-.3 2.5.5 4.5 2 6.5L12 20l1-1.5c1.5-2 2.3-4 2-6.5C14.5 8 12 2 12 2z" fill="currentColor" opacity="0.7"/>
-            <path d="M12 18.5c-.3.8-.5 1.8-.4 2.8.05.4.15.7.4.7s.35-.3.4-.7c.1-1-.1-2-.4-2.8z" fill="currentColor"/>
-          </svg>
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setCalendarView('month')}
             className="flex items-center gap-1 text-text-p active:opacity-70 transition-opacity cursor-pointer press-scale min-h-[44px]"
@@ -385,6 +381,10 @@ export default function DayView() {
             <ChevronLeft size={20} />
             <span className="text-[22px] font-medium">{format(calendarDate, 'MMMM')}</span>
           </button>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-accent shrink-0 lg:hidden">
+            <path d="M12 2C12 2 9.5 8 9 12c-.3 2.5.5 4.5 2 6.5L12 20l1-1.5c1.5-2 2.3-4 2-6.5C14.5 8 12 2 12 2z" fill="currentColor" opacity="0.7"/>
+            <path d="M12 18.5c-.3.8-.5 1.8-.4 2.8.05.4.15.7.4.7s.35-.3.4-.7c.1-1-.1-2-.4-2.8z" fill="currentColor"/>
+          </svg>
         </div>
         <div className="flex items-center gap-2">
           <button
