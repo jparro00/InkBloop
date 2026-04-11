@@ -141,7 +141,9 @@ export default function DayView() {
   const stripX = useMotionValue(0);
   const weekX = useMotionValue(0);
   const stripAnim = useRef<ReturnType<typeof animate> | null>(null);
+  const stripPendingDate = useRef<Date | null>(null);
   const weekAnim = useRef<ReturnType<typeof animate> | null>(null);
+  const weekPendingDate = useRef<Date | null>(null);
 
   const prevDay = subDays(calendarDate, 1);
   const nextDay = addDays(calendarDate, 1);
@@ -170,9 +172,14 @@ export default function DayView() {
   const timelineBind = useDrag(
     ({ movement: [mx], velocity: [vx], direction: [dx], first, last }) => {
       if (first) {
-        // Cancel any running animation so a new swipe can start immediately
-        stripAnim.current?.stop();
-        stripAnim.current = null;
+        // If mid-animation, commit the pending date so next swipe starts from correct day
+        if (stripAnim.current && stripPendingDate.current) {
+          stripAnim.current.stop();
+          setCalendarDate(stripPendingDate.current);
+          stripPendingDate.current = null;
+          stripAnim.current = null;
+        }
+        stripX.set(0);
       }
       stripX.set(mx);
       if (last) {
@@ -180,12 +187,14 @@ export default function DayView() {
           const dir = dx > 0 ? -1 : 1;
           const w = containerRef.current?.offsetWidth ?? 375;
           const newDate = dir === 1 ? addDays(calendarDate, 1) : subDays(calendarDate, 1);
+          stripPendingDate.current = newDate;
           stripAnim.current = animate(stripX, -dir * w, {
             type: 'spring', stiffness: 300, damping: 30, mass: 0.8,
             onComplete: () => {
               setCalendarDate(newDate);
               stripX.set(0);
               stripAnim.current = null;
+              stripPendingDate.current = null;
             },
           });
         } else {
@@ -206,8 +215,13 @@ export default function DayView() {
         return;
       }
       if (first) {
-        weekAnim.current?.stop();
-        weekAnim.current = null;
+        if (weekAnim.current && weekPendingDate.current) {
+          weekAnim.current.stop();
+          setCalendarDate(weekPendingDate.current);
+          weekPendingDate.current = null;
+          weekAnim.current = null;
+        }
+        weekX.set(0);
       }
       weekX.set(mx);
       if (last) {
@@ -215,12 +229,14 @@ export default function DayView() {
           const dir = mx < 0 ? 1 : -1;
           const w = weekStripRef.current?.offsetWidth ?? 375;
           const newDate = dir === 1 ? addWeeks(calendarDate, 1) : subWeeks(calendarDate, 1);
+          weekPendingDate.current = newDate;
           weekAnim.current = animate(weekX, -dir * w, {
             type: 'spring', stiffness: 300, damping: 30, mass: 0.8,
             onComplete: () => {
               setCalendarDate(newDate);
               weekX.set(0);
               weekAnim.current = null;
+              weekPendingDate.current = null;
             },
           });
         } else {
