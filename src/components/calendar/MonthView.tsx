@@ -199,7 +199,8 @@ export default function MonthView() {
                           return (
                             <div
                               key={b.id}
-                              className={`${statusColor[b.status]} rounded-sm px-1 py-[1px] text-[10px] leading-tight text-white truncate`}
+                              className={`${statusColor[b.status]} rounded-sm px-1 py-[1px] text-[10px] leading-tight text-white overflow-hidden whitespace-nowrap`}
+                              style={{ maskImage: 'linear-gradient(to right, black 70%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, black 70%, transparent 100%)' }}
                             >
                               {name}
                             </div>
