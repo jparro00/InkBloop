@@ -11,11 +11,21 @@ export async function generateThumbnail(
   const tw = Math.round(width * scale);
   const th = Math.round(height * scale);
 
-  const canvas = new OffscreenCanvas(tw, th);
+  // Use regular canvas for maximum compatibility
+  const canvas = document.createElement('canvas');
+  canvas.width = tw;
+  canvas.height = th;
   const ctx = canvas.getContext('2d')!;
   ctx.drawImage(bitmap, 0, 0, tw, th);
   bitmap.close();
 
-  const thumbnail = await canvas.convertToBlob({ type: 'image/jpeg', quality: THUMB_QUALITY });
+  const thumbnail = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error('Failed to create thumbnail'))),
+      'image/jpeg',
+      THUMB_QUALITY
+    );
+  });
+
   return { thumbnail, width, height };
 }
