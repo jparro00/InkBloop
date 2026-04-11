@@ -97,15 +97,13 @@ function DayPanel({
         const currentHour = now.getHours() + now.getMinutes() / 60;
         const top = currentHour * HOUR_HEIGHT;
         return (
-          <div className="absolute left-0 right-0 z-20 pointer-events-none" style={{ top }}>
-            <div className="flex items-center">
-              <div className="w-16 flex justify-end pr-1">
-                <span className="text-xs text-white font-medium bg-today rounded-md px-1.5 py-0.5">
-                  {format(now, 'h:mm')}
-                </span>
-              </div>
-              <div className="flex-1 h-[2px] bg-today" />
+          <div className="absolute left-0 right-0 z-20 pointer-events-none flex items-center" style={{ top, transform: 'translateY(-50%)' }}>
+            <div className="w-16 flex justify-end pr-0.5 shrink-0">
+              <span className="text-xs text-white font-medium bg-today rounded-md px-3 py-0.5">
+                {format(now, 'h:mm')}
+              </span>
             </div>
+            <div className="flex-1 h-[2px] bg-today" />
           </div>
         );
       })()}
