@@ -195,8 +195,7 @@ export default function BookingDrawer() {
 
             {/* Appointment */}
             <div>
-              <div className="text-text-p font-medium flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: typeColor[booking.type] }} />
+              <div className="text-text-p font-medium">
                 {booking.type} &middot; {format(d, 'EEEE, MMM d, yyyy')}
               </div>
               <div className="text-sm text-text-s mt-1">

@@ -175,8 +175,7 @@ export default function ClientDetailPage() {
               onClick={() => setSelectedBookingId(b.id)}
               className="w-full text-left flex items-center gap-4 px-5 py-4 rounded-xl active:bg-elevated/40 transition-colors cursor-pointer press-scale min-h-[64px]"
             >
-              <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: typeColor[b.type] }} />
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0" style={{ borderLeftWidth: 3, borderLeftColor: typeColor[b.type], paddingLeft: 12 }}>
                 <div className="text-base text-text-p truncate">
                   {b.type}
                 </div>

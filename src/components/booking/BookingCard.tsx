@@ -38,11 +38,10 @@ export default function BookingCard({ booking, compact }: BookingCardProps) {
       className="w-full text-left p-4 rounded-xl border border-border/30 cursor-pointer press-scale transition-all duration-200 active:shadow-glow hover:shadow-glow hover:border-accent/20 min-h-[56px]"
       style={{ borderLeftWidth: 3, borderLeftColor: color, backgroundColor: `${color}12` }}
     >
-      <div className="flex items-center gap-3 mb-2">
-        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+      <div className="mb-1">
         <span className="text-base text-text-p font-medium truncate">{client?.name ?? 'Walk-in'}</span>
       </div>
-      <div className="text-sm text-text-s pl-[22px]">
+      <div className="text-sm text-text-s">
         {format(new Date(booking.date), 'h:mm a')} &middot; {booking.type} &middot; {booking.duration}h
       </div>
     </button>

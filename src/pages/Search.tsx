@@ -114,8 +114,7 @@ export default function SearchOverlay() {
                     }}
                     className="w-full text-left px-5 py-4 active:bg-surface transition-colors cursor-pointer flex items-center gap-4 press-scale min-h-[56px]"
                   >
-                    <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: typeColor[b.type] }} />
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1" style={{ borderLeftWidth: 3, borderLeftColor: typeColor[b.type], paddingLeft: 12 }}>
                       <div className="text-base text-text-p truncate">
                         {getClientName(b.client_id)} &middot; {b.type}
                       </div>

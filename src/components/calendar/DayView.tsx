@@ -68,17 +68,14 @@ function DayPanel({
         return (
           <button
             key={booking.id}
-            className="absolute left-16 right-1 rounded-[4px] p-3 border border-border/30 cursor-pointer press-scale transition-all active:shadow-glow text-left"
+            className="absolute left-16 right-1 rounded-[4px] pt-1.5 px-3 pb-1 border border-border/30 cursor-pointer press-scale transition-all active:shadow-glow text-left overflow-hidden"
             style={{ top, height: Math.max(height, 48), borderLeftWidth: 3, borderLeftColor: typeColor[booking.type], backgroundColor: `${typeColor[booking.type]}12` }}
             onClick={(e) => { e.stopPropagation(); onBookingClick(booking.id); }}
           >
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: typeColor[booking.type] }} />
-              <span className="text-base text-text-p font-medium truncate">
-                {client?.display_name || client?.name || 'Walk-in'}
-              </span>
+            <div className="text-base text-text-p font-medium truncate">
+              {client?.display_name || client?.name || 'Walk-in'}
             </div>
-            <div className="text-sm text-text-s mt-1 pl-[18px]">
+            <div className="text-sm text-text-s mt-0.5">
               {format(d, 'h:mm a')} · {booking.type} · {booking.duration}h
             </div>
           </button>
