@@ -375,7 +375,10 @@ export default function DayView() {
       <button
         onClick={() => {
           const today = new Date();
-          if (isSameDay(calendarDate, today)) return;
+          if (isSameDay(calendarDate, today)) {
+            scrollToNow();
+            return;
+          }
 
           const dir: 1 | -1 = today > calendarDate ? 1 : -1;
           const w = containerRef.current?.offsetWidth ?? 375;

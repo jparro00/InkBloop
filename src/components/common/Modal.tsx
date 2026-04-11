@@ -1,7 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { useDrag } from '@use-gesture/react';
-import { X } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 interface ModalProps {
@@ -125,14 +124,8 @@ export default function Modal({ title, onClose, children, width = 'lg:max-w-[620
             <div className="w-10 h-1 rounded-full bg-border-s/60" />
           </div>
 
-          <div className="flex items-center justify-between px-5 py-4 lg:px-6 lg:py-4 border-b border-border shrink-0">
+          <div className="px-5 py-4 lg:px-6 lg:py-4 border-b border-border shrink-0">
             <h2 className="font-display text-xl text-text-p">{title}</h2>
-            <button
-              onClick={dismiss}
-              className="w-12 h-12 flex items-center justify-center rounded-full hover:bg-surface text-text-t hover:text-text-s transition-colors cursor-pointer"
-            >
-              <X size={22} />
-            </button>
           </div>
           <div ref={contentRef} className="px-5 py-5 lg:px-6 lg:py-5 overflow-y-auto overflow-x-hidden flex-1"
             style={{ overscrollBehavior: 'contain', touchAction: 'pan-y' }}
