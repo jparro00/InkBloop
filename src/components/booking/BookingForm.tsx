@@ -5,6 +5,7 @@ import { AnimatePresence } from 'framer-motion';
 import Modal from '../common/Modal';
 import ClientForm from '../client/ClientForm';
 import DatePicker from './DatePicker';
+import TimePicker from './TimePicker';
 import ImagePicker from './ImagePicker';
 import ImageThumbnailGrid from './ImageThumbnailGrid';
 import ImageViewer from './ImageViewer';
@@ -204,31 +205,31 @@ export default function BookingForm() {
           />
         </div>
 
-        {/* Time / Duration */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={labelClass}>Time</label>
-            <input
-              type="time"
-              value={form.time}
-              onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))}
-              className="w-full bg-input border border-border/60 rounded-xl px-4 text-base text-text-p focus:outline-none focus:border-accent/40 transition-colors [color-scheme:dark] appearance-none"
-              style={{ height: 48, boxSizing: 'border-box' }}
-            />
-          </div>
-          <div>
-            <label className={labelClass}>Duration</label>
-            <select
-              value={form.duration}
-              onChange={(e) => setForm((f) => ({ ...f, duration: parseFloat(e.target.value) }))}
-              className="w-full bg-input border border-border/60 rounded-xl px-4 text-base text-text-p focus:outline-none focus:border-accent/40 transition-colors cursor-pointer"
-              style={{ height: 48, boxSizing: 'border-box' }}
-            >
-              {[0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 7, 8].map((d) => (
-                <option key={d} value={d}>{d}h</option>
-              ))}
-            </select>
-          </div>
+        {/* Duration */}
+        <div>
+          <label className={labelClass}>Duration</label>
+          <select
+            value={form.duration}
+            onChange={(e) => setForm((f) => ({ ...f, duration: parseFloat(e.target.value) }))}
+            className="w-full bg-input border border-border/60 rounded-xl px-4 text-base text-text-p focus:outline-none focus:border-accent/40 transition-colors cursor-pointer"
+            style={{ height: 48, boxSizing: 'border-box' }}
+          >
+            {[0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 7, 8].map((d) => (
+              <option key={d} value={d}>{d}h</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Time */}
+        <div>
+          <label className={labelClass}>Time</label>
+          <TimePicker
+            value={form.time}
+            onChange={(time) => setForm((f) => ({ ...f, time }))}
+            date={form.date}
+            duration={form.duration}
+            editingBookingId={editingBookingId ?? undefined}
+          />
         </div>
 
         {/* Type */}
