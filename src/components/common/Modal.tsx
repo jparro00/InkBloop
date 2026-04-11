@@ -54,7 +54,7 @@ export default function Modal({ title, onClose, children, width = 'lg:max-w-[620
     };
   }, []);
 
-  // When an input is focused, scroll it into view within the modal content
+  // When an input is focused, scroll it into view only if it's below the visible area
   useEffect(() => {
     const el = contentRef.current;
     if (!el) return;
@@ -62,9 +62,14 @@ export default function Modal({ title, onClose, children, width = 'lg:max-w-[620
       setTimeout(() => {
         const active = document.activeElement as HTMLElement;
         if (active && el.contains(active)) {
-          active.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          const elRect = el.getBoundingClientRect();
+          const activeRect = active.getBoundingClientRect();
+          // Only scroll if the input is below the visible content area
+          if (activeRect.bottom > elRect.bottom || activeRect.top < elRect.top) {
+            active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          }
         }
-      }, 300); // Wait for keyboard to finish opening
+      }, 300);
     };
     el.addEventListener('focusin', onFocusIn);
     return () => el.removeEventListener('focusin', onFocusIn);
