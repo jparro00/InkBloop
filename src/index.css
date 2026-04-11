@@ -79,7 +79,7 @@ html, body, #root {
   font-size: var(--text-base);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overscroll-behavior-y: contain;
+  overscroll-behavior: none;
 }
 
 /* Warm grain texture overlay */
