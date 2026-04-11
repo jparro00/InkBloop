@@ -30,35 +30,9 @@ export default function Modal({ title, onClose, children, width = 'lg:max-w-[620
   useEffect(() => {
     const vp = window.visualViewport;
     if (!vp) return;
-    const handler = () => {
-      setVpHeight(vp.height);
-      // Counteract iOS viewport scroll so modal doesn't jump
-      if (sheetRef.current) {
-        sheetRef.current.style.transform = `translateY(${-vp.offsetTop}px)`;
-      }
-    };
+    const handler = () => setVpHeight(vp.height);
     vp.addEventListener('resize', handler);
-    vp.addEventListener('scroll', handler);
-    return () => {
-      vp.removeEventListener('resize', handler);
-      vp.removeEventListener('scroll', handler);
-    };
-  }, []);
-
-  // Lock body scroll while modal is open
-  useEffect(() => {
-    const scrollY = window.scrollY;
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.left = '0';
-    document.body.style.right = '0';
-    return () => {
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.left = '';
-      document.body.style.right = '';
-      window.scrollTo(0, scrollY);
-    };
+    return () => vp.removeEventListener('resize', handler);
   }, []);
 
   // Prevent overscroll bounce at top only
@@ -78,6 +52,22 @@ export default function Modal({ title, onClose, children, width = 'lg:max-w-[620
       el.removeEventListener('touchstart', onTouchStart);
       el.removeEventListener('touchmove', onTouchMove);
     };
+  }, []);
+
+  // When an input is focused, scroll it into view within the modal content
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const onFocusIn = () => {
+      setTimeout(() => {
+        const active = document.activeElement as HTMLElement;
+        if (active && el.contains(active)) {
+          active.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+      }, 300); // Wait for keyboard to finish opening
+    };
+    el.addEventListener('focusin', onFocusIn);
+    return () => el.removeEventListener('focusin', onFocusIn);
   }, []);
 
   const dismiss = () => {
