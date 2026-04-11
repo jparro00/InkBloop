@@ -6,16 +6,18 @@ import { motion, useMotionValue, animate } from 'framer-motion';
 import { useBookingStore } from '../../stores/bookingStore';
 
 interface DatePickerProps {
-  value: string; // yyyy-MM-dd
+  value: string;
   onChange: (date: string) => void;
   missing?: boolean;
 }
 
-function MonthGrid({ month, selectedDate, bookedDays, onSelect }: {
+function MonthPanel({ month, selectedDate, bookedDays, onSelect, onPrev, onNext }: {
   month: Date;
   selectedDate: Date | null;
   bookedDays: Set<string>;
   onSelect: (day: Date) => void;
+  onPrev: () => void;
+  onNext: () => void;
 }) {
   const monthStart = startOfMonth(month);
   const monthEnd = endOfMonth(month);
@@ -24,41 +26,74 @@ function MonthGrid({ month, selectedDate, bookedDays, onSelect }: {
   const days = eachDayOfInterval({ start: gridStart, end: gridEnd });
 
   return (
-    <div className="grid grid-cols-7 gap-0 shrink-0" style={{ width: 'calc(100% / 3)' }}>
-      {days.map((day) => {
-        const inMonth = isSameMonth(day, month);
-        const selected = selectedDate && isSameDay(day, selectedDate);
-        const today = isToday(day);
-        const hasBooking = bookedDays.has(day.toDateString());
+    <div className="shrink-0 w-full space-y-2">
+      {/* Month header */}
+      <div className="flex items-center justify-between px-1">
+        <button
+          type="button"
+          onClick={onPrev}
+          className="w-8 h-8 flex items-center justify-center rounded-full text-text-s active:bg-surface cursor-pointer"
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <span className="text-sm font-medium text-text-p">
+          {format(month, 'MMMM yyyy')}
+        </span>
+        <button
+          type="button"
+          onClick={onNext}
+          className="w-8 h-8 flex items-center justify-center rounded-full text-text-s active:bg-surface cursor-pointer"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
 
-        return (
-          <button
-            type="button"
-            key={day.toISOString()}
-            onClick={() => onSelect(day)}
-            className={`flex flex-col items-center justify-center py-1 cursor-pointer rounded-lg transition-colors ${
-              !inMonth ? 'opacity-25' : ''
-            }`}
-          >
-            <span
-              className={`w-8 h-8 flex items-center justify-center rounded-full text-sm transition-colors ${
-                selected
-                  ? 'bg-accent text-bg font-medium'
-                  : today
-                  ? 'text-today font-medium'
-                  : 'text-text-p'
+      {/* Day headers */}
+      <div className="grid grid-cols-7">
+        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+          <div key={i} className="text-center text-xs text-text-t font-medium py-1">
+            {d}
+          </div>
+        ))}
+      </div>
+
+      {/* Day grid */}
+      <div className="grid grid-cols-7">
+        {days.map((day) => {
+          const inMonth = isSameMonth(day, month);
+          const selected = selectedDate && isSameDay(day, selectedDate);
+          const today = isToday(day);
+          const hasBooking = bookedDays.has(day.toDateString());
+
+          return (
+            <button
+              type="button"
+              key={day.toISOString()}
+              onClick={() => onSelect(day)}
+              className={`flex flex-col items-center justify-center py-1 cursor-pointer rounded-lg transition-colors ${
+                !inMonth ? 'opacity-25' : ''
               }`}
             >
-              {format(day, 'd')}
-            </span>
-            <span
-              className={`w-1 h-1 rounded-full mt-0.5 ${
-                hasBooking ? (selected ? 'bg-accent' : 'bg-text-t') : 'bg-transparent'
-              }`}
-            />
-          </button>
-        );
-      })}
+              <span
+                className={`w-8 h-8 flex items-center justify-center rounded-full text-sm transition-colors ${
+                  selected
+                    ? 'bg-accent text-bg font-medium'
+                    : today
+                    ? 'text-today font-medium'
+                    : 'text-text-p'
+                }`}
+              >
+                {format(day, 'd')}
+              </span>
+              <span
+                className={`w-1 h-1 rounded-full mt-0.5 ${
+                  hasBooking ? (selected ? 'bg-accent' : 'bg-text-t') : 'bg-transparent'
+                }`}
+              />
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -83,22 +118,20 @@ export default function DatePicker({ value, onChange, missing }: DatePickerProps
   // Get booked days for all 3 visible months
   const bookedDays = useMemo(() => {
     const set = new Set<string>();
-    const months = [prevMonth, viewMonth, nextMonth];
     allBookings.forEach((b) => {
       const d = new Date(b.date);
-      for (const m of months) {
-        if (d.getFullYear() === m.getFullYear() && d.getMonth() === m.getMonth()) {
-          set.add(d.toDateString());
-          break;
-        }
-      }
+      set.add(d.toDateString());
     });
     return set;
-  }, [allBookings, viewMonth, prevMonth, nextMonth]);
+  }, [allBookings]);
 
   const handleSelect = (day: Date) => {
     onChange(format(day, 'yyyy-MM-dd'));
     setOpen(false);
+  };
+
+  const changeMonth = (dir: 1 | -1) => {
+    setViewMonth((m) => dir === 1 ? addMonths(m, 1) : subMonths(m, 1));
   };
 
   const bindSwipe = useDrag(
@@ -159,14 +192,11 @@ export default function DatePicker({ value, onChange, missing }: DatePickerProps
 
   return (
     <div ref={containerRef}>
-      {/* Trigger button */}
       <button
         type="button"
         onClick={() => setOpen(!open)}
         className={`w-full bg-input rounded-xl px-4 text-left text-base flex items-center gap-3 transition-colors cursor-pointer ${
-          missing
-            ? 'border-2 border-danger/60'
-            : 'border border-border/60'
+          missing ? 'border-2 border-danger/60' : 'border border-border/60'
         } ${value ? 'text-text-p' : 'text-text-t'}`}
         style={{ height: 48 }}
       >
@@ -174,47 +204,18 @@ export default function DatePicker({ value, onChange, missing }: DatePickerProps
         {displayText}
       </button>
 
-      {/* Calendar dropdown */}
       {open && (
-        <div className="mt-2 bg-elevated border border-accent/20 rounded-xl p-3 space-y-3 shadow-glow overflow-hidden">
-          {/* Month navigation */}
-          <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setViewMonth((m) => subMonths(m, 1))}
-              className="w-9 h-9 flex items-center justify-center rounded-full text-text-s active:bg-surface cursor-pointer"
-            >
-              <ChevronLeft size={18} />
-            </button>
-            <span className="text-sm font-medium text-text-p">
-              {format(viewMonth, 'MMMM yyyy')}
-            </span>
-            <button
-              type="button"
-              onClick={() => setViewMonth((m) => addMonths(m, 1))}
-              className="w-9 h-9 flex items-center justify-center rounded-full text-text-s active:bg-surface cursor-pointer"
-            >
-              <ChevronRight size={18} />
-            </button>
-          </div>
-
-          {/* Day headers */}
-          <div className="grid grid-cols-7 gap-0">
-            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-              <div key={i} className="text-center text-xs text-text-t font-medium py-1">
-                {d}
-              </div>
-            ))}
-          </div>
-
-          {/* 3-panel carousel */}
-          <div {...bindSwipe()} ref={carouselRef} className="overflow-hidden" style={{ touchAction: 'pan-y' }}>
-            <motion.div className="flex" style={{ x: carouselX, marginLeft: '-100%' }}>
-              <MonthGrid month={prevMonth} selectedDate={selectedDate} bookedDays={bookedDays} onSelect={handleSelect} />
-              <MonthGrid month={viewMonth} selectedDate={selectedDate} bookedDays={bookedDays} onSelect={handleSelect} />
-              <MonthGrid month={nextMonth} selectedDate={selectedDate} bookedDays={bookedDays} onSelect={handleSelect} />
-            </motion.div>
-          </div>
+        <div
+          {...bindSwipe()}
+          ref={carouselRef}
+          className="mt-2 bg-elevated border border-accent/20 rounded-xl p-3 shadow-glow overflow-hidden"
+          style={{ touchAction: 'pan-y' }}
+        >
+          <motion.div className="flex" style={{ x: carouselX, marginLeft: '-100%' }}>
+            <MonthPanel month={prevMonth} selectedDate={selectedDate} bookedDays={bookedDays} onSelect={handleSelect} onPrev={() => changeMonth(-1)} onNext={() => changeMonth(1)} />
+            <MonthPanel month={viewMonth} selectedDate={selectedDate} bookedDays={bookedDays} onSelect={handleSelect} onPrev={() => changeMonth(-1)} onNext={() => changeMonth(1)} />
+            <MonthPanel month={nextMonth} selectedDate={selectedDate} bookedDays={bookedDays} onSelect={handleSelect} onPrev={() => changeMonth(-1)} onNext={() => changeMonth(1)} />
+          </motion.div>
         </div>
       )}
     </div>
