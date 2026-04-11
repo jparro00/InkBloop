@@ -157,7 +157,7 @@ function WeekRow({ baseDate, selectedDate, onDayClick, bookings }: {
   const days = eachDayOfInterval({ start: ws, end: we });
 
   return (
-    <div className="shrink-0 grid grid-cols-7 px-3 py-2" style={{ width: 'calc(100% / 3)' }}>
+    <div className="shrink-0 grid grid-cols-7 px-3 py-1" style={{ width: 'calc(100% / 3)' }}>
       {days.map((day) => {
         const today = isToday(day);
         const selected = isSameDay(day, selectedDate);
@@ -166,11 +166,8 @@ function WeekRow({ baseDate, selectedDate, onDayClick, bookings }: {
           <button
             key={day.toISOString()}
             onClick={() => onDayClick(day)}
-            className="flex flex-col items-center gap-0.5 py-1 cursor-pointer transition-colors"
+            className="flex flex-col items-center gap-0.5 py-0.5 cursor-pointer transition-colors"
           >
-            <span className={`text-[17px] font-medium ${today && !selected ? 'text-today' : 'text-text-t'}`}>
-              {format(day, 'EEEEE')}
-            </span>
             <span
               className={`w-10 h-10 flex items-center justify-center rounded-full text-[17px] font-medium transition-colors ${
                 selected && today
@@ -392,6 +389,15 @@ export default function DayView() {
         >
           <Plus size={20} />
         </button>
+      </div>
+
+      {/* Fixed day headers — shared with month view */}
+      <div className="grid grid-cols-7 px-3 shrink-0">
+        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+          <div key={i} className="py-2 text-center text-[17px] text-text-t font-medium">
+            {d}
+          </div>
+        ))}
       </div>
 
       {/* Week strip carousel */}
