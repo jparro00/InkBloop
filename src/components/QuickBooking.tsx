@@ -52,15 +52,11 @@ export default function QuickBooking() {
       fullScreenMobile={false}
     >
       <div className="space-y-4">
-        <p className="text-base text-text-s">
-          Describe the booking in your own words — the AI will extract the details.
-        </p>
-
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={5}
-          placeholder='e.g. "Sarah wants a touch up next Thursday at 2pm, about 1 hour, $150"'
+          placeholder="Describe the booking in your own words..."
           className="w-full bg-input border border-border/60 rounded-xl px-4 py-4 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 resize-none transition-colors"
           autoFocus
           disabled={loading}
