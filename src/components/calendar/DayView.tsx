@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import {
   format,
   isSameDay,
@@ -154,6 +154,15 @@ export default function DayView() {
   const getClient = useClientStore((s) => s.getClient);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasScrolledToStart = useRef(false);
+
+  // Scroll to 8am on first render
+  useEffect(() => {
+    if (!hasScrolledToStart.current && containerRef.current) {
+      containerRef.current.scrollTop = 8 * HOUR_HEIGHT;
+      hasScrolledToStart.current = true;
+    }
+  }, []);
   const weekStripRef = useRef<HTMLDivElement>(null);
   const stripX = useMotionValue(0);
   const weekX = useMotionValue(0);
