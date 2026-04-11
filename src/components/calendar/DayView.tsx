@@ -185,10 +185,11 @@ export default function DayView() {
           const dir = dx > 0 ? -1 : 1;
           const w = containerRef.current?.offsetWidth ?? 375;
           isAnimating.current = true;
+          // Update date immediately so week strip highlight moves instantly
+          setCalendarDate(dir === 1 ? addDays(calendarDate, 1) : subDays(calendarDate, 1));
           animate(stripX, -dir * w, {
             type: 'spring', stiffness: 300, damping: 30, mass: 0.8,
             onComplete: () => {
-              setCalendarDate(dir === 1 ? addDays(calendarDate, 1) : subDays(calendarDate, 1));
               stripX.set(0);
               isAnimating.current = false;
             },
@@ -217,10 +218,10 @@ export default function DayView() {
           const dir = mx < 0 ? 1 : -1;
           const w = weekStripRef.current?.offsetWidth ?? 375;
           isWeekAnimating.current = true;
+          setCalendarDate(dir === 1 ? addWeeks(calendarDate, 1) : subWeeks(calendarDate, 1));
           animate(weekX, -dir * w, {
             type: 'spring', stiffness: 300, damping: 30, mass: 0.8,
             onComplete: () => {
-              setCalendarDate(dir === 1 ? addWeeks(calendarDate, 1) : subWeeks(calendarDate, 1));
               weekX.set(0);
               isWeekAnimating.current = false;
             },
