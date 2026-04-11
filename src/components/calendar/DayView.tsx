@@ -216,10 +216,24 @@ export default function DayView() {
   const prevWeekDate = panelOverride?.dir === -1 ? panelOverride.day : subWeeks(calendarDate, 1);
   const nextWeekDate = panelOverride?.dir === 1 ? panelOverride.day : addWeeks(calendarDate, 1);
 
-  // Scroll to 8am on first render
+  const scrollToNow = useCallback(() => {
+    if (!containerRef.current) return;
+    const now = new Date();
+    const currentHour = now.getHours() + now.getMinutes() / 60;
+    const targetScroll = currentHour * HOUR_HEIGHT - containerRef.current.offsetHeight / 2;
+    containerRef.current.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
+  }, []);
+
+  // Scroll to current time (or 8am if not today) on first render
   useEffect(() => {
     if (!hasScrolledToStart.current && containerRef.current) {
-      containerRef.current.scrollTop = 8 * HOUR_HEIGHT;
+      if (isToday(calendarDate)) {
+        const now = new Date();
+        const currentHour = now.getHours() + now.getMinutes() / 60;
+        containerRef.current.scrollTop = Math.max(0, currentHour * HOUR_HEIGHT - containerRef.current.offsetHeight / 2);
+      } else {
+        containerRef.current.scrollTop = 8 * HOUR_HEIGHT;
+      }
       hasScrolledToStart.current = true;
     }
   }, []);
@@ -380,6 +394,8 @@ export default function DayView() {
                 setPanelOverride(null);
                 setCalendarDate(today);
                 stripAnim.current = null;
+                // Scroll to current time after today renders
+                requestAnimationFrame(() => scrollToNow());
               },
             });
 
