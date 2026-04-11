@@ -52,7 +52,7 @@ export default function AppShell() {
       {/* Quick Booking FAB */}
       <button
         onClick={() => setQuickBookingOpen(true)}
-        className="fixed bottom-[100px] right-5 lg:bottom-8 lg:right-8 w-14 h-14 bg-accent text-bg rounded-2xl shadow-lg shadow-accent/20 flex items-center justify-center z-30 cursor-pointer press-scale transition-transform active:shadow-glow-strong"
+        className="fixed bottom-[100px] right-5 lg:bottom-8 lg:right-8 w-14 h-14 bg-secondary text-bg rounded-2xl shadow-lg shadow-secondary/20 flex items-center justify-center z-30 cursor-pointer press-scale transition-transform active:shadow-glow-strong"
         title="Quick Booking"
       >
         <Pen size={20} />

@@ -6,7 +6,7 @@ import { useUIStore } from '../../stores/uiStore';
 const statusStyles: Record<BookingStatus, { dot: string; bg: string; border: string }> = {
   Confirmed: { dot: 'bg-[rgba(255,255,255,0.87)]', bg: 'bg-[rgba(255,255,255,0.05)]', border: 'border-[rgba(255,255,255,0.08)]' },
   Tentative: { dot: 'bg-[rgba(255,255,255,0.38)]', bg: 'bg-[rgba(255,255,255,0.03)]', border: 'border-[rgba(255,255,255,0.06)]' },
-  Completed: { dot: 'bg-[#81C784]', bg: 'bg-[rgba(129,199,132,0.08)]', border: 'border-[rgba(129,199,132,0.12)]' },
+  Completed: { dot: 'bg-[#22D3EE]', bg: 'bg-[rgba(34,211,238,0.08)]', border: 'border-[rgba(34,211,238,0.12)]' },
   Cancelled: { dot: 'bg-[#CF6679]', bg: 'bg-[rgba(207,102,121,0.08)]', border: 'border-[rgba(207,102,121,0.12)]' },
   'No-show': { dot: 'bg-[#FFB74D]', bg: 'bg-[rgba(255,183,77,0.08)]', border: 'border-[rgba(255,183,77,0.12)]' },
 };

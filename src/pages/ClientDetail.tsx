@@ -11,7 +11,7 @@ import type { BookingStatus } from '../types';
 const statusDot: Record<BookingStatus, string> = {
   Confirmed: 'bg-[rgba(255,255,255,0.87)]',
   Tentative: 'bg-[rgba(255,255,255,0.38)]',
-  Completed: 'bg-[#81C784]',
+  Completed: 'bg-[#22D3EE]',
   Cancelled: 'bg-[#CF6679]',
   'No-show': 'bg-[#FFB74D]',
 };

@@ -22,7 +22,7 @@ import type { Booking, BookingStatus } from '../../types';
 const statusBg: Record<BookingStatus, string> = {
   Confirmed: 'bg-[rgba(255,255,255,0.05)]',
   Tentative: 'bg-[rgba(255,255,255,0.03)]',
-  Completed: 'bg-[rgba(129,199,132,0.08)]',
+  Completed: 'bg-[rgba(34,211,238,0.08)]',
   Cancelled: 'bg-[rgba(207,102,121,0.08)]',
   'No-show': 'bg-[rgba(255,183,77,0.08)]',
 };
@@ -30,7 +30,7 @@ const statusBg: Record<BookingStatus, string> = {
 const statusDot: Record<BookingStatus, string> = {
   Confirmed: 'bg-[rgba(255,255,255,0.87)]',
   Tentative: 'bg-[rgba(255,255,255,0.38)]',
-  Completed: 'bg-[#81C784]',
+  Completed: 'bg-[#22D3EE]',
   Cancelled: 'bg-[#CF6679]',
   'No-show': 'bg-[#FFB74D]',
 };

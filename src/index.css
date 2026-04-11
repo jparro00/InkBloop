@@ -14,13 +14,18 @@
   --color-text-s: rgba(255, 255, 255, 0.60);  /* medium emphasis */
   --color-text-t: rgba(255, 255, 255, 0.38);  /* disabled / tertiary */
 
-  /* Accent — desaturated (200-tone) per M2 dark rules */
-  --color-accent: #C8A882;
-  --color-accent-dim: #8A6E52;
-  --color-accent-glow: rgba(200, 168, 130, 0.08);
+  /* Primary accent — Green Man brand green (200-tone) */
+  --color-accent: #4ADE80;
+  --color-accent-dim: #16A34A;
+  --color-accent-glow: rgba(74, 222, 128, 0.08);
 
-  --color-danger: #CF6679;      /* M2 dark error color */
-  --color-success: #81C784;     /* M2 desaturated green */
+  /* Secondary accent — warm amber/gold */
+  --color-secondary: #FBBF24;
+  --color-secondary-dim: #D97706;
+
+  /* Status colors */
+  --color-danger: #CF6679;
+  --color-success: #22D3EE;     /* Cyan — avoids conflict with green primary */
   --color-today: #E8453C;
 
   --font-display: 'Playfair Display', serif;
@@ -38,8 +43,8 @@
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.6);
   --shadow-md: 0 4px 20px rgba(0,0,0,0.7);
   --shadow-lg: 0 12px 40px rgba(0,0,0,0.8);
-  --shadow-glow: 0 0 24px rgba(200,168,130,0.10);
-  --shadow-glow-strong: 0 0 40px rgba(200,168,130,0.16);
+  --shadow-glow: 0 0 24px rgba(74,222,128,0.10);
+  --shadow-glow-strong: 0 0 40px rgba(74,222,128,0.16);
 
   --radius-sm: 6px;
   --radius-md: 12px;
