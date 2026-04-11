@@ -14,10 +14,11 @@ interface TimePickerProps {
   onChange: (time: string) => void;
   date: string;
   duration: number;
+  bookingType?: string;
   editingBookingId?: string;
 }
 
-export default function TimePicker({ value, onChange, date, duration, editingBookingId }: TimePickerProps) {
+export default function TimePicker({ value, onChange, date, duration, bookingType, editingBookingId }: TimePickerProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -118,18 +119,25 @@ export default function TimePicker({ value, onChange, date, duration, editingBoo
           )}
 
           {/* Fixed preview block — top edge aligns with selected time */}
-          <div
-            className="absolute left-12 right-3 z-10 pointer-events-none rounded border-2 border-accent/60"
-            style={{
-              top: (selectedDate ? 37 : 0) + previewOffset,
-              height: Math.max(duration * HOUR_H, 20),
-              backgroundColor: 'rgba(74, 222, 128, 0.10)',
-            }}
-          >
-            <div className="text-[10px] text-accent font-medium px-2 py-0.5">
-              {format(new Date(2026, 0, 1, selHour, selMin), 'h:mm a')} · {duration}h
-            </div>
-          </div>
+          {(() => {
+            const previewColor = bookingType ? (typeColor as Record<string, string>)[bookingType] ?? '#4ADE80' : '#4ADE80';
+            return (
+              <div
+                className="absolute left-12 right-3 z-10 pointer-events-none rounded"
+                style={{
+                  top: (selectedDate ? 37 : 0) + previewOffset,
+                  height: Math.max(duration * HOUR_H, 20),
+                  backgroundColor: `${previewColor}18`,
+                  borderLeft: `3px solid ${previewColor}`,
+                  border: `2px solid ${previewColor}60`,
+                }}
+              >
+                <div className="text-[10px] font-medium px-2 py-0.5" style={{ color: previewColor }}>
+                  {format(new Date(2026, 0, 1, selHour, selMin), 'h:mm a')} · {duration}h
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Scrollable timeline */}
           <div

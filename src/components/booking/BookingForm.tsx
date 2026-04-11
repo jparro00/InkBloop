@@ -228,6 +228,7 @@ export default function BookingForm() {
             onChange={(time) => setForm((f) => ({ ...f, time }))}
             date={form.date}
             duration={form.duration}
+            bookingType={form.type}
             editingBookingId={editingBookingId ?? undefined}
           />
         </div>
