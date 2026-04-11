@@ -86,10 +86,11 @@ function DayPanel({
 }
 
 // Single week strip row
-function WeekRow({ baseDate, selectedDate, onDayClick }: {
+function WeekRow({ baseDate, selectedDate, onDayClick, bookings }: {
   baseDate: Date;
   selectedDate: Date;
   onDayClick: (day: Date) => void;
+  bookings: Booking[];
 }) {
   const ws = startOfWeek(baseDate, { weekStartsOn: 0 });
   const we = endOfWeek(baseDate, { weekStartsOn: 0 });
@@ -100,11 +101,12 @@ function WeekRow({ baseDate, selectedDate, onDayClick }: {
       {days.map((day) => {
         const today = isToday(day);
         const selected = isSameDay(day, selectedDate);
+        const hasBookings = bookings.some((b) => isSameDay(new Date(b.date), day));
         return (
           <button
             key={day.toISOString()}
             onClick={() => onDayClick(day)}
-            className="flex flex-col items-center gap-1 py-1 cursor-pointer transition-colors"
+            className="flex flex-col items-center gap-0.5 py-1 cursor-pointer transition-colors"
           >
             <span className={`text-xs font-medium ${today && !selected ? 'text-today' : 'text-text-t'}`}>
               {format(day, 'EEEEE')}
@@ -122,6 +124,7 @@ function WeekRow({ baseDate, selectedDate, onDayClick }: {
             >
               {format(day, 'd')}
             </span>
+            <span className={`w-1.5 h-1.5 rounded-full ${hasBookings ? (selected ? 'bg-accent' : 'bg-text-t') : 'bg-transparent'}`} />
           </button>
         );
       })}
@@ -273,9 +276,9 @@ export default function DayView() {
       <div ref={weekStripRef} className="shrink-0 border-b border-border/30 overflow-hidden touch-none">
         <div {...weekBind()}>
           <motion.div className="flex" style={{ x: weekX, width: '300%', marginLeft: '-100%' }}>
-            <WeekRow baseDate={prevWeekDate} selectedDate={calendarDate} onDayClick={setCalendarDate} />
-            <WeekRow baseDate={calendarDate} selectedDate={calendarDate} onDayClick={setCalendarDate} />
-            <WeekRow baseDate={nextWeekDate} selectedDate={calendarDate} onDayClick={setCalendarDate} />
+            <WeekRow baseDate={prevWeekDate} selectedDate={calendarDate} onDayClick={setCalendarDate} bookings={bookings} />
+            <WeekRow baseDate={calendarDate} selectedDate={calendarDate} onDayClick={setCalendarDate} bookings={bookings} />
+            <WeekRow baseDate={nextWeekDate} selectedDate={calendarDate} onDayClick={setCalendarDate} bookings={bookings} />
           </motion.div>
         </div>
       </div>
