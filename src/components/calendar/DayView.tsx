@@ -157,7 +157,7 @@ function WeekRow({ baseDate, selectedDate, onDayClick, bookings }: {
   const days = eachDayOfInterval({ start: ws, end: we });
 
   return (
-    <div className="shrink-0 grid grid-cols-7 px-6 py-2" style={{ width: 'calc(100% / 3)' }}>
+    <div className="shrink-0 grid grid-cols-7 px-3 py-2" style={{ width: 'calc(100% / 3)' }}>
       {days.map((day) => {
         const today = isToday(day);
         const selected = isSameDay(day, selectedDate);
@@ -375,7 +375,7 @@ export default function DayView() {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="px-6 pt-5 pb-2 flex items-center justify-between shrink-0">
+      <div className="px-3 pt-4 pb-2 flex items-center justify-between shrink-0">
         <button
           onClick={() => setCalendarView('month')}
           className="flex items-center gap-1 text-text-p active:opacity-70 transition-opacity cursor-pointer press-scale min-h-[44px]"
