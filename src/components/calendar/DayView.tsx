@@ -151,19 +151,14 @@ export default function DayView() {
   const getClient = useClientStore((s) => s.getClient);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const weekStripRef = useRef<HTMLDivElement>(null);
   const stripX = useMotionValue(0);
   const weekX = useMotionValue(0);
-  const isAnimating = useRef(false);
-  const isWeekAnimating = useRef(false);
 
   const prevDay = subDays(calendarDate, 1);
   const nextDay = addDays(calendarDate, 1);
   const prevWeekDate = subWeeks(calendarDate, 1);
   const nextWeekDate = addWeeks(calendarDate, 1);
 
-  const getContainerWidth = useCallback(() => containerRef.current?.offsetWidth ?? 375, []);
-  const getWeekStripWidth = useCallback(() => weekStripRef.current?.offsetWidth ?? 375, []);
 
   const handleSlotClick = useCallback((hour: number, day: Date) => {
     const dateStr = new Date(day.getFullYear(), day.getMonth(), day.getDate(), hour, 0).toISOString();
@@ -178,21 +173,12 @@ export default function DayView() {
   // Timeline carousel: horizontal swipe changes day
   const timelineBind = useDrag(
     ({ movement: [mx], velocity: [vx], direction: [dx], last }) => {
-      if (isAnimating.current) return;
       stripX.set(mx);
       if (last) {
-        const w = getContainerWidth();
         if (Math.abs(mx) > SWIPE_THRESHOLD || Math.abs(vx) > VELOCITY_THRESHOLD) {
           const dir = dx > 0 ? -1 : 1;
-          isAnimating.current = true;
-          animate(stripX, -dir * w, {
-            type: 'spring', stiffness: 350, damping: 35, mass: 0.8,
-            onComplete: () => {
-              setCalendarDate(dir === 1 ? addDays(calendarDate, 1) : subDays(calendarDate, 1));
-              stripX.set(0);
-              isAnimating.current = false;
-            },
-          });
+          setCalendarDate(dir === 1 ? addDays(calendarDate, 1) : subDays(calendarDate, 1));
+          stripX.set(0);
         } else {
           animate(stripX, 0, { type: 'spring', stiffness: 400, damping: 30 });
         }
@@ -204,8 +190,6 @@ export default function DayView() {
   // Week strip carousel: horizontal swipe changes week, vertical swipe up goes to month
   const weekBind = useDrag(
     ({ movement: [mx, my], velocity: [vx, vy], direction: [, dy], last, swipe: [, sy], axis }) => {
-      if (isWeekAnimating.current) return;
-
       // Vertical: swipe up → month view
       if (axis === 'y') {
         if (last) {
@@ -220,18 +204,10 @@ export default function DayView() {
       weekX.set(mx);
 
       if (last) {
-        const w = getWeekStripWidth();
         if (Math.abs(mx) > SWIPE_THRESHOLD || Math.abs(vx) > VELOCITY_THRESHOLD) {
-          const dir = mx < 0 ? 1 : -1; // swipe left = next week
-          isWeekAnimating.current = true;
-          animate(weekX, -dir * w, {
-            type: 'spring', stiffness: 350, damping: 35, mass: 0.8,
-            onComplete: () => {
-              setCalendarDate(dir === 1 ? addWeeks(calendarDate, 1) : subWeeks(calendarDate, 1));
-              weekX.set(0);
-              isWeekAnimating.current = false;
-            },
-          });
+          const dir = mx < 0 ? 1 : -1;
+          setCalendarDate(dir === 1 ? addWeeks(calendarDate, 1) : subWeeks(calendarDate, 1));
+          weekX.set(0);
         } else {
           animate(weekX, 0, { type: 'spring', stiffness: 400, damping: 30 });
         }
@@ -260,7 +236,7 @@ export default function DayView() {
       </div>
 
       {/* Week strip carousel: prev week | current week | next week */}
-      <div ref={weekStripRef} className="shrink-0 border-b border-border/30 overflow-hidden touch-none">
+      <div className="shrink-0 border-b border-border/30 overflow-hidden touch-none">
         <div {...weekBind()}>
           <motion.div className="flex" style={{ x: weekX, width: '300%', marginLeft: '-100%' }}>
             <WeekRow baseDate={prevWeekDate} selectedDate={calendarDate} onDayClick={setCalendarDate} />
