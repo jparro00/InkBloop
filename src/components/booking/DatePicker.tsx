@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, addMonths, subMonths, isSameDay, isToday, isSameMonth } from 'date-fns';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { useDrag } from '@use-gesture/react';
@@ -61,8 +61,25 @@ export default function DatePicker({ value, onChange, missing }: DatePickerProps
     ? format(new Date(value + 'T00:00:00'), 'MMM d, yyyy')
     : 'Select date';
 
+  // Close when clicking outside
+  const containerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent | TouchEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
+  }, [open]);
+
   return (
-    <div>
+    <div ref={containerRef}>
       {/* Trigger button */}
       <button
         type="button"
@@ -80,7 +97,7 @@ export default function DatePicker({ value, onChange, missing }: DatePickerProps
 
       {/* Calendar dropdown */}
       {open && (
-        <div {...bindSwipe()} className="mt-2 bg-input border border-border/60 rounded-xl p-3 space-y-3" style={{ touchAction: 'pan-y' }}>
+        <div {...bindSwipe()} className="mt-2 bg-elevated border border-accent/20 rounded-xl p-3 space-y-3 shadow-glow" style={{ touchAction: 'pan-y' }}>
           {/* Month navigation */}
           <div className="flex items-center justify-between">
             <button
