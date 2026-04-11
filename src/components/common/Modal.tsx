@@ -114,7 +114,7 @@ export default function Modal({ title, onClose, children, width = 'lg:max-w-[620
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div {...bindDrag()} className="flex flex-col flex-1 overflow-hidden" style={{ touchAction: 'pan-y' }}>
+        <div {...bindDrag()} className="flex flex-col flex-1 overflow-hidden" style={{ touchAction: 'pan-y', overscrollBehavior: 'none' }}>
           {/* Drag handle — mobile */}
           <div className="flex justify-center pt-3 pb-1 lg:hidden">
             <div className="w-10 h-1 rounded-full bg-border-s/60" />
@@ -129,7 +129,7 @@ export default function Modal({ title, onClose, children, width = 'lg:max-w-[620
               <X size={22} />
             </button>
           </div>
-          <div ref={contentRef} className="px-5 py-5 lg:px-6 lg:py-5 overflow-y-auto flex-1"
+          <div ref={contentRef} className="px-5 py-5 lg:px-6 lg:py-5 overflow-y-auto overflow-x-hidden flex-1"
             style={{ overscrollBehavior: 'contain', touchAction: 'pan-y' }}
           >
             {children}
