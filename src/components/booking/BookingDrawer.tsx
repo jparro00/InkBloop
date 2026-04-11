@@ -251,7 +251,7 @@ export default function BookingDrawer() {
               <span className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 ${booking.rescheduled ? 'border-danger bg-danger/20' : 'border-border'}`}>
                 {booking.rescheduled && <span className="text-danger text-xs font-bold">✓</span>}
               </span>
-              <span className="text-base">Needs Rescheduling</span>
+              <span className="text-base">Rescheduled</span>
             </button>
 
             {/* Status */}
