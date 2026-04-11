@@ -23,6 +23,7 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
     return { dobMonth: String(parseInt(m)), dobDay: String(parseInt(d)), dobYear: y };
   };
   const initDob = parseDob(client?.dob ?? '');
+  const defaultYear = String(new Date().getFullYear() - 18);
 
   const [form, setForm] = useState({
     name: client?.name ?? '',
@@ -33,7 +34,7 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
     facebook_id: client?.facebook_id ?? '',
     dobMonth: initDob.dobMonth,
     dobDay: initDob.dobDay,
-    dobYear: initDob.dobYear,
+    dobYear: initDob.dobYear || defaultYear,
     tags: client?.tags.join(', ') ?? '',
   });
 
@@ -183,8 +184,8 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
               className={`${inputClass} cursor-pointer`}
             >
               <option value="">Year</option>
-              {Array.from({ length: 80 }, (_, i) => {
-                const y = new Date().getFullYear() - 16 - i;
+              {Array.from({ length: 100 }, (_, i) => {
+                const y = new Date().getFullYear() - i;
                 return <option key={y} value={String(y)}>{y}</option>;
               })}
             </select>
