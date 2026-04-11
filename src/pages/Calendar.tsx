@@ -21,13 +21,9 @@ export default function CalendarPage() {
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Focus input when search opens
+  // Clear query when search closes
   useEffect(() => {
-    if (calendarSearchOpen) {
-      setTimeout(() => inputRef.current?.focus(), 50);
-    } else {
-      setQuery('');
-    }
+    if (!calendarSearchOpen) setQuery('');
   }, [calendarSearchOpen]);
 
   const bookingResults =
@@ -51,6 +47,7 @@ export default function CalendarPage() {
             <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-t" />
             <input
               ref={inputRef}
+              autoFocus
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
