@@ -126,7 +126,7 @@ export default function YearView() {
                     <button
                       key={monthIdx}
                       onClick={() => handleMonthClick(month)}
-                      className="text-left cursor-pointer active:bg-elevated/30 rounded-xl p-2 transition-colors"
+                      className="text-left cursor-pointer active:bg-elevated/30 rounded-lg px-1 py-0.5 transition-colors"
                     >
                       {/* Month name */}
                       <div
