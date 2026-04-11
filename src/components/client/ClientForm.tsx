@@ -72,8 +72,8 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
     onClose();
   };
 
-  const inputClass = "w-full bg-input border border-border/60 rounded-xl px-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors min-h-[48px]";
-  const errorInputClass = "w-full bg-input border border-danger/60 rounded-xl px-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-danger/40 transition-colors min-h-[48px]";
+  const inputClass = "w-full bg-input border border-border/60 rounded-md px-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors min-h-[48px]";
+  const errorInputClass = "w-full bg-input border border-danger/60 rounded-md px-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-danger/40 transition-colors min-h-[48px]";
   const labelClass = "text-sm text-text-t uppercase tracking-wider mb-2 block font-medium";
 
   return (
@@ -213,7 +213,7 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
           <button
             onClick={handleSave}
             disabled={!isValid}
-            className="w-full lg:w-auto px-6 py-4 lg:py-2.5 text-base bg-accent text-bg rounded-xl font-medium cursor-pointer press-scale transition-all disabled:opacity-40 disabled:cursor-not-allowed min-h-[52px]"
+            className="w-full lg:w-auto px-6 py-4 lg:py-2.5 text-base bg-accent text-bg rounded-md font-medium cursor-pointer press-scale transition-all disabled:opacity-40 disabled:cursor-not-allowed min-h-[52px]"
           >
             {client ? 'Update Client' : 'Add Client'}
           </button>

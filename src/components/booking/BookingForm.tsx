@@ -144,8 +144,8 @@ export default function BookingForm() {
 
   const isValid = form.date && form.client_id;
 
-  const inputClass = "w-full bg-input border border-border/60 rounded-xl px-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors min-h-[48px]";
-  const missingInputClass = "w-full bg-input border-2 border-danger/60 rounded-xl px-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-danger/40 transition-colors min-h-[48px]";
+  const inputClass = "w-full bg-input border border-border/60 rounded-md px-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors min-h-[48px]";
+  const missingInputClass = "w-full bg-input border-2 border-danger/60 rounded-md px-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-danger/40 transition-colors min-h-[48px]";
   const labelClass = "text-sm text-text-t uppercase tracking-wider mb-2 block font-medium";
   const inputFor = (field: string) => missingFields.has(field) ? missingInputClass : inputClass;
 
@@ -182,7 +182,7 @@ export default function BookingForm() {
             className={inputFor('client')}
           />
           {showClientDropdown && filteredClients.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-elevated border border-border/60 rounded-xl shadow-lg max-h-48 overflow-y-auto z-10">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-elevated border border-border/60 rounded-lg shadow-lg max-h-48 overflow-y-auto z-10">
               {filteredClients.map((c) => (
                 <button
                   key={c.id}
@@ -191,7 +191,7 @@ export default function BookingForm() {
                     setClientSearch(c.name);
                     setShowClientDropdown(false);
                   }}
-                  className="w-full text-left px-4 py-4 text-base text-text-p active:bg-surface transition-colors cursor-pointer first:rounded-t-xl last:rounded-b-xl min-h-[48px]"
+                  className="w-full text-left px-4 py-4 text-base text-text-p active:bg-surface transition-colors cursor-pointer first:rounded-t-lg last:rounded-b-lg min-h-[48px]"
                 >
                   {c.name}
                   {c.phone && <span className="text-text-t ml-2 text-sm">{c.phone}</span>}
@@ -225,7 +225,7 @@ export default function BookingForm() {
                 key={slot}
                 type="button"
                 onClick={() => setForm((f) => ({ ...f, time }))}
-                className={`flex-1 px-4 py-3 text-sm rounded-xl border transition-all cursor-pointer press-scale min-h-[44px] ${
+                className={`flex-1 px-4 py-3 text-sm rounded-md border transition-all cursor-pointer press-scale min-h-[44px] ${
                   isActive
                     ? 'border-accent/60 text-accent bg-accent/8'
                     : 'border-border/60 text-text-s active:text-text-p active:bg-elevated'
@@ -243,7 +243,7 @@ export default function BookingForm() {
           <select
             value={form.duration}
             onChange={(e) => setForm((f) => ({ ...f, duration: parseFloat(e.target.value) }))}
-            className="w-full bg-input border border-border/60 rounded-xl px-4 text-base text-text-p focus:outline-none focus:border-accent/40 transition-colors cursor-pointer"
+            className="w-full bg-input border border-border/60 rounded-md px-4 text-base text-text-p focus:outline-none focus:border-accent/40 transition-colors cursor-pointer"
             style={{ height: 48, boxSizing: 'border-box' }}
           >
             {[0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 7, 8].map((d) => (
@@ -276,7 +276,7 @@ export default function BookingForm() {
                 <button
                   key={t}
                   onClick={() => { setForm((f) => ({ ...f, type: t, duration: typeDuration[t] })); setMissingFields((s) => { const n = new Set(s); n.delete('type'); return n; }); }}
-                  className={`px-4 py-3.5 text-base rounded-xl transition-all cursor-pointer press-scale min-h-[48px] flex items-center gap-2.5 ${
+                  className={`px-4 py-3.5 text-base rounded-md transition-all cursor-pointer press-scale min-h-[48px] flex items-center gap-2.5 ${
                     selected
                       ? 'border border-border/60 text-text-p bg-white/[0.06]'
                       : missingFields.has('type')
@@ -354,7 +354,7 @@ export default function BookingForm() {
           <button
             onClick={handleSave}
             disabled={!isValid}
-            className="w-full lg:w-auto px-6 py-4 lg:py-2.5 text-base bg-accent text-bg rounded-xl font-medium cursor-pointer press-scale transition-all disabled:opacity-40 disabled:cursor-not-allowed active:shadow-glow min-h-[52px]"
+            className="w-full lg:w-auto px-6 py-4 lg:py-2.5 text-base bg-accent text-bg rounded-md font-medium cursor-pointer press-scale transition-all disabled:opacity-40 disabled:cursor-not-allowed active:shadow-glow min-h-[52px]"
           >
             {editingBookingId ? 'Update Booking' : 'Save Booking'}
           </button>

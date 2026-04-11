@@ -33,9 +33,9 @@ export default function SettingsPage() {
   };
 
   const sectionClass = "mb-10";
-  const cardClass = "bg-surface/60 rounded-xl border border-border/30 p-5 space-y-5";
+  const cardClass = "bg-surface/60 rounded-lg border border-border/30 p-5 space-y-5";
   const rowClass = "flex items-center justify-between min-h-[48px]";
-  const inputClass = "w-full bg-input border border-border/60 rounded-xl px-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors min-h-[48px]";
+  const inputClass = "w-full bg-input border border-border/60 rounded-md px-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors min-h-[48px]";
 
   return (
     <div className="px-5 pt-6 pb-8 lg:px-6 lg:pt-6 max-w-xl">
@@ -80,7 +80,7 @@ export default function SettingsPage() {
         <div className={cardClass}>
           <div className={rowClass}>
             <span className="text-base text-text-s">Auto-logout timeout</span>
-            <select className="bg-input border border-border/60 rounded-xl px-4 py-3 text-base text-text-p cursor-pointer min-h-[48px]">
+            <select className="bg-input border border-border/60 rounded-md px-4 py-3 text-base text-text-p cursor-pointer min-h-[48px]">
               <option>4 hours</option>
               <option>8 hours</option>
               <option>12 hours</option>
@@ -123,7 +123,7 @@ export default function SettingsPage() {
               setTimesSaved(true);
               setTimeout(() => setTimesSaved(false), 2000);
             }}
-            className="w-full py-3.5 text-base bg-accent text-bg rounded-xl cursor-pointer press-scale transition-all min-h-[48px]"
+            className="w-full py-3.5 text-base bg-accent text-bg rounded-md cursor-pointer press-scale transition-all min-h-[48px]"
           >
             {timesSaved ? 'Saved!' : 'Save Times'}
           </button>
@@ -145,7 +145,7 @@ export default function SettingsPage() {
             <button
               onClick={handleExport}
               disabled={!exportClient.trim()}
-              className="px-5 py-3.5 text-base bg-accent text-bg rounded-xl cursor-pointer press-scale transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0 min-h-[48px]"
+              className="px-5 py-3.5 text-base bg-accent text-bg rounded-md cursor-pointer press-scale transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0 min-h-[48px]"
             >
               {exported ? 'Done!' : 'Export'}
             </button>
@@ -175,7 +175,7 @@ export default function SettingsPage() {
                 setKeySaved(true);
                 setTimeout(() => setKeySaved(false), 2000);
               }}
-              className="px-5 py-3.5 text-base bg-accent text-bg rounded-xl cursor-pointer press-scale transition-all shrink-0 min-h-[48px]"
+              className="px-5 py-3.5 text-base bg-accent text-bg rounded-md cursor-pointer press-scale transition-all shrink-0 min-h-[48px]"
             >
               {keySaved ? 'Saved!' : 'Save'}
             </button>

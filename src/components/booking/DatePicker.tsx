@@ -170,7 +170,7 @@ export default function DatePicker({ value, onChange, missing }: DatePickerProps
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className={`w-full bg-input rounded-xl px-4 text-left text-base flex items-center gap-3 transition-colors cursor-pointer ${
+        className={`w-full bg-input rounded-md px-4 text-left text-base flex items-center gap-3 transition-colors cursor-pointer ${
           missing ? 'border-2 border-danger/60' : 'border border-border/60'
         } ${value ? 'text-text-p' : 'text-text-t'}`}
         style={{ height: 48 }}
@@ -180,7 +180,7 @@ export default function DatePicker({ value, onChange, missing }: DatePickerProps
       </button>
 
       {open && (
-        <div className="mt-2 bg-elevated border border-accent/20 rounded-xl p-3 shadow-glow overflow-hidden">
+        <div className="mt-2 bg-elevated border border-accent/20 rounded-lg p-3 shadow-glow overflow-hidden">
           {/* Navigation arrows */}
           <div className="flex items-center justify-between mb-2">
             <button type="button" onClick={() => changeMonth(-1)} className="w-8 h-8 flex items-center justify-center rounded-full text-text-s active:bg-surface cursor-pointer">

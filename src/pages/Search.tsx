@@ -59,7 +59,7 @@ export default function SearchOverlay() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search clients, bookings..."
-            className="w-full bg-surface border border-border/40 rounded-2xl pl-12 pr-12 py-4 text-md text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors"
+            className="w-full bg-surface border border-border/40 rounded-md pl-12 pr-12 py-4 text-md text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors"
           />
           <button
             onClick={() => setSearchOpen(false)}
@@ -71,7 +71,7 @@ export default function SearchOverlay() {
 
         {/* Results */}
         {query.length >= 2 && (
-          <div className="mt-3 bg-elevated border border-border/40 rounded-2xl overflow-hidden max-h-[60vh] overflow-y-auto">
+          <div className="mt-3 bg-elevated border border-border/40 rounded-lg overflow-hidden max-h-[60vh] overflow-y-auto">
             {clientResults.length > 0 && (
               <div>
                 <div className="px-5 py-3 text-xs text-text-t uppercase tracking-wider font-medium bg-surface/50">

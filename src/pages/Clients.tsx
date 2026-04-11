@@ -38,7 +38,7 @@ export default function ClientsPage() {
           <h1 className="font-display text-[22px] lg:text-2xl text-text-p">Clients</h1>
           <button
             onClick={() => setShowForm(true)}
-            className="w-12 h-12 lg:w-auto lg:h-auto lg:px-4 lg:py-2.5 bg-accent text-bg rounded-xl flex items-center justify-center gap-2 text-sm cursor-pointer press-scale transition-transform"
+            className="w-12 h-12 lg:w-auto lg:h-auto lg:px-4 lg:py-2.5 bg-accent text-bg rounded-md flex items-center justify-center gap-2 text-sm cursor-pointer press-scale transition-transform"
           >
             <Plus size={20} />
             <span className="hidden lg:inline">New Client</span>
@@ -52,7 +52,7 @@ export default function ClientsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search clients..."
-            className="w-full bg-surface border border-border/40 rounded-xl pl-12 pr-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors"
+            className="w-full bg-surface border border-border/40 rounded-md pl-12 pr-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors"
           />
         </div>
       </div>
@@ -69,7 +69,7 @@ export default function ClientsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.03 }}
                 onClick={() => navigate(`/clients/${client.id}`)}
-                className="w-full text-left flex items-center gap-4 px-5 py-4 lg:px-4 rounded-xl active:bg-elevated/40 lg:hover:bg-elevated/30 transition-colors cursor-pointer group press-scale min-h-[72px]"
+                className="w-full text-left flex items-center gap-4 px-5 py-4 lg:px-4 rounded-lg active:bg-elevated/40 lg:hover:bg-elevated/30 transition-colors cursor-pointer group press-scale min-h-[72px]"
               >
                 <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center text-accent text-base font-medium shrink-0">
                   {client.name.charAt(0)}

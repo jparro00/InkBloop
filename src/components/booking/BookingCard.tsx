@@ -35,7 +35,7 @@ export default function BookingCard({ booking, compact }: BookingCardProps) {
   return (
     <button
       onClick={() => setSelectedBookingId(booking.id)}
-      className="w-full text-left p-4 rounded-xl border border-border/30 cursor-pointer press-scale transition-all duration-200 active:shadow-glow hover:shadow-glow hover:border-accent/20 min-h-[56px]"
+      className="w-full text-left p-4 rounded-lg border border-border/30 cursor-pointer press-scale transition-all duration-200 active:shadow-glow hover:shadow-glow hover:border-accent/20 min-h-[56px]"
       style={{ borderLeftWidth: 3, borderLeftColor: color, backgroundColor: `${color}12` }}
     >
       <div className="mb-1">

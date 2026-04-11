@@ -35,7 +35,7 @@ export default function MobileTabBar() {
               to={action === 'search' ? '#' : to}
               onClick={(e) => handleTabClick(to, action, e)}
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center min-w-[60px] min-h-[48px] px-4 py-2 rounded-2xl transition-all duration-200 press-scale ${
+                `flex flex-col items-center justify-center min-w-[60px] min-h-[48px] px-4 py-2 rounded-lg transition-all duration-200 press-scale ${
                   isActive && action !== 'search'
                     ? 'bg-accent/12 text-accent'
                     : 'text-text-t active:text-text-s'
@@ -43,7 +43,7 @@ export default function MobileTabBar() {
               }
             >
               <Icon size={24} strokeWidth={1.5} />
-              <span className="text-[11px] mt-1 font-medium">{label}</span>
+              <span className="text-xs mt-1 font-medium">{label}</span>
             </NavLink>
           ))}
         </div>

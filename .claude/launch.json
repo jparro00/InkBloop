@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "inkflow-dev",
-      "runtimeExecutable": "C:/Users/jparr/Documents/claude/InkFlow/.claude/start-dev.cmd",
-      "runtimeArgs": [],
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--port", "5173"],
       "port": 5173
     }
   ]

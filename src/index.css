@@ -14,21 +14,17 @@
   --color-text-s: rgba(255, 255, 255, 0.60);  /* medium emphasis */
   --color-text-t: rgba(255, 255, 255, 0.38);  /* disabled / tertiary */
 
-  /* Primary accent — Green Man brand green (200-tone) */
-  --color-accent: #4ADE80;
-  --color-accent-dim: #16A34A;
-  --color-accent-glow: rgba(74, 222, 128, 0.08);
-
-  /* Secondary accent — warm amber/gold */
-  --color-secondary: #FBBF24;
-  --color-secondary-dim: #D97706;
+  /* Primary accent — Inky Purple */
+  --color-accent: #B08CE8;
+  --color-accent-dim: #8466B8;
+  --color-accent-glow: rgba(176, 140, 232, 0.12);
 
   /* Status colors */
   --color-danger: #CF6679;
-  --color-success: #22D3EE;     /* Cyan — avoids conflict with green primary */
+  --color-success: #22D3EE;     /* Cyan — avoids conflict with accent */
   --color-today: #E8453C;
 
-  --font-display: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   --text-2xs: 10px;
@@ -43,13 +39,13 @@
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.6);
   --shadow-md: 0 4px 20px rgba(0,0,0,0.7);
   --shadow-lg: 0 12px 40px rgba(0,0,0,0.8);
-  --shadow-glow: 0 0 24px rgba(74,222,128,0.10);
-  --shadow-glow-strong: 0 0 40px rgba(74,222,128,0.16);
+  --shadow-glow: 0 0 24px rgba(176,140,232,0.12);
+  --shadow-glow-strong: 0 0 40px rgba(176,140,232,0.20);
 
   --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
-  --radius-xl: 28px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
 }
 
 * {
@@ -114,7 +110,7 @@ body::before {
 }
 
 ::selection {
-  background: rgba(200, 168, 130, 0.3);
+  background: rgba(176, 140, 232, 0.25);
   color: var(--color-text-p);
 }
 

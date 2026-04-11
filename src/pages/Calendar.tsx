@@ -54,7 +54,7 @@ export default function CalendarPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search bookings..."
-              className="w-full bg-surface border border-border/40 rounded-xl pl-10 pr-10 py-3 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors"
+              className="w-full bg-surface border border-border/40 rounded-md pl-10 pr-10 py-3 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors"
             />
             <button
               onClick={() => setCalendarSearchOpen(false)}
@@ -66,7 +66,7 @@ export default function CalendarPage() {
 
           {/* Results */}
           {query.length >= 2 && (
-            <div className="mt-2 bg-elevated border border-border/40 rounded-xl overflow-hidden max-h-[50vh] overflow-y-auto">
+            <div className="mt-2 bg-elevated border border-border/40 rounded-lg overflow-hidden max-h-[50vh] overflow-y-auto">
               {bookingResults.length > 0 ? (
                 bookingResults.slice(0, 8).map((b) => (
                   <button
@@ -101,7 +101,7 @@ export default function CalendarPage() {
       {todayHandler && (
         <button
           onClick={todayHandler}
-          className="fixed bottom-[100px] left-5 lg:left-auto lg:bottom-8 px-4 py-2.5 bg-elevated border border-border/60 text-text-p text-[17px] font-medium rounded-xl shadow-md cursor-pointer press-scale transition-all z-30"
+          className="fixed bottom-[100px] left-5 lg:left-auto lg:bottom-8 px-4 py-2.5 bg-elevated border border-border/60 text-text-p text-md font-medium rounded-md shadow-md cursor-pointer press-scale transition-all z-30"
         >
           Today
         </button>

@@ -171,13 +171,13 @@ export default function MonthView() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setCalendarSearchOpen(true)}
-            className="w-12 h-12 bg-surface border border-border/40 text-text-s rounded-xl flex items-center justify-center cursor-pointer press-scale transition-transform"
+            className="w-12 h-12 bg-surface border border-border/40 text-text-s rounded-md flex items-center justify-center cursor-pointer press-scale transition-transform"
           >
             <Search size={20} />
           </button>
           <button
             onClick={() => openBookingForm()}
-            className="w-12 h-12 bg-accent text-bg rounded-xl flex items-center justify-center cursor-pointer press-scale transition-transform"
+            className="w-12 h-12 bg-accent text-bg rounded-md flex items-center justify-center cursor-pointer press-scale transition-transform"
           >
             <Plus size={20} />
           </button>
@@ -187,7 +187,7 @@ export default function MonthView() {
       {/* Fixed day headers */}
       <div className="grid grid-cols-7 px-3 shrink-0">
         {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-          <div key={i} className="py-2 text-center text-[17px] text-text-t font-medium">
+          <div key={i} className="py-2 text-center text-md text-text-t font-medium">
             {d}
           </div>
         ))}
@@ -241,7 +241,7 @@ export default function MonthView() {
                       {/* Date number */}
                       <div className="w-full flex justify-center mb-1">
                         <span
-                          className={`w-9 h-9 flex items-center justify-center rounded-full text-[17px] ${
+                          className={`w-9 h-9 flex items-center justify-center rounded-full text-md ${
                             today
                               ? 'bg-today text-white font-semibold'
                               : inMonth

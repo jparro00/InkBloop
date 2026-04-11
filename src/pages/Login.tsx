@@ -18,7 +18,7 @@ export default function LoginPage() {
     navigate('/');
   };
 
-  const inputClass = "w-full bg-input border border-border/60 rounded-xl px-4 py-4 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors min-h-[52px]";
+  const inputClass = "w-full bg-input border border-border/60 rounded-md px-4 py-4 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors min-h-[52px]";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-bg p-5 relative overflow-hidden">
@@ -37,13 +37,16 @@ export default function LoginPage() {
           animate={{ scale: [1, 1.02, 1] }}
           transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
         >
-          <span className="text-accent text-3xl">&#10022;</span>
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" className="text-accent mx-auto">
+            <path d="M12 2C12 2 9.5 8 9 12c-.3 2.5.5 4.5 2 6.5L12 20l1-1.5c1.5-2 2.3-4 2-6.5C14.5 8 12 2 12 2z" fill="currentColor" opacity="0.7"/>
+            <path d="M12 18.5c-.3.8-.5 1.8-.4 2.8.05.4.15.7.4.7s.35-.3.4-.7c.1-1-.1-2-.4-2.8z" fill="currentColor"/>
+          </svg>
           <h1 className="font-display text-2xl text-text-p mt-3">InkFlow</h1>
           <p className="text-xs text-text-t mt-1.5 tracking-wider uppercase">Studio Management</p>
         </motion.div>
 
         {/* Form */}
-        <div className="bg-surface/60 border border-border/30 rounded-2xl p-6 backdrop-blur-sm">
+        <div className="bg-surface/60 border border-border/30 rounded-xl p-6 backdrop-blur-sm">
           <form onSubmit={handleLogin} className="space-y-4">
             {!showTotp ? (
               <>
@@ -96,7 +99,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              className="w-full py-4 bg-accent text-bg text-base rounded-xl font-medium cursor-pointer press-scale transition-all active:shadow-glow mt-3 min-h-[52px]"
+              className="w-full py-4 bg-accent text-bg text-base rounded-md font-medium cursor-pointer press-scale transition-all active:shadow-glow mt-3 min-h-[52px]"
             >
               {showTotp ? 'Verify' : 'Sign In'}
             </button>

@@ -20,7 +20,10 @@ export default function Sidebar() {
     >
       {/* Logo */}
       <div className={`flex items-center gap-3 h-16 border-b border-border/40 ${sidebarCollapsed ? 'justify-center px-0' : 'px-6'}`}>
-        <span className="text-accent text-xl">&#10022;</span>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="text-accent shrink-0">
+          <path d="M12 2C12 2 9.5 8 9 12c-.3 2.5.5 4.5 2 6.5L12 20l1-1.5c1.5-2 2.3-4 2-6.5C14.5 8 12 2 12 2z" fill="currentColor" opacity="0.7"/>
+          <path d="M12 18.5c-.3.8-.5 1.8-.4 2.8.05.4.15.7.4.7s.35-.3.4-.7c.1-1-.1-2-.4-2.8z" fill="currentColor"/>
+        </svg>
         {!sidebarCollapsed && (
           <span className="font-display text-md text-text-p font-bold tracking-wide">
             InkFlow
@@ -43,7 +46,7 @@ export default function Sidebar() {
                 : undefined
             }
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-xl transition-all duration-200 ${
+              `flex items-center gap-3 rounded-md transition-all duration-200 ${
                 sidebarCollapsed ? 'justify-center px-0 py-3' : 'px-4 py-3'
               } ${
                 isActive && action !== 'search'

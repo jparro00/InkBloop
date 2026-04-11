@@ -152,7 +152,7 @@ export default function BookingDrawer() {
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
         style={{ y: dragY }}
-        className="fixed bottom-0 left-0 right-0 lg:top-0 lg:left-auto lg:right-0 lg:bottom-0 max-h-[85vh] lg:max-h-full lg:w-[400px] bg-elevated rounded-t-2xl lg:rounded-none border-t lg:border-t-0 lg:border-l border-border/40 shadow-lg z-50 flex flex-col overflow-hidden"
+        className="fixed bottom-0 left-0 right-0 lg:top-0 lg:left-auto lg:right-0 lg:bottom-0 max-h-[85vh] lg:max-h-full lg:w-[400px] bg-elevated rounded-t-xl lg:rounded-none border-t lg:border-t-0 lg:border-l border-border/40 shadow-lg z-50 flex flex-col overflow-hidden"
       >
         {/* Entire sheet is drag-bound — gesture only activates when at scroll top */}
         <div {...bindDrag()} className="flex flex-col flex-1 overflow-hidden" style={{ touchAction: 'pan-y' }}>
@@ -176,13 +176,13 @@ export default function BookingDrawer() {
                   setSelectedBookingId(null);
                   openBookingForm(booking.id);
                 }}
-                className="w-12 h-12 rounded-xl flex items-center justify-center text-text-s active:bg-surface transition-colors cursor-pointer press-scale"
+                className="w-12 h-12 rounded-md flex items-center justify-center text-text-s active:bg-surface transition-colors cursor-pointer press-scale"
               >
                 <Edit size={20} />
               </button>
               <button
                 onClick={handleDelete}
-                className="w-12 h-12 rounded-xl flex items-center justify-center text-text-s active:text-danger transition-colors cursor-pointer press-scale"
+                className="w-12 h-12 rounded-md flex items-center justify-center text-text-s active:text-danger transition-colors cursor-pointer press-scale"
               >
                 <Trash2 size={20} />
               </button>
@@ -269,7 +269,7 @@ export default function BookingDrawer() {
                     <button
                       key={s}
                       onClick={() => handleStatusChange(s)}
-                      className="px-4 py-3 text-sm rounded-xl border border-border/60 text-text-s active:text-text-p active:bg-surface transition-colors cursor-pointer press-scale min-h-[44px]"
+                      className="px-4 py-3 text-sm rounded-md border border-border/60 text-text-s active:text-text-p active:bg-surface transition-colors cursor-pointer press-scale min-h-[44px]"
                     >
                       {s}
                     </button>

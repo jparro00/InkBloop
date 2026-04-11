@@ -101,7 +101,7 @@ export default function TimePicker({ value, onChange, date, duration, bookingTyp
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className={`w-full bg-input border border-border/60 rounded-xl px-4 text-left text-base flex items-center gap-3 transition-colors cursor-pointer ${value ? 'text-text-p' : 'text-text-t'}`}
+        className={`w-full bg-input border border-border/60 rounded-md px-4 text-left text-base flex items-center gap-3 transition-colors cursor-pointer ${value ? 'text-text-p' : 'text-text-t'}`}
         style={{ height: 48 }}
       >
         <Clock size={16} className="text-text-t shrink-0" />
@@ -110,7 +110,7 @@ export default function TimePicker({ value, onChange, date, duration, bookingTyp
 
       {/* Expanded scroll picker */}
       {open && (
-        <div className="mt-2 bg-elevated border border-accent/20 rounded-xl shadow-glow overflow-hidden relative">
+        <div className="mt-2 bg-elevated border border-accent/20 rounded-lg shadow-glow overflow-hidden relative">
           {/* Date label */}
           {selectedDate && (
             <div className="text-center text-sm text-text-s font-medium py-2 border-b border-border/30">
@@ -120,7 +120,7 @@ export default function TimePicker({ value, onChange, date, duration, bookingTyp
 
           {/* Fixed preview block — top edge aligns with selected time */}
           {(() => {
-            const previewColor = bookingType ? (typeColor as Record<string, string>)[bookingType] ?? '#4ADE80' : '#4ADE80';
+            const previewColor = bookingType ? (typeColor as Record<string, string>)[bookingType] ?? '#5BA2FF' : '#5BA2FF';
             return (
               <div
                 className="absolute left-12 right-3 z-10 pointer-events-none rounded"
@@ -132,7 +132,7 @@ export default function TimePicker({ value, onChange, date, duration, bookingTyp
                   border: `2px solid ${previewColor}60`,
                 }}
               >
-                <div className="text-[10px] font-medium px-2 py-0.5" style={{ color: previewColor }}>
+                <div className="text-2xs font-medium px-2 py-0.5" style={{ color: previewColor }}>
                   {format(new Date(2026, 0, 1, selHour, selMin), 'h:mm a')} · {duration}h
                 </div>
               </div>
@@ -154,7 +154,7 @@ export default function TimePicker({ value, onChange, date, duration, bookingTyp
                   className="absolute w-full flex"
                   style={{ top: topPadding + hour * HOUR_H, height: HOUR_H }}
                 >
-                  <div className="w-12 text-[10px] text-text-t text-right pr-2 shrink-0" style={{ marginTop: -6 }}>
+                  <div className="w-12 text-2xs text-text-t text-right pr-2 shrink-0" style={{ marginTop: -6 }}>
                     {hour > 0 ? format(new Date(2026, 0, 1, hour), 'h a') : '12 AM'}
                   </div>
                   <div className="flex-1 border-t border-border/15" />
@@ -193,7 +193,7 @@ export default function TimePicker({ value, onChange, date, duration, bookingTyp
                       borderLeft: `2px solid ${color}`,
                     }}
                   >
-                    <div className="text-[10px] text-text-s truncate">
+                    <div className="text-2xs text-text-s truncate">
                       {client?.display_name || client?.name || 'Walk-in'} · {format(d, 'h:mm a')}
                     </div>
                   </div>

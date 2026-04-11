@@ -21,10 +21,10 @@ export type BookingType = 'Regular' | 'Touch Up' | 'Consultation' | 'Full Day';
 export type BookingStatus = 'Confirmed' | 'Tentative' | 'Completed' | 'Cancelled' | 'No-show';
 
 export const typeColor: Record<BookingType, string> = {
-  Regular: '#4ADE80',
-  'Touch Up': '#22D3EE',
-  Consultation: '#FBBF24',
-  'Full Day': '#A78BFA',
+  Regular: '#5BA2FF',
+  'Touch Up': '#E8A87C',
+  Consultation: '#6BB89E',
+  'Full Day': '#D4A65A',
 };
 
 export interface Booking {

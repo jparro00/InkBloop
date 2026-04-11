@@ -77,13 +77,13 @@ export default function ClientDetailPage() {
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => setEditing(true)}
-            className="w-12 h-12 rounded-xl flex items-center justify-center border border-border/60 text-text-s active:text-text-p transition-colors cursor-pointer press-scale"
+            className="w-12 h-12 rounded-md flex items-center justify-center border border-border/60 text-text-s active:text-text-p transition-colors cursor-pointer press-scale"
           >
             <Edit size={18} />
           </button>
           <button
             onClick={handleNewBooking}
-            className="w-12 h-12 rounded-xl flex items-center justify-center bg-accent text-bg cursor-pointer press-scale"
+            className="w-12 h-12 rounded-md flex items-center justify-center bg-accent text-bg cursor-pointer press-scale"
           >
             <Plus size={18} />
           </button>
@@ -148,14 +148,14 @@ export default function ClientDetailPage() {
           ]
             .filter((f) => f.value)
             .map((f) => (
-              <div key={f.label} className="bg-surface/60 rounded-xl p-5 border border-border/30">
+              <div key={f.label} className="bg-surface/60 rounded-lg p-5 border border-border/30">
                 <div className="text-sm text-text-t uppercase tracking-wider mb-1.5 font-medium">{f.label}</div>
                 <div className="text-base text-text-p">{f.value}</div>
               </div>
             ))}
 
           {upcoming.length > 0 && (
-            <div className="lg:col-span-2 bg-accent-glow rounded-xl p-5 border border-accent/10">
+            <div className="lg:col-span-2 bg-accent-glow rounded-lg p-5 border border-accent/10">
               <div className="text-sm text-text-t uppercase tracking-wider mb-2 font-medium">Next Appointment</div>
               <button
                 onClick={() => setSelectedBookingId(upcoming[0].id)}
@@ -175,7 +175,7 @@ export default function ClientDetailPage() {
             <button
               key={b.id}
               onClick={() => setSelectedBookingId(b.id)}
-              className="w-full text-left flex items-center gap-4 px-5 py-4 rounded-xl active:bg-elevated/40 transition-colors cursor-pointer press-scale min-h-[64px]"
+              className="w-full text-left flex items-center gap-4 px-5 py-4 rounded-lg active:bg-elevated/40 transition-colors cursor-pointer press-scale min-h-[64px]"
             >
               <div className="flex-1 min-w-0" style={{ borderLeftWidth: 3, borderLeftColor: typeColor[b.type], paddingLeft: 12 }}>
                 <div className="text-base text-text-p truncate">
@@ -210,12 +210,12 @@ export default function ClientDetailPage() {
               onChange={(e) => setNoteText(e.target.value)}
               placeholder="Add a note..."
               rows={2}
-              className="flex-1 bg-input border border-border/60 rounded-xl px-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 resize-none transition-colors"
+              className="flex-1 bg-input border border-border/60 rounded-md px-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 resize-none transition-colors"
             />
             <button
               onClick={handleAddNote}
               disabled={!noteText.trim()}
-              className="px-5 bg-accent text-bg text-base rounded-xl cursor-pointer press-scale transition-all disabled:opacity-40 disabled:cursor-not-allowed self-end py-3.5 min-h-[48px]"
+              className="px-5 bg-accent text-bg text-base rounded-md cursor-pointer press-scale transition-all disabled:opacity-40 disabled:cursor-not-allowed self-end py-3.5 min-h-[48px]"
             >
               Add
             </button>
@@ -223,7 +223,7 @@ export default function ClientDetailPage() {
 
           <div className="space-y-3">
             {client.notes.map((note, i) => (
-              <div key={i} className="bg-surface/60 rounded-xl p-5 border border-border/30">
+              <div key={i} className="bg-surface/60 rounded-lg p-5 border border-border/30">
                 <div className="text-xs text-text-t mb-2.5 uppercase tracking-wider font-medium">
                   {format(new Date(note.ts), 'MMM d, yyyy h:mm a')}
                 </div>

@@ -59,14 +59,14 @@ export default function QuickBooking() {
           rows={5}
           autoFocus
           placeholder="Describe the booking in your own words..."
-          className="w-full bg-input border border-border/60 rounded-xl px-4 py-4 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 resize-none transition-colors"
+          className="w-full bg-input border border-border/60 rounded-md px-4 py-4 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 resize-none transition-colors"
           disabled={loading}
         />
 
         <button
           onClick={handleSubmit}
           disabled={!text.trim() || loading}
-          className="w-full py-4 bg-accent text-bg text-base rounded-xl font-medium cursor-pointer press-scale transition-all disabled:opacity-40 disabled:cursor-not-allowed active:shadow-glow min-h-[52px] flex items-center justify-center gap-2"
+          className="w-full py-4 bg-accent text-bg text-base rounded-md font-medium cursor-pointer press-scale transition-all disabled:opacity-40 disabled:cursor-not-allowed active:shadow-glow min-h-[52px] flex items-center justify-center gap-2"
         >
           {loading ? (
             <>

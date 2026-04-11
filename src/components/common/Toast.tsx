@@ -14,7 +14,7 @@ export default function ToastContainer() {
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className="bg-elevated border border-border rounded-xl shadow-lg px-4 py-3.5 flex items-center gap-3 backdrop-blur-md"
+            className="bg-elevated border border-border rounded-lg shadow-lg px-4 py-3.5 flex items-center gap-3 backdrop-blur-md"
           >
             <span className="text-sm text-text-p flex-1">{toast.message}</span>
             {toast.action && (

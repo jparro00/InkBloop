@@ -84,7 +84,7 @@ function DayPanel({
             style={{ top: hour * HOUR_HEIGHT, height: HOUR_HEIGHT }}
             onClick={() => onSlotClick(hour, day)}
           >
-            <div className={`w-16 text-[15px] text-right pr-4 shrink-0 ${isOffHours ? 'text-text-t/50' : 'text-text-t'}`} style={{ marginTop: -8 }}>
+            <div className={`w-16 text-base text-right pr-4 shrink-0 ${isOffHours ? 'text-text-t/50' : 'text-text-t'}`} style={{ marginTop: -8 }}>
               {hour > 0 ? format(new Date(2026, 0, 1, hour), 'h a') : ''}
             </div>
             <div className="flex-1 border-t border-border/15" />
@@ -100,7 +100,7 @@ function DayPanel({
         return (
           <div className="absolute left-0 right-0 z-20 pointer-events-none flex items-center" style={{ top, transform: 'translateY(-50%)' }}>
             <div className="shrink-0 flex justify-end" style={{ width: 64 }}>
-              <span className="text-[15px] text-white font-medium bg-today rounded-md px-3 py-0.5">
+              <span className="text-base text-white font-medium bg-today rounded-md px-3 py-0.5">
                 {format(now, 'h:mm')}
               </span>
             </div>
@@ -132,10 +132,10 @@ function DayPanel({
             }}
             onClick={(e) => { e.stopPropagation(); onBookingClick(booking.id); }}
           >
-            <div className="text-[17px] text-text-p font-medium truncate">
+            <div className="text-md text-text-p font-medium truncate">
               {client?.display_name || client?.name || 'Walk-in'}
             </div>
-            <div className="text-[15px] text-text-s mt-0.5 truncate">
+            <div className="text-base text-text-s mt-0.5 truncate">
               {format(d, 'h:mm a')} · {booking.duration}h
             </div>
           </button>
@@ -169,7 +169,7 @@ function WeekRow({ baseDate, selectedDate, onDayClick, bookings }: {
             className="flex flex-col items-center gap-0.5 py-0.5 cursor-pointer transition-colors"
           >
             <span
-              className={`w-10 h-10 flex items-center justify-center rounded-full text-[17px] font-medium transition-colors ${
+              className={`w-10 h-10 flex items-center justify-center rounded-full text-md font-medium transition-colors ${
                 selected && today
                   ? 'bg-today text-white'
                   : selected
@@ -383,7 +383,7 @@ export default function DayView() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setCalendarSearchOpen(true)}
-            className="w-12 h-12 bg-surface border border-border/40 text-text-s rounded-xl flex items-center justify-center cursor-pointer press-scale transition-transform"
+            className="w-12 h-12 bg-surface border border-border/40 text-text-s rounded-md flex items-center justify-center cursor-pointer press-scale transition-transform"
           >
             <Search size={20} />
           </button>
@@ -392,7 +392,7 @@ export default function DayView() {
               setPrefillBookingData({ date: new Date(calendarDate.getFullYear(), calendarDate.getMonth(), calendarDate.getDate(), 10, 0).toISOString() });
               openBookingForm();
             }}
-            className="w-12 h-12 bg-accent text-bg rounded-xl flex items-center justify-center cursor-pointer press-scale transition-transform"
+            className="w-12 h-12 bg-accent text-bg rounded-md flex items-center justify-center cursor-pointer press-scale transition-transform"
           >
             <Plus size={20} />
           </button>
@@ -402,7 +402,7 @@ export default function DayView() {
       {/* Fixed day headers — shared with month view */}
       <div className="grid grid-cols-7 px-3 shrink-0">
         {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-          <div key={i} className="py-2 text-center text-[17px] text-text-t font-medium">
+          <div key={i} className="py-2 text-center text-md text-text-t font-medium">
             {d}
           </div>
         ))}
