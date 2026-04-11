@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState, useEffect } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 import {
   format,
   isSameDay,
@@ -140,12 +140,6 @@ export default function DayView() {
   const weekStripRef = useRef<HTMLDivElement>(null);
   const stripX = useMotionValue(0);
   const weekX = useMotionValue(0);
-  const isAnimating = useRef(false);
-  const isWeekAnimating = useRef(false);
-
-  // pendingDate shows instantly in week strip while carousel animates
-  const [pendingDate, setPendingDate] = useState<Date | null>(null);
-  const displayDate = pendingDate ?? calendarDate;
 
   const prevDay = subDays(calendarDate, 1);
   const nextDay = addDays(calendarDate, 1);
@@ -173,24 +167,14 @@ export default function DayView() {
   // Timeline carousel: horizontal swipe changes day
   const timelineBind = useDrag(
     ({ movement: [mx], velocity: [vx], direction: [dx], last }) => {
-      if (isAnimating.current) return;
       stripX.set(mx);
       if (last) {
         if (Math.abs(mx) > SWIPE_THRESHOLD || Math.abs(vx) > VELOCITY_THRESHOLD) {
           const dir = dx > 0 ? -1 : 1;
-          const w = containerRef.current?.offsetWidth ?? 375;
-          isAnimating.current = true;
           const newDate = dir === 1 ? addDays(calendarDate, 1) : subDays(calendarDate, 1);
-          setPendingDate(newDate);
-          animate(stripX, -dir * w, {
-            type: 'spring', stiffness: 300, damping: 30, mass: 0.8,
-            onComplete: () => {
-              setCalendarDate(newDate);
-              setPendingDate(null);
-              stripX.set(0);
-              isAnimating.current = false;
-            },
-          });
+          // Commit immediately so the next swipe is ready
+          setCalendarDate(newDate);
+          stripX.set(0);
         } else {
           animate(stripX, 0, { type: 'spring', stiffness: 400, damping: 30 });
         }
@@ -202,7 +186,6 @@ export default function DayView() {
   // Week strip carousel
   const weekBind = useDrag(
     ({ movement: [mx, my], velocity: [vx, vy], direction: [, dy], last, swipe: [, sy], axis }) => {
-      if (isWeekAnimating.current) return;
       if (axis === 'y') {
         if (last && (sy === -1 || (my < -30 && Math.abs(my) > Math.abs(mx) && (Math.abs(my) > 40 || vy > 0.3) && dy < 0))) {
           setCalendarView('month');
@@ -213,19 +196,9 @@ export default function DayView() {
       if (last) {
         if (Math.abs(mx) > SWIPE_THRESHOLD || Math.abs(vx) > VELOCITY_THRESHOLD) {
           const dir = mx < 0 ? 1 : -1;
-          const w = weekStripRef.current?.offsetWidth ?? 375;
-          isWeekAnimating.current = true;
           const newDate = dir === 1 ? addWeeks(calendarDate, 1) : subWeeks(calendarDate, 1);
-          setPendingDate(newDate);
-          animate(weekX, -dir * w, {
-            type: 'spring', stiffness: 300, damping: 30, mass: 0.8,
-            onComplete: () => {
-              setCalendarDate(newDate);
-              setPendingDate(null);
-              weekX.set(0);
-              isWeekAnimating.current = false;
-            },
-          });
+          setCalendarDate(newDate);
+          weekX.set(0);
         } else {
           animate(weekX, 0, { type: 'spring', stiffness: 400, damping: 30 });
         }
@@ -243,7 +216,7 @@ export default function DayView() {
           className="flex items-center gap-1 text-today active:opacity-70 transition-opacity cursor-pointer press-scale min-h-[44px]"
         >
           <ChevronLeft size={20} />
-          <span className="text-lg font-medium">{format(displayDate, 'MMMM')}</span>
+          <span className="text-lg font-medium">{format(calendarDate, 'MMMM')}</span>
         </button>
         <button
           onClick={() => openBookingForm()}
@@ -257,9 +230,9 @@ export default function DayView() {
       <div ref={weekStripRef} className="shrink-0 border-b border-border/30 overflow-hidden touch-none">
         <div {...weekBind()}>
           <motion.div className="flex" style={{ x: weekX, width: '300%', marginLeft: '-100%' }}>
-            <WeekRow baseDate={prevWeekDate} selectedDate={displayDate} onDayClick={setCalendarDate} />
-            <WeekRow baseDate={calendarDate} selectedDate={displayDate} onDayClick={setCalendarDate} />
-            <WeekRow baseDate={nextWeekDate} selectedDate={displayDate} onDayClick={setCalendarDate} />
+            <WeekRow baseDate={prevWeekDate} selectedDate={calendarDate} onDayClick={setCalendarDate} />
+            <WeekRow baseDate={calendarDate} selectedDate={calendarDate} onDayClick={setCalendarDate} />
+            <WeekRow baseDate={nextWeekDate} selectedDate={calendarDate} onDayClick={setCalendarDate} />
           </motion.div>
         </div>
       </div>
