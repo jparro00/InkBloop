@@ -79,8 +79,14 @@ export default function BookingForm() {
         const c = clients.find((c) => c.id === prefillBookingData.client_id);
         if (c) setClientSearch(c.name);
       }
+      if (prefillBookingData.type) {
+        updates.type = prefillBookingData.type as BookingType;
+        // Auto-set type's default duration unless AI explicitly provided one
+        if (!prefillBookingData.duration) {
+          updates.duration = typeDuration[prefillBookingData.type as BookingType];
+        }
+      }
       if (prefillBookingData.duration) updates.duration = prefillBookingData.duration;
-      if (prefillBookingData.type) updates.type = prefillBookingData.type as BookingType;
       if (prefillBookingData.estimate) updates.estimate = prefillBookingData.estimate.toString();
       if (prefillBookingData.notes) updates.notes = prefillBookingData.notes;
       setForm((f) => ({ ...f, ...updates }));
