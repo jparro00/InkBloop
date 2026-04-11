@@ -15,6 +15,8 @@ export default function CalendarPage() {
   const calendarSearchOpen = useUIStore((s) => s.calendarSearchOpen);
   const setCalendarSearchOpen = useUIStore((s) => s.setCalendarSearchOpen);
   const setSelectedBookingId = useUIStore((s) => s.setSelectedBookingId);
+  const setCalendarDate = useUIStore((s) => s.setCalendarDate);
+  const setCalendarView = useUIStore((s) => s.setCalendarView);
   const searchBookings = useBookingStore((s) => s.searchBookings);
   const clients = useClientStore((s) => s.clients);
 
@@ -71,7 +73,9 @@ export default function CalendarPage() {
                     key={b.id}
                     onClick={() => {
                       setCalendarSearchOpen(false);
-                      setSelectedBookingId(b.id);
+                      setCalendarDate(new Date(b.date));
+                      setCalendarView('day');
+                      setTimeout(() => setSelectedBookingId(b.id), 100);
                     }}
                     className="w-full text-left px-4 py-3 active:bg-surface transition-colors cursor-pointer flex items-center gap-3 press-scale border-b border-border/10 last:border-b-0"
                   >
