@@ -71,7 +71,6 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               className={inputClass}
-              autoFocus
             />
           </div>
           <div>
