@@ -342,13 +342,14 @@ export default function BookingForm() {
     {showNewClient && (
       <ClientForm
         onClose={() => {
-          setShowNewClient(false);
-          // Auto-select the most recently added client
-          const latest = useClientStore.getState().clients[useClientStore.getState().clients.length - 1];
-          if (latest) {
+          const currentClients = useClientStore.getState().clients;
+          // Only auto-select if a new client was actually added
+          if (currentClients.length > clients.length) {
+            const latest = currentClients[currentClients.length - 1];
             setForm((f) => ({ ...f, client_id: latest.id }));
             setClientSearch(latest.name);
           }
+          setShowNewClient(false);
         }}
       />
     )}
