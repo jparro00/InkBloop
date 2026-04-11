@@ -166,8 +166,8 @@ export default function DayView() {
 
   const prevDay = subDays(calendarDate, 1);
   const nextDay = addDays(calendarDate, 1);
-  const prevWeekDate = subWeeks(displayDate, 1);
-  const nextWeekDate = addWeeks(displayDate, 1);
+  const prevWeekDate = subWeeks(calendarDate, 1);
+  const nextWeekDate = addWeeks(calendarDate, 1);
 
   const handleSlotClick = useCallback((hour: number, day: Date) => {
     const dateStr = new Date(day.getFullYear(), day.getMonth(), day.getDate(), hour, 0).toISOString();
