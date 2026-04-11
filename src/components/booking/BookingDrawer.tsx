@@ -151,7 +151,7 @@ export default function BookingDrawer() {
         className="fixed bottom-0 left-0 right-0 lg:top-0 lg:left-auto lg:right-0 lg:bottom-0 max-h-[85vh] lg:max-h-full lg:w-[400px] bg-elevated rounded-t-2xl lg:rounded-none border-t lg:border-t-0 lg:border-l border-border/40 shadow-lg z-50 flex flex-col overflow-hidden"
       >
         {/* Entire sheet is drag-bound — gesture only activates when at scroll top */}
-        <div {...bindDrag()} className="flex flex-col flex-1 overflow-hidden touch-none">
+        <div {...bindDrag()} className="flex flex-col flex-1 overflow-hidden" style={{ touchAction: 'pan-y' }}>
           {/* Drag handle — mobile */}
           <div className="flex justify-center pt-3 pb-1 lg:hidden">
             <div className="w-10 h-1 rounded-full bg-border-s/60" />
