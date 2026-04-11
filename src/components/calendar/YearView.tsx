@@ -104,15 +104,15 @@ export default function YearView() {
             <div
               key={year}
               ref={isCurrentYear ? currentYearRef : undefined}
-              className="mb-10"
+              className="mb-6"
             >
               {/* Year heading */}
-              <h1 className="font-display text-2xl text-text-p pt-4 pb-4">
+              <h1 className="font-display text-2xl text-text-p pt-2 pb-2">
                 {year}
               </h1>
 
               {/* 3-column month grid */}
-              <div className="grid grid-cols-3 gap-5">
+              <div className="grid grid-cols-3 gap-x-3 gap-y-2">
                 {months.map((month) => {
                   const monthIdx = month.getMonth();
                   const isThisMonth = isCurrentYear && monthIdx === currentMonth;
