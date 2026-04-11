@@ -68,7 +68,7 @@ function DayPanel({
         return (
           <button
             key={booking.id}
-            className="absolute left-16 right-1 rounded-[4px] pt-1.5 px-3 pb-1 border border-border/30 cursor-pointer press-scale transition-all active:shadow-glow text-left overflow-hidden"
+            className="absolute left-16 right-1 rounded-[4px] pt-1.5 px-3 pb-1 border border-border/30 cursor-pointer press-scale transition-all active:shadow-glow text-left overflow-hidden flex flex-col justify-start"
             style={{ top, height: Math.max(height, 48), borderLeftWidth: 3, borderLeftColor: typeColor[booking.type], backgroundColor: `${typeColor[booking.type]}12` }}
             onClick={(e) => { e.stopPropagation(); onBookingClick(booking.id); }}
           >
