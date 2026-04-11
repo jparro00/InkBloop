@@ -35,15 +35,36 @@ export default function MobileTabBar() {
               to={action === 'search' ? '#' : to}
               onClick={(e) => handleTabClick(to, action, e)}
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center min-w-[60px] min-h-[48px] px-4 py-2 rounded-lg transition-all duration-200 press-scale ${
+                `relative flex flex-col items-center justify-center min-w-[60px] min-h-[48px] px-4 py-2 rounded-lg transition-all duration-200 press-scale ${
                   isActive && action !== 'search'
-                    ? 'bg-accent/12 text-accent shadow-glow-strong'
+                    ? 'text-accent'
                     : 'text-text-t active:text-text-s'
                 }`
               }
             >
-              <Icon size={24} strokeWidth={1.5} />
-              <span className="text-xs mt-1 font-medium">{label}</span>
+              {({ isActive }) => {
+                const active = isActive && action !== 'search';
+                return (
+                  <>
+                    <Icon
+                      size={24}
+                      strokeWidth={1.5}
+                      style={active ? { filter: 'drop-shadow(0 0 6px rgba(176,140,232,0.5)) drop-shadow(0 0 14px rgba(176,140,232,0.25))' } : undefined}
+                    />
+                    <span className="text-xs mt-1 font-medium">{label}</span>
+                    {active && (
+                      <span
+                        className="absolute bottom-1 left-1/2 -translate-x-1/2 h-[2px] rounded-full"
+                        style={{
+                          width: 24,
+                          background: 'linear-gradient(90deg, transparent, rgba(176,140,232,0.7), transparent)',
+                          boxShadow: '0 0 8px rgba(176,140,232,0.5), 0 0 16px rgba(176,140,232,0.2)',
+                        }}
+                      />
+                    )}
+                  </>
+                );
+              }}
             </NavLink>
           ))}
         </div>
