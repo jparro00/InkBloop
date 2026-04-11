@@ -21,18 +21,26 @@ export default function Modal({ title, onClose, children, width = 'lg:max-w-[620
   const isDragging = useRef(false);
 
   // Track keyboard via visualViewport
-  const [viewportHeight, setViewportHeight] = useState(() =>
+  const [vpHeight, setVpHeight] = useState(() =>
     typeof window !== 'undefined' ? (window.visualViewport?.height ?? window.innerHeight) : 800
   );
+  const [vpOffsetTop, setVpOffsetTop] = useState(0);
   const fullHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
-  const keyboardOpen = fullHeight - viewportHeight > 100;
+  const keyboardOpen = fullHeight - vpHeight > 100;
 
   useEffect(() => {
     const vp = window.visualViewport;
     if (!vp) return;
-    const handler = () => setViewportHeight(vp.height);
+    const handler = () => {
+      setVpHeight(vp.height);
+      setVpOffsetTop(vp.offsetTop);
+    };
     vp.addEventListener('resize', handler);
-    return () => vp.removeEventListener('resize', handler);
+    vp.addEventListener('scroll', handler);
+    return () => {
+      vp.removeEventListener('resize', handler);
+      vp.removeEventListener('scroll', handler);
+    };
   }, []);
 
   // Prevent overscroll bounce at top only
@@ -108,11 +116,8 @@ export default function Modal({ title, onClose, children, width = 'lg:max-w-[620
     { axis: 'y', filterTaps: true, threshold: 5, pointer: { touch: true } }
   );
 
-  // On mobile: pin to top, height = visual viewport (shrinks with keyboard)
-  // On desktop: centered modal
-  const mobileHeight = fullScreenMobile
-    ? `${viewportHeight}px`
-    : `${Math.min(viewportHeight * 0.85, viewportHeight)}px`;
+  // Mobile sheet height: use viewport height to stay above keyboard
+  const sheetHeight = fullScreenMobile ? vpHeight : Math.min(vpHeight * 0.85, vpHeight);
 
   return (
     <>
@@ -126,27 +131,23 @@ export default function Modal({ title, onClose, children, width = 'lg:max-w-[620
         onClick={dismiss}
       />
 
-      {/* Mobile: top-pinned sheet. Desktop: centered modal */}
+      {/* Mobile: bottom sheet sized to visual viewport. Desktop: centered modal */}
       <motion.div
         ref={sheetRef}
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        style={{ y: dragY }}
-        className={`fixed top-0 left-0 right-0 lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 ${width} bg-elevated shadow-lg z-50 flex flex-col overflow-hidden rounded-b-2xl lg:rounded-2xl lg:h-auto lg:max-h-[85vh]`}
+        style={{
+          y: dragY,
+          bottom: keyboardOpen ? `${fullHeight - vpHeight - vpOffsetTop}px` : '0px',
+          height: `${sheetHeight}px`,
+          transition: 'bottom 0.15s ease-out, height 0.15s ease-out',
+        }}
+        className={`fixed left-0 right-0 lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:bottom-auto ${width} bg-elevated shadow-lg z-50 flex flex-col overflow-hidden rounded-t-2xl lg:rounded-2xl lg:h-auto lg:max-h-[85vh]`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div
-          {...bindDrag()}
-          className="flex flex-col flex-1 overflow-hidden"
-          style={{
-            touchAction: 'pan-y',
-            overscrollBehavior: 'none',
-            height: mobileHeight,
-            transition: 'height 0.2s ease-out',
-          }}
-        >
+        <div {...bindDrag()} className="flex flex-col flex-1 overflow-hidden" style={{ touchAction: 'pan-y', overscrollBehavior: 'none' }}>
           {/* Drag handle — mobile */}
           <div className="flex justify-center pt-3 pb-1 lg:hidden">
             <div className="w-10 h-1 rounded-full bg-border-s/60" />
