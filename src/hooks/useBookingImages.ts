@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useImageStore } from '../stores/imageStore';
 import { saveImage, getThumbnail, getOriginal, deleteImage as deleteImageBlob } from '../lib/imageDb';
 import { generateThumbnail } from '../utils/imageProcessing';
@@ -11,7 +11,11 @@ export interface ThumbnailEntry {
 }
 
 export function useBookingImages(bookingId: string | undefined) {
-  const images = useImageStore((s) => bookingId ? s.getImagesForBooking(bookingId) : []);
+  const allImages = useImageStore((s) => s.images);
+  const images = useMemo(
+    () => bookingId ? allImages.filter((img) => img.booking_id === bookingId) : [],
+    [allImages, bookingId]
+  );
   const addImageMeta = useImageStore((s) => s.addImage);
   const removeImageMeta = useImageStore((s) => s.removeImage);
 

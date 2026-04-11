@@ -37,7 +37,7 @@ const defaultForm = {
 
 export default function BookingForm() {
   const { editingBookingId, closeBookingForm, prefillBookingData } = useUIStore();
-  const booking = useBookingStore((s) => editingBookingId ? s.getBooking(editingBookingId) : undefined);
+  const booking = useBookingStore((s) => editingBookingId ? s.bookings.find((b) => b.id === editingBookingId) : undefined);
   const addBooking = useBookingStore((s) => s.addBooking);
   const updateBooking = useBookingStore((s) => s.updateBooking);
   const clients = useClientStore((s) => s.clients);

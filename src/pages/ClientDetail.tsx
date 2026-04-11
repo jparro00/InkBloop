@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Plus } from 'lucide-react';
 import { format } from 'date-fns';
@@ -13,9 +13,11 @@ type Tab = 'overview' | 'appointments' | 'documents' | 'notes';
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const client = useClientStore((s) => s.getClient(id ?? ''));
+  const clients = useClientStore((s) => s.clients);
+  const client = useMemo(() => clients.find((c) => c.id === id), [clients, id]);
   const addNote = useClientStore((s) => s.addNote);
-  const clientBookings = useBookingStore((s) => s.getBookingsForClient(id ?? ''));
+  const allBookings = useBookingStore((s) => s.bookings);
+  const clientBookings = useMemo(() => allBookings.filter((b) => b.client_id === id), [allBookings, id]);
   const { setSelectedBookingId, openBookingForm, setPrefillBookingData } = useUIStore();
   const [tab, setTab] = useState<Tab>('overview');
   const [editing, setEditing] = useState(false);

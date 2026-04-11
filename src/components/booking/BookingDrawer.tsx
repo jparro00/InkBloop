@@ -19,12 +19,12 @@ const allStatuses: BookingStatus[] = ['Confirmed', 'Tentative', 'Completed', 'Ca
 export default function BookingDrawer() {
   const navigate = useNavigate();
   const { selectedBookingId, setSelectedBookingId, openBookingForm, addToast } = useUIStore();
-  const booking = useBookingStore((s) => s.getBooking(selectedBookingId ?? ''));
+  const booking = useBookingStore((s) => s.bookings.find((b) => b.id === selectedBookingId));
   const updateBooking = useBookingStore((s) => s.updateBooking);
   const deleteBooking = useBookingStore((s) => s.deleteBooking);
-  const client = useClientStore((s) => s.getClient(booking?.client_id ?? ''));
+  const client = useClientStore((s) => s.clients.find((c) => c.id === (booking?.client_id ?? '')));
   const removeImagesForBooking = useImageStore((s) => s.removeImagesForBooking);
-  const bookingImages = useImageStore((s) => s.getImagesForBooking(selectedBookingId ?? ''));
+  const allImages = useImageStore((s) => s.images);
   const { thumbnails, getOriginalUrl } = useBookingImages(selectedBookingId ?? undefined);
   const [viewingImageId, setViewingImageId] = useState<string | null>(null);
 
@@ -118,7 +118,7 @@ export default function BookingDrawer() {
   const handleDelete = () => {
     const bookingCopy = { ...booking };
     // Clean up images from IndexedDB
-    bookingImages.forEach((img) => deleteImageBlob(img.id));
+    allImages.filter((img) => img.booking_id === booking.id).forEach((img) => deleteImageBlob(img.id));
     removeImagesForBooking(booking.id);
     deleteBooking(booking.id);
     setSelectedBookingId(null);

@@ -10,7 +10,7 @@ interface BookingCardProps {
 }
 
 export default function BookingCard({ booking, compact }: BookingCardProps) {
-  const client = useClientStore((s) => s.getClient(booking.client_id ?? ''));
+  const client = useClientStore((s) => s.clients.find((c) => c.id === booking.client_id));
   const setSelectedBookingId = useUIStore((s) => s.setSelectedBookingId);
   const color = typeColor[booking.type];
 
