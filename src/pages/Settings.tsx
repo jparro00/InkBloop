@@ -7,6 +7,8 @@ export default function SettingsPage() {
   const bookings = useBookingStore((s) => s.bookings);
   const [exportClient, setExportClient] = useState('');
   const [exported, setExported] = useState(false);
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('inkflow-anthropic-key') ?? '');
+  const [keySaved, setKeySaved] = useState(false);
 
   const handleExport = () => {
     const client = clients.find(
@@ -105,6 +107,37 @@ export default function SettingsPage() {
               {exported ? 'Done!' : 'Export'}
             </button>
           </div>
+        </div>
+      </section>
+
+      <section className={sectionClass}>
+        <h2 className="text-md text-text-p font-display mb-3">AI Quick Booking</h2>
+        <div className={cardClass}>
+          <div className="text-base text-text-s mb-2">Anthropic API key for AI-powered quick booking</div>
+          <div className="flex gap-3">
+            <input
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="sk-ant-..."
+              className={`${inputClass} flex-1`}
+            />
+            <button
+              onClick={() => {
+                if (apiKey.trim()) {
+                  localStorage.setItem('inkflow-anthropic-key', apiKey.trim());
+                } else {
+                  localStorage.removeItem('inkflow-anthropic-key');
+                }
+                setKeySaved(true);
+                setTimeout(() => setKeySaved(false), 2000);
+              }}
+              className="px-5 py-3.5 text-base bg-accent text-bg rounded-xl cursor-pointer press-scale transition-all shrink-0 min-h-[48px]"
+            >
+              {keySaved ? 'Saved!' : 'Save'}
+            </button>
+          </div>
+          <div className="text-sm text-text-t">Uses Claude Haiku to parse natural language bookings. Key is stored locally only.</div>
         </div>
       </section>
 

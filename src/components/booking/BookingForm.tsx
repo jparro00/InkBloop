@@ -81,6 +81,8 @@ export default function BookingForm() {
       }
       if (prefillBookingData.duration) updates.duration = prefillBookingData.duration;
       if (prefillBookingData.type) updates.type = prefillBookingData.type as BookingType;
+      if (prefillBookingData.estimate) updates.estimate = prefillBookingData.estimate.toString();
+      if (prefillBookingData.notes) updates.notes = prefillBookingData.notes;
       setForm((f) => ({ ...f, ...updates }));
     }
   }, [booking, prefillBookingData, clients]);
