@@ -26,9 +26,10 @@ export default function AppShell() {
 
       {/* Main content — full width on mobile, offset on desktop */}
       <main
-        className={`flex-1 min-h-full pb-24 lg:pb-0 transition-all duration-300 ${
+        className={`flex-1 overflow-y-auto pb-24 lg:pb-0 transition-all duration-300 ${
           sidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-[240px]'
         }`}
+        style={{ WebkitOverflowScrolling: 'touch' }}
       >
         <Outlet />
       </main>
