@@ -192,14 +192,9 @@ export default function MonthView() {
                             <div
                               key={b.id}
                               className="rounded-sm px-1 py-[1px] text-[10px] leading-tight overflow-hidden whitespace-nowrap"
-                              style={{ backgroundColor: typeColor[b.type] }}
+                              style={{ backgroundColor: `${typeColor[b.type]}18`, color: typeColor[b.type], maskImage: 'linear-gradient(to right, black 70%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, black 70%, transparent 100%)' }}
                             >
-                              <span
-                                className="text-white"
-                                style={{ backgroundImage: 'linear-gradient(to right, white 70%, transparent 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', display: 'block' }}
-                              >
-                                {name}
-                              </span>
+                              {name}
                             </div>
                           );
                         })}
