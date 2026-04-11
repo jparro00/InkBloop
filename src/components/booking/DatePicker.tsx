@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, addMonths, subMonths, isSameDay, isToday, isSameMonth } from 'date-fns';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { useDrag } from '@use-gesture/react';
 import { useBookingStore } from '../../stores/bookingStore';
 
 interface DatePickerProps {
@@ -46,6 +47,16 @@ export default function DatePicker({ value, onChange, missing }: DatePickerProps
     setOpen(false);
   };
 
+  const bindSwipe = useDrag(
+    ({ movement: [mx], velocity: [vx], direction: [dx], last }) => {
+      if (last && (Math.abs(mx) > 50 || vx > 0.3)) {
+        if (dx > 0) setViewMonth((m) => subMonths(m, 1));
+        else setViewMonth((m) => addMonths(m, 1));
+      }
+    },
+    { axis: 'x', filterTaps: true, threshold: 10, pointer: { touch: true } }
+  );
+
   const displayText = value
     ? format(new Date(value + 'T00:00:00'), 'MMM d, yyyy')
     : 'Select date';
@@ -69,7 +80,7 @@ export default function DatePicker({ value, onChange, missing }: DatePickerProps
 
       {/* Calendar dropdown */}
       {open && (
-        <div className="mt-2 bg-input border border-border/60 rounded-xl p-3 space-y-3">
+        <div {...bindSwipe()} className="mt-2 bg-input border border-border/60 rounded-xl p-3 space-y-3" style={{ touchAction: 'pan-y' }}>
           {/* Month navigation */}
           <div className="flex items-center justify-between">
             <button
@@ -130,7 +141,7 @@ export default function DatePicker({ value, onChange, missing }: DatePickerProps
                   </span>
                   <span
                     className={`w-1 h-1 rounded-full mt-0.5 ${
-                      hasBooking ? (selected ? 'bg-bg' : 'bg-accent') : 'bg-transparent'
+                      hasBooking ? (selected ? 'bg-accent' : 'bg-text-t') : 'bg-transparent'
                     }`}
                   />
                 </button>
