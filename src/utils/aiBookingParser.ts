@@ -9,6 +9,8 @@ interface ParsedBooking {
   notes?: string;
 }
 
+const DURATION_PATTERN = /(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h)\b/i;
+
 export async function parseBookingWithAI(text: string, apiKey: string): Promise<ParsedBooking> {
   const clients = useClientStore.getState().clients;
   const clientList = clients.map((c) => ({ id: c.id, name: c.name }));
@@ -65,7 +67,10 @@ CRITICAL: Always extract every field you can. A missing client match must NOT pr
       result.client_id = parsed.client_id;
     }
     if (parsed.date) result.date = parsed.date;
-    if (typeof parsed.duration === 'number') result.duration = parsed.duration;
+    // Only accept AI duration if the user actually mentioned a duration in their text
+    if (typeof parsed.duration === 'number' && DURATION_PATTERN.test(text)) {
+      result.duration = parsed.duration;
+    }
     if (parsed.type && ['Regular', 'Touch Up', 'Consultation', 'Full Day'].includes(parsed.type)) {
       result.type = parsed.type;
     }
