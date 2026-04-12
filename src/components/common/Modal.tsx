@@ -18,9 +18,10 @@ const R = 28; // must match rounded-t-[28px]
 const TRACE_HEIGHT = 60; // how far down the sides the trace extends
 
 /** SVG trace that follows the rounded top edge of the modal. */
-function AccentTrace({ sheetRef }: { sheetRef: React.RefObject<HTMLDivElement | null> }) {
+function AccentTrace({ sheetRef, trigger }: { sheetRef: React.RefObject<HTMLDivElement | null>; trigger: number }) {
   const pathRef = useRef<SVGPathElement>(null);
   const [w, setW] = useState(0);
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     if (sheetRef.current) {
@@ -28,36 +29,40 @@ function AccentTrace({ sheetRef }: { sheetRef: React.RefObject<HTMLDivElement | 
     }
   }, [sheetRef]);
 
-  const [visible, setVisible] = useState(true);
-
-  // Animate a short "laser" segment along the path, then fade out
+  // Fire laser animation whenever trigger changes
   useEffect(() => {
     const path = pathRef.current;
-    if (!path || !w) return;
+    if (!path || !w || trigger === 0) return;
+
+    setVisible(true);
 
     const len = path.getTotalLength();
-    const segment = len * 0.15; // visible segment length (~15% of path)
+    const segment = len * 0.15;
 
-    // Start: segment off-screen before the path start
+    // Reset to start position (no transition)
+    path.style.transition = 'none';
     path.style.strokeDasharray = `${segment} ${len}`;
     path.style.strokeDashoffset = `${segment}`;
 
-    // Delay to sync with sheet slide-up, then animate segment across
+    // Force reflow so the reset takes effect before animating
+    path.getBoundingClientRect();
+
+    // Start animation
     const startTimer = setTimeout(() => {
-      path.style.transition = 'stroke-dashoffset 0.7s cubic-bezier(0.4, 0, 0.2, 1)';
+      path.style.transition = 'stroke-dashoffset 1.1s cubic-bezier(0.4, 0, 0.2, 1)';
       path.style.strokeDashoffset = `${-len}`;
     }, 200);
 
-    // Remove after animation completes
+    // Hide after animation completes
     const hideTimer = setTimeout(() => {
       setVisible(false);
-    }, 1000);
+    }, 1400);
 
     return () => {
       clearTimeout(startTimer);
       clearTimeout(hideTimer);
     };
-  }, [w]);
+  }, [w, trigger]);
 
   if (!w || !visible) return null;
 
@@ -112,6 +117,7 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
   const dismissTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [collapsed, setCollapsed] = useState(false);
   const collapsedRef = useRef(false);
+  const [traceTrigger, setTraceTrigger] = useState(1); // 1 = fire on mount
 
   // Keep ref in sync with state
   useEffect(() => { collapsedRef.current = collapsed; }, [collapsed]);
@@ -178,6 +184,7 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
   const collapseToHeader = useCallback(() => {
     const target = getCollapsedY();
     setCollapsed(true);
+    setTraceTrigger((n) => n + 1);
     animate(dragY, target, { type: 'spring', stiffness: 300, damping: 30 });
   }, [dragY, getCollapsedY]);
 
@@ -299,8 +306,8 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Accent trace — traces the rounded top outline on enter */}
-        <AccentTrace sheetRef={sheetRef} />
+        {/* Accent trace — laser traces the rounded top outline */}
+        <AccentTrace sheetRef={sheetRef} trigger={traceTrigger} />
 
         <div {...bindDrag()} className="flex flex-col flex-1 overflow-hidden" style={{ touchAction: 'pan-y', overscrollBehavior: 'none' }}>
           {/* Drag handle + header */}
