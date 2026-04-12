@@ -141,24 +141,50 @@ const defaults = {
 
 type ColorKey = keyof typeof defaults;
 
+const STORAGE_KEY = 'inkflow-theme-overrides';
+
+function loadOverrides(): Partial<Record<ColorKey, string>> {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function saveOverrides(colors: Record<ColorKey, string>) {
+  const overrides: Partial<Record<ColorKey, string>> = {};
+  for (const key of Object.keys(defaults) as ColorKey[]) {
+    if (colors[key] !== defaults[key]) overrides[key] = colors[key];
+  }
+  if (Object.keys(overrides).length) {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
+  } else {
+    sessionStorage.removeItem(STORAGE_KEY);
+  }
+}
+
 export default function ThemePage() {
-  const [colors, setColors] = useState(defaults);
+  const [colors, setColors] = useState(() => ({ ...defaults, ...loadOverrides() }));
   const [selected, setSelected] = useState<ColorKey | null>(null);
 
-  const update = useCallback((key: ColorKey, value: string) => {
-    setColors((prev) => ({ ...prev, [key]: value }));
+  const cssMap: Partial<Record<ColorKey, string>> = {
+    accent: '--color-accent',
+    'accent-dim': '--color-accent-dim',
+    danger: '--color-danger',
+    success: '--color-success',
+    today: '--color-today',
+    bg: '--color-bg',
+    surface: '--color-surface',
+    elevated: '--color-elevated',
+    input: '--color-input',
+  };
 
-    const cssMap: Partial<Record<ColorKey, string>> = {
-      accent: '--color-accent',
-      'accent-dim': '--color-accent-dim',
-      danger: '--color-danger',
-      success: '--color-success',
-      today: '--color-today',
-      bg: '--color-bg',
-      surface: '--color-surface',
-      elevated: '--color-elevated',
-      input: '--color-input',
-    };
+  const update = useCallback((key: ColorKey, value: string) => {
+    setColors((prev) => {
+      const next = { ...prev, [key]: value };
+      saveOverrides(next);
+      return next;
+    });
+
     const prop = cssMap[key];
     if (prop) document.documentElement.style.setProperty(prop, value);
 
@@ -174,6 +200,7 @@ export default function ThemePage() {
   const reset = useCallback(() => {
     setColors(defaults);
     setSelected(null);
+    sessionStorage.removeItem(STORAGE_KEY);
     const props = ['--color-accent', '--color-accent-dim', '--color-accent-glow', '--accent-rgb', '--color-danger', '--color-success', '--color-today', '--color-bg', '--color-surface', '--color-elevated', '--color-input', '--shadow-glow', '--shadow-glow-strong'];
     props.forEach((p) => document.documentElement.style.removeProperty(p));
   }, []);
