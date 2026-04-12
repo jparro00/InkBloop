@@ -7,6 +7,7 @@ import MobileTabBar from './MobileTabBar';
 import { useUIStore } from '../../stores/uiStore';
 import BookingDrawer from '../booking/BookingDrawer';
 import BookingForm from '../booking/BookingForm';
+import CreateClientForm from '../client/CreateClientForm';
 import QuickBooking from '../QuickBooking';
 import SearchOverlay from '../../pages/Search';
 import ToastContainer from '../common/Toast';
@@ -19,6 +20,8 @@ export default function AppShell() {
     quickBookingOpen,
     setQuickBookingOpen,
     searchOpen,
+    createClientFormOpen,
+    setCreateClientFormOpen,
   } = useUIStore();
 
   return (
@@ -54,6 +57,10 @@ export default function AppShell() {
 
       <AnimatePresence>
         {searchOpen && <SearchOverlay />}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {createClientFormOpen && <CreateClientForm onClose={() => setCreateClientFormOpen(false)} />}
       </AnimatePresence>
 
       {/* Quick Booking FAB */}

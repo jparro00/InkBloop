@@ -5,15 +5,12 @@ import { motion } from 'framer-motion';
 import { useClientStore } from '../stores/clientStore';
 import { useBookingStore } from '../stores/bookingStore';
 import { useUIStore } from '../stores/uiStore';
-import CreateClientForm from '../components/client/CreateClientForm';
-
 export default function ClientsPage() {
   const navigate = useNavigate();
   const clients = useClientStore((s) => s.clients);
   const bookings = useBookingStore((s) => s.bookings);
   const [search, setSearch] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const { setHeaderLeft, setHeaderRight } = useUIStore();
+  const { setHeaderLeft, setHeaderRight, setCreateClientFormOpen } = useUIStore();
 
   const filtered = search
     ? clients.filter(
@@ -37,7 +34,7 @@ export default function ClientsPage() {
     setHeaderLeft(null);
     setHeaderRight(
       <button
-        onClick={() => setShowForm(true)}
+        onClick={() => setCreateClientFormOpen(true)}
         className="w-12 h-12 lg:w-auto lg:h-auto lg:px-4 lg:py-2.5 bg-accent text-bg rounded-md flex items-center justify-center gap-2 text-sm cursor-pointer press-scale transition-transform shadow-glow active:shadow-glow-strong"
       >
         <Plus size={20} />
@@ -115,7 +112,6 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      {showForm && <CreateClientForm onClose={() => setShowForm(false)} />}
     </div>
   );
 }

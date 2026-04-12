@@ -38,6 +38,8 @@ interface UIStore {
   headerRight: ReactNode;
   setHeaderLeft: (node: ReactNode) => void;
   setHeaderRight: (node: ReactNode) => void;
+  createClientFormOpen: boolean;
+  setCreateClientFormOpen: (open: boolean) => void;
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -78,4 +80,6 @@ export const useUIStore = create<UIStore>((set) => ({
   headerRight: null,
   setHeaderLeft: (node) => set({ headerLeft: node }),
   setHeaderRight: (node) => set({ headerRight: node }),
+  createClientFormOpen: false,
+  setCreateClientFormOpen: (open) => set({ createClientFormOpen: open }),
 }));
