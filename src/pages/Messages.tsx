@@ -12,7 +12,7 @@ export default function MessagesPage() {
         </div>
         <h2 className="font-display text-xl font-bold text-text-p mb-2">Still Getting Inked</h2>
         <p className="text-text-s text-center text-base leading-relaxed max-w-[280px]">
-          We're still drawing up the design and prepping the stencil. Once it's ready, you'll be the first in the chair.
+          We're still drawing up the design and prepping the stencil for messaging. We'll get you in the chair soon.
         </p>
       </div>
     </div>
