@@ -20,8 +20,8 @@ const TRACE_HEIGHT = 60; // how far down the sides the trace extends
 /** SVG trace that follows the rounded top edge of the modal. */
 function AccentTrace({ sheetRef, trigger }: { sheetRef: React.RefObject<HTMLDivElement | null>; trigger: number }) {
   const pathRef = useRef<SVGPathElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const [w, setW] = useState(0);
-  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     if (sheetRef.current) {
@@ -32,14 +32,14 @@ function AccentTrace({ sheetRef, trigger }: { sheetRef: React.RefObject<HTMLDivE
   // Fire laser animation whenever trigger changes
   useEffect(() => {
     const path = pathRef.current;
-    if (!path || !w || trigger === 0) return;
-
-    setVisible(true);
+    const svg = svgRef.current;
+    if (!path || !svg || !w || trigger === 0) return;
 
     const len = path.getTotalLength();
     const segment = len * 0.15;
 
-    // Reset to start position (no transition)
+    // Show SVG, reset to start position (no transition)
+    svg.style.opacity = '1';
     path.style.transition = 'none';
     path.style.strokeDasharray = `${segment} ${len}`;
     path.style.strokeDashoffset = `${segment}`;
@@ -51,12 +51,12 @@ function AccentTrace({ sheetRef, trigger }: { sheetRef: React.RefObject<HTMLDivE
     const startTimer = setTimeout(() => {
       path.style.transition = 'stroke-dashoffset 1.1s cubic-bezier(0.4, 0, 0.2, 1)';
       path.style.strokeDashoffset = `${-len}`;
-    }, 200);
+    }, 50);
 
     // Hide after animation completes
     const hideTimer = setTimeout(() => {
-      setVisible(false);
-    }, 1400);
+      svg.style.opacity = '0';
+    }, 1250);
 
     return () => {
       clearTimeout(startTimer);
@@ -64,18 +64,19 @@ function AccentTrace({ sheetRef, trigger }: { sheetRef: React.RefObject<HTMLDivE
     };
   }, [w, trigger]);
 
-  if (!w || !visible) return null;
+  if (!w) return null;
 
   // Path: up the left side → around top-left corner → across top → around top-right corner → down right side
   const d = `M 0,${TRACE_HEIGHT} L 0,${R} A ${R},${R} 0 0,1 ${R},0 L ${w - R},0 A ${R},${R} 0 0,1 ${w},${R} L ${w},${TRACE_HEIGHT}`;
 
   return (
     <svg
+      ref={svgRef}
       className="absolute top-0 left-0 z-10 pointer-events-none"
       width={w}
       height={TRACE_HEIGHT}
       fill="none"
-      style={{ overflow: 'visible' }}
+      style={{ overflow: 'visible', opacity: 0 }}
     >
       <path
         ref={pathRef}
@@ -83,7 +84,6 @@ function AccentTrace({ sheetRef, trigger }: { sheetRef: React.RefObject<HTMLDivE
         stroke="var(--color-accent)"
         strokeWidth="2"
         strokeLinecap="round"
-        style={{ opacity: 0.8 }}
       />
     </svg>
   );
