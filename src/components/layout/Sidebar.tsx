@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom';
-import { Calendar, Users, Search, Settings } from 'lucide-react';
+import { Calendar, Users, Search, Palette, Settings } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 
 const navItems = [
   { to: '/', icon: Calendar, label: 'Calendar', action: undefined },
   { to: '/clients', icon: Users, label: 'Clients', action: undefined },
   { to: '/search', icon: Search, label: 'Search', action: 'search' as const },
+  { to: '/theme', icon: Palette, label: 'Theme', action: undefined },
   { to: '/settings', icon: Settings, label: 'Settings', action: undefined },
 ];
 
