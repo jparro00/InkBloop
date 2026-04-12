@@ -8,9 +8,11 @@ import { useUIStore } from '../../stores/uiStore';
 import BookingDrawer from '../booking/BookingDrawer';
 import BookingForm from '../booking/BookingForm';
 import CreateClientForm from '../client/CreateClientForm';
+import ClientForm from '../client/ClientForm';
 import QuickBooking from '../QuickBooking';
 import SearchOverlay from '../../pages/Search';
 import ToastContainer from '../common/Toast';
+import { useClientStore } from '../../stores/clientStore';
 
 export default function AppShell() {
   const {
@@ -22,7 +24,10 @@ export default function AppShell() {
     searchOpen,
     createClientFormOpen,
     setCreateClientFormOpen,
+    editingClientId,
+    setEditingClientId,
   } = useUIStore();
+  const editingClient = useClientStore((s) => editingClientId ? s.clients.find((c) => c.id === editingClientId) : undefined);
 
   return (
     <div className="h-full flex flex-col lg:flex-row">
@@ -61,6 +66,10 @@ export default function AppShell() {
 
       <AnimatePresence>
         {createClientFormOpen && <CreateClientForm onClose={() => setCreateClientFormOpen(false)} />}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {editingClient && <ClientForm client={editingClient} onClose={() => setEditingClientId(null)} />}
       </AnimatePresence>
 
       {/* Quick Booking FAB */}

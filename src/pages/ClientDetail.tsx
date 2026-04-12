@@ -5,7 +5,6 @@ import { format } from 'date-fns';
 import { useClientStore } from '../stores/clientStore';
 import { useBookingStore } from '../stores/bookingStore';
 import { useUIStore } from '../stores/uiStore';
-import ClientForm from '../components/client/ClientForm';
 import { typeColor } from '../types';
 
 type Tab = 'overview' | 'appointments' | 'documents' | 'notes';
@@ -18,9 +17,8 @@ export default function ClientDetailPage() {
   const addNote = useClientStore((s) => s.addNote);
   const allBookings = useBookingStore((s) => s.bookings);
   const clientBookings = useMemo(() => allBookings.filter((b) => b.client_id === id), [allBookings, id]);
-  const { setSelectedBookingId, openBookingForm, setPrefillBookingData } = useUIStore();
+  const { setSelectedBookingId, openBookingForm, setPrefillBookingData, setEditingClientId } = useUIStore();
   const [tab, setTab] = useState<Tab>('overview');
-  const [editing, setEditing] = useState(false);
   const [noteText, setNoteText] = useState('');
 
   if (!client) {
@@ -76,7 +74,7 @@ export default function ClientDetailPage() {
         </button>
         <div className="flex items-center gap-2.5">
           <button
-            onClick={() => setEditing(true)}
+            onClick={() => setEditingClientId(client.id)}
             className="w-12 h-12 rounded-md flex items-center justify-center border border-border/60 text-text-s active:text-text-p transition-colors cursor-pointer press-scale"
           >
             <Edit size={18} />
@@ -237,7 +235,6 @@ export default function ClientDetailPage() {
         </div>
       )}
 
-      {editing && <ClientForm client={client} onClose={() => setEditing(false)} />}
     </div>
   );
 }

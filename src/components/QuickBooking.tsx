@@ -50,7 +50,6 @@ export default function QuickBooking() {
       onClose={() => setQuickBookingOpen(false)}
       width="lg:max-w-[520px]"
       fullScreenMobile={true}
-      instant
     >
       <div className="space-y-4">
         <textarea
