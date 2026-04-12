@@ -5,6 +5,7 @@ import CalendarPage from './pages/Calendar';
 import ClientsPage from './pages/Clients';
 import ClientDetailPage from './pages/ClientDetail';
 import SettingsPage from './pages/Settings';
+import MessagesPage from './pages/Messages';
 import LoginPage from './pages/Login';
 import { useUIStore } from './stores/uiStore';
 
@@ -29,6 +30,7 @@ function AppContent() {
         <Route path="/" element={<CalendarPage />} />
         <Route path="/clients" element={<ClientsPage />} />
         <Route path="/clients/:id" element={<ClientDetailPage />} />
+        <Route path="/messages" element={<MessagesPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
     </Routes>
