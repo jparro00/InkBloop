@@ -169,7 +169,7 @@ function WeekRow({ baseDate, selectedDate, onDayClick, bookings }: {
             className="flex flex-col items-center gap-0.5 py-0.5 cursor-pointer transition-colors"
           >
             <span
-              className={`w-10 h-10 flex items-center justify-center rounded-full text-md font-medium transition-colors ${
+              className={`w-10 h-10 flex items-center justify-center rounded-full text-[20px] font-medium transition-colors ${
                 selected && today
                   ? 'bg-today text-white'
                   : selected

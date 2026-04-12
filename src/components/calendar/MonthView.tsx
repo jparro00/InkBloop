@@ -245,7 +245,7 @@ export default function MonthView() {
                       {/* Date number */}
                       <div className="w-full flex justify-center mb-1">
                         <span
-                          className={`w-9 h-9 flex items-center justify-center rounded-full text-md ${
+                          className={`w-10 h-10 flex items-center justify-center rounded-full text-[20px] ${
                             today
                               ? 'bg-today text-white font-semibold'
                               : inMonth
