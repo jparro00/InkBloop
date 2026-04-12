@@ -68,20 +68,21 @@ export default function ImageViewer({ thumbnails, initialId, getOriginalUrl, onC
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center"
+      className="fixed inset-0 z-[60] flex items-center justify-center"
+      style={{ backgroundColor: 'var(--color-overlay-heavy)' }}
       onClick={onClose}
     >
       {/* Close button */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 w-12 h-12 flex items-center justify-center rounded-full bg-white/10 text-white active:bg-white/20 transition-colors cursor-pointer z-10"
+        className="absolute top-4 right-4 w-12 h-12 flex items-center justify-center rounded-full bg-text-p/10 text-text-p active:bg-text-p/20 transition-colors cursor-pointer z-10"
       >
         <X size={22} />
       </button>
 
       {/* Counter */}
       {thumbnails.length > 1 && (
-        <div className="absolute top-5 left-1/2 -translate-x-1/2 text-sm text-white/60 z-10">
+        <div className="absolute top-5 left-1/2 -translate-x-1/2 text-sm text-text-s z-10">
           {index + 1} / {thumbnails.length}
         </div>
       )}
@@ -100,13 +101,13 @@ export default function ImageViewer({ thumbnails, initialId, getOriginalUrl, onC
         <>
           <button
             onClick={(e) => { e.stopPropagation(); prev(); }}
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 text-white active:bg-white/20 transition-colors cursor-pointer"
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-text-p/10 text-text-p active:bg-text-p/20 transition-colors cursor-pointer"
           >
             <ChevronLeft size={20} />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); next(); }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 text-white active:bg-white/20 transition-colors cursor-pointer"
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-text-p/10 text-text-p active:bg-text-p/20 transition-colors cursor-pointer"
           >
             <ChevronRight size={20} />
           </button>

@@ -15,7 +15,7 @@ import { useClientStore } from '../../stores/clientStore';
 import { useImageStore } from '../../stores/imageStore';
 import { useBookingImages } from '../../hooks/useBookingImages';
 import type { Booking, BookingType, BookingStatus } from '../../types';
-import { typeColor } from '../../types';
+import { getTypeColor } from '../../types';
 
 const bookingTypes: BookingType[] = ['Regular', 'Touch Up', 'Consultation', 'Full Day'];
 
@@ -270,7 +270,7 @@ export default function BookingForm() {
           <label className={labelClass}>Type</label>
           <div className="grid grid-cols-2 gap-3">
             {bookingTypes.map((t) => {
-              const color = typeColor[t];
+              const color = getTypeColor(t);
               const selected = form.type === t;
               return (
                 <button
@@ -278,7 +278,7 @@ export default function BookingForm() {
                   onClick={() => { setForm((f) => ({ ...f, type: t, duration: typeDuration[t] })); setMissingFields((s) => { const n = new Set(s); n.delete('type'); return n; }); }}
                   className={`px-4 py-3.5 text-base rounded-md transition-all cursor-pointer press-scale min-h-[48px] flex items-center gap-2.5 ${
                     selected
-                      ? 'border border-border/60 text-text-p bg-white/[0.06]'
+                      ? 'border border-border/60 text-text-p bg-text-p/[0.06]'
                       : missingFields.has('type')
                         ? 'border-2 border-danger/60 text-text-s'
                         : 'border border-border/60 text-text-s active:text-text-p active:bg-elevated'

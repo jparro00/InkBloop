@@ -19,7 +19,7 @@ import { useUIStore } from '../../stores/uiStore';
 import { useBookingStore } from '../../stores/bookingStore';
 import { useClientStore } from '../../stores/clientStore';
 import type { Booking } from '../../types';
-import { typeColor } from '../../types';
+import { getTypeColor, getTypeColorAlpha } from '../../types';
 
 
 const hours = Array.from({ length: 24 }, (_, i) => i);
@@ -80,7 +80,7 @@ function DayPanel({
         return (
           <div
             key={hour}
-            className={`absolute w-full flex cursor-pointer transition-colors ${isOffHours ? 'bg-white/[0.015]' : ''}`}
+            className={`absolute w-full flex cursor-pointer transition-colors ${isOffHours ? 'bg-text-p/[0.015]' : ''}`}
             style={{ top: hour * HOUR_HEIGHT, height: HOUR_HEIGHT }}
             onClick={() => onSlotClick(hour, day)}
           >
@@ -127,8 +127,8 @@ function DayPanel({
               left: `calc(64px + (100% - 68px) * ${leftPct / 100})`,
               width: `calc((100% - 68px) * ${widthPct / 100})`,
               borderLeftWidth: 3,
-              borderLeftColor: booking.rescheduled ? '#CF6679' : typeColor[booking.type],
-              backgroundColor: `${typeColor[booking.type]}12`,
+              borderLeftColor: booking.rescheduled ? 'var(--color-danger)' : getTypeColor(booking.type),
+              backgroundColor: getTypeColorAlpha(booking.type, 0.07),
             }}
             onClick={(e) => { e.stopPropagation(); onBookingClick(booking.id); }}
           >

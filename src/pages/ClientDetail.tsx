@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { useClientStore } from '../stores/clientStore';
 import { useBookingStore } from '../stores/bookingStore';
 import { useUIStore } from '../stores/uiStore';
-import { typeColor } from '../types';
+import { getTypeColor } from '../types';
 
 type Tab = 'overview' | 'appointments' | 'documents' | 'notes';
 
@@ -175,7 +175,7 @@ export default function ClientDetailPage() {
               onClick={() => setSelectedBookingId(b.id)}
               className="w-full text-left flex items-center gap-4 px-5 py-4 rounded-lg active:bg-elevated/40 transition-colors cursor-pointer press-scale min-h-[64px]"
             >
-              <div className="flex-1 min-w-0" style={{ borderLeftWidth: 3, borderLeftColor: typeColor[b.type], paddingLeft: 12 }}>
+              <div className="flex-1 min-w-0" style={{ borderLeftWidth: 3, borderLeftColor: getTypeColor(b.type), paddingLeft: 12 }}>
                 <div className="text-base text-text-p truncate">
                   {b.type}
                 </div>

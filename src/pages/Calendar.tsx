@@ -7,7 +7,7 @@ import YearView from '../components/calendar/YearView';
 import { useUIStore } from '../stores/uiStore';
 import { useBookingStore } from '../stores/bookingStore';
 import { useClientStore } from '../stores/clientStore';
-import { typeColor } from '../types';
+import { getTypeColor } from '../types';
 
 export default function CalendarPage() {
   const calendarView = useUIStore((s) => s.calendarView);
@@ -79,7 +79,7 @@ export default function CalendarPage() {
                     }}
                     className="w-full text-left px-4 py-3 active:bg-surface transition-colors cursor-pointer flex items-center gap-3 press-scale border-b border-border/10 last:border-b-0"
                   >
-                    <div className="min-w-0 flex-1" style={{ borderLeftWidth: 3, borderLeftColor: typeColor[b.type], paddingLeft: 10 }}>
+                    <div className="min-w-0 flex-1" style={{ borderLeftWidth: 3, borderLeftColor: getTypeColor(b.type), paddingLeft: 10 }}>
                       <div className="text-[15px] text-text-p truncate">
                         {getClientName(b.client_id)} &middot; {b.type}
                       </div>

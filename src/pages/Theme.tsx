@@ -171,6 +171,10 @@ export default function ThemePage() {
     surface: '--color-surface',
     elevated: '--color-elevated',
     input: '--color-input',
+    Regular: '--color-type-regular',
+    'Touch Up': '--color-type-touchup',
+    Consultation: '--color-type-consult',
+    'Full Day': '--color-type-fullday',
   };
 
   const update = useCallback((key: ColorKey, value: string) => {
@@ -196,7 +200,7 @@ export default function ThemePage() {
     setColors(defaults);
     setSelected(null);
     sessionStorage.removeItem(STORAGE_KEY);
-    const props = ['--color-accent', '--color-accent-dim', '--color-accent-glow', '--accent-rgb', '--color-danger', '--color-success', '--color-today', '--color-bg', '--color-surface', '--color-elevated', '--color-input', '--shadow-glow', '--shadow-glow-strong'];
+    const props = ['--color-accent', '--color-accent-dim', '--color-accent-glow', '--accent-rgb', '--color-danger', '--color-success', '--color-today', '--color-bg', '--color-surface', '--color-elevated', '--color-input', '--shadow-glow', '--shadow-glow-strong', '--color-type-regular', '--color-type-touchup', '--color-type-consult', '--color-type-fullday'];
     props.forEach((p) => document.documentElement.style.removeProperty(p));
   }, []);
 
@@ -309,7 +313,7 @@ export default function ThemePage() {
                     <div key={day} className="flex flex-col items-center py-0.5">
                       <span
                         className="w-7 h-7 flex items-center justify-center rounded-full text-xs"
-                        style={isToday ? { backgroundColor: colors.today, color: '#fff', fontWeight: 600 } : undefined}
+                        style={isToday ? { backgroundColor: colors.today, color: 'var(--color-bg)', fontWeight: 600 } : undefined}
                       >
                         <span className={isToday ? '' : 'text-text-p'}>{day}</span>
                       </span>

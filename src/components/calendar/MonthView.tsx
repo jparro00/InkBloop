@@ -16,7 +16,7 @@ import { ChevronLeft, Plus, Search } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 import { useBookingStore } from '../../stores/bookingStore';
 import { useClientStore } from '../../stores/clientStore';
-import { typeColor } from '../../types';
+import { getTypeColor, getTypeColorAlpha } from '../../types';
 
 const MONTHS_BUFFER = 6;
 
@@ -266,9 +266,9 @@ export default function MonthView() {
                             <div
                               key={b.id}
                               className="rounded-sm px-1 py-[1px] text-[12px] leading-tight overflow-hidden whitespace-nowrap"
-                              style={{ backgroundColor: `${typeColor[b.type]}18`, ...(b.rescheduled ? { outline: '1px solid #CF6679', outlineOffset: -1 } : {}) }}
+                              style={{ backgroundColor: getTypeColorAlpha(b.type, 0.09), ...(b.rescheduled ? { outline: '1px solid var(--color-danger)', outlineOffset: -1 } : {}) }}
                             >
-                              <span style={{ color: typeColor[b.type], maskImage: 'linear-gradient(to right, black 70%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, black 70%, transparent 100%)', display: 'block' }}>
+                              <span style={{ color: getTypeColor(b.type), maskImage: 'linear-gradient(to right, black 70%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, black 70%, transparent 100%)', display: 'block' }}>
                                 {name}
                               </span>
                             </div>

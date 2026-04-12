@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useClientStore } from '../stores/clientStore';
 import { useBookingStore } from '../stores/bookingStore';
 import { useUIStore } from '../stores/uiStore';
-import { typeColor } from '../types';
+import { getTypeColor } from '../types';
 
 export default function SearchOverlay() {
   const navigate = useNavigate();
@@ -114,7 +114,7 @@ export default function SearchOverlay() {
                     }}
                     className="w-full text-left px-5 py-4 active:bg-surface transition-colors cursor-pointer flex items-center gap-4 press-scale min-h-[56px]"
                   >
-                    <div className="min-w-0 flex-1" style={{ borderLeftWidth: 3, borderLeftColor: typeColor[b.type], paddingLeft: 12 }}>
+                    <div className="min-w-0 flex-1" style={{ borderLeftWidth: 3, borderLeftColor: getTypeColor(b.type), paddingLeft: 12 }}>
                       <div className="text-base text-text-p truncate">
                         {getClientName(b.client_id)} &middot; {b.type}
                       </div>

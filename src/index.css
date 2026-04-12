@@ -25,6 +25,16 @@
   --color-success: #22D3EE;     /* Cyan — avoids conflict with accent */
   --color-today: #E05068;
 
+  /* Booking type colors */
+  --color-type-regular: #5BA2FF;
+  --color-type-touchup: #E8A87C;
+  --color-type-consult: #6BB89E;
+  --color-type-fullday: #D4A65A;
+
+  /* Overlay colors */
+  --color-overlay: rgba(0, 0, 0, 0.60);
+  --color-overlay-heavy: rgba(0, 0, 0, 0.90);
+
   --font-display: 'DM Serif Display', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, serif;
   --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
@@ -111,7 +121,7 @@ body::before {
 }
 
 ::selection {
-  background: rgba(176, 140, 232, 0.25);
+  background: var(--color-accent-glow);
   color: var(--color-text-p);
 }
 

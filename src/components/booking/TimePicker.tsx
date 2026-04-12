@@ -3,7 +3,7 @@ import { format, isSameDay, isToday } from 'date-fns';
 import { Clock } from 'lucide-react';
 import { useBookingStore } from '../../stores/bookingStore';
 import { useClientStore } from '../../stores/clientStore';
-import { typeColor } from '../../types';
+import { getTypeColor, getTypeColorAlpha } from '../../types';
 
 const HOUR_H = 32;
 const VISIBLE_HEIGHT = 280;
@@ -120,16 +120,17 @@ export default function TimePicker({ value, onChange, date, duration, bookingTyp
 
           {/* Fixed preview block — top edge aligns with selected time */}
           {(() => {
-            const previewColor = bookingType ? (typeColor as Record<string, string>)[bookingType] ?? '#5BA2FF' : '#5BA2FF';
+            const bType = (bookingType || 'Regular') as import('../../types').BookingType;
+            const previewColor = getTypeColor(bType);
             return (
               <div
                 className="absolute left-12 right-3 z-10 pointer-events-none rounded"
                 style={{
                   top: (selectedDate ? 37 : 0) + previewOffset,
                   height: Math.max(duration * HOUR_H, 20),
-                  backgroundColor: `${previewColor}18`,
-                  borderLeft: `3px solid ${previewColor}`,
-                  border: `2px solid ${previewColor}60`,
+                  backgroundColor: getTypeColorAlpha(bType, 0.09),
+                  border: `2px solid ${previewColor}`,
+                  borderLeftWidth: 3,
                 }}
               >
                 <div className="text-2xs font-medium px-2 py-0.5" style={{ color: previewColor }}>
@@ -181,7 +182,7 @@ export default function TimePicker({ value, onChange, date, duration, bookingTyp
                 const top = topPadding + startHour * HOUR_H;
                 const height = booking.duration * HOUR_H;
                 const client = getClient(booking.client_id ?? '');
-                const color = typeColor[booking.type];
+                const color = getTypeColor(booking.type);
                 return (
                   <div
                     key={booking.id}
@@ -189,7 +190,7 @@ export default function TimePicker({ value, onChange, date, duration, bookingTyp
                     style={{
                       top,
                       height: Math.max(height, 20),
-                      backgroundColor: `${color}20`,
+                      backgroundColor: getTypeColorAlpha(booking.type, 0.12),
                       borderLeft: `2px solid ${color}`,
                     }}
                   >

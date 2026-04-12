@@ -23,12 +23,48 @@ export interface ClientNote {
 export type BookingType = 'Regular' | 'Touch Up' | 'Consultation' | 'Full Day';
 export type BookingStatus = 'Confirmed' | 'Tentative' | 'Completed' | 'Cancelled' | 'No-show';
 
-export const typeColor: Record<BookingType, string> = {
+const typeColorVar: Record<BookingType, string> = {
+  Regular: '--color-type-regular',
+  'Touch Up': '--color-type-touchup',
+  Consultation: '--color-type-consult',
+  'Full Day': '--color-type-fullday',
+};
+
+const typeColorFallback: Record<BookingType, string> = {
   Regular: '#5BA2FF',
   'Touch Up': '#E8A87C',
   Consultation: '#6BB89E',
   'Full Day': '#D4A65A',
 };
+
+function readCssColor(varName: string, fallback: string): string {
+  const val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  return val || fallback;
+}
+
+function hexToRgb(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `${r}, ${g}, ${b}`;
+}
+
+/** Reads the current booking-type color from CSS variables (live-themeable). */
+export function getTypeColor(type: BookingType): string {
+  return readCssColor(typeColorVar[type], typeColorFallback[type]);
+}
+
+/** Returns rgba() string for a booking type color at the given alpha (0–1). */
+export function getTypeColorAlpha(type: BookingType, alpha: number): string {
+  const hex = getTypeColor(type);
+  return `rgba(${hexToRgb(hex)}, ${alpha})`;
+}
+
+/**
+ * @deprecated Use getTypeColor(type) for live-themeable colors.
+ * Kept as a static lookup for non-render contexts.
+ */
+export const typeColor: Record<BookingType, string> = typeColorFallback;
 
 export interface Booking {
   id: string;
