@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { useDrag } from '@use-gesture/react';
 import type { ReactNode } from 'react';
@@ -21,9 +21,9 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
   const contentRef = useRef<HTMLDivElement>(null);
   const isDismissing = useRef(false);
   const isDragging = useRef(false);
+  const dismissTimer = useRef<ReturnType<typeof setTimeout>>();
 
   // Prevent autoFocus from opening keyboard during modal animation.
-  // Catches autoFocus attrs, programmatic .focus(), etc. on any child.
   useEffect(() => {
     const blurIfInside = () => {
       const active = document.activeElement as HTMLElement;
@@ -32,7 +32,6 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
       }
     };
     blurIfInside();
-    // autoFocus fires async after mount — catch it with a short delay
     const timer = setTimeout(blurIfInside, 50);
     return () => clearTimeout(timer);
   }, []);
@@ -56,18 +55,33 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
     };
   }, []);
 
-  const dismiss = () => {
+  // Clean up on unmount — clear any pending dismiss timer
+  useEffect(() => {
+    return () => {
+      if (dismissTimer.current) clearTimeout(dismissTimer.current);
+    };
+  }, []);
+
+  const dismiss = useCallback(() => {
     if (isDismissing.current) return;
     isDismissing.current = true;
+    isDragging.current = false;
+
     const sheetHeight = sheetRef.current?.offsetHeight ?? 600;
+
+    // Safety net: if onComplete never fires, force close after 500ms
+    dismissTimer.current = setTimeout(() => {
+      onClose();
+    }, 500);
+
     animate(dragY, sheetHeight, {
       type: 'spring', stiffness: 300, damping: 30, mass: 0.8,
       onComplete: () => {
+        if (dismissTimer.current) clearTimeout(dismissTimer.current);
         onClose();
-        isDismissing.current = false;
       },
     });
-  };
+  }, [onClose, dragY]);
 
   const bindDrag = useDrag(
     ({ movement: [, my], velocity: [, vy], direction: [, dy], first, last, cancel }) => {
@@ -111,6 +125,7 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
         style={{ opacity: backdropOpacity }}
         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
         onClick={dismiss}
@@ -121,8 +136,8 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
         ref={sheetRef}
         initial={instant ? false : { y: '100%' }}
         animate={{ y: 0 }}
-        exit={instant ? { opacity: 0 } : { y: '100%' }}
-        transition={instant ? { duration: 0 } : { type: 'spring', damping: 30, stiffness: 300 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
         onAnimationComplete={() => onReady?.()}
         style={{ y: dragY }}
         className={`fixed inset-0 lg:inset-auto lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 ${width} bg-elevated shadow-lg z-50 flex flex-col overflow-hidden ${
