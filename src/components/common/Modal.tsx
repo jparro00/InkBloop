@@ -229,6 +229,19 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
         }`}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Accent trace — sweeps across top edge on enter */}
+        <div className="absolute top-0 left-0 right-0 h-[2px] overflow-hidden rounded-t-[28px] z-10 pointer-events-none">
+          <motion.div
+            initial={{ x: '-100%' }}
+            animate={{ x: '100%' }}
+            transition={{ duration: 0.8, delay: 0.15, ease: [0.4, 0, 0.2, 1] }}
+            className="absolute inset-0"
+            style={{
+              background: 'linear-gradient(90deg, transparent 0%, var(--color-accent) 30%, var(--color-accent) 70%, transparent 100%)',
+            }}
+          />
+        </div>
+
         <div {...bindDrag()} className="flex flex-col flex-1 overflow-hidden" style={{ touchAction: 'pan-y', overscrollBehavior: 'none' }}>
           {/* Drag handle + header */}
           <div ref={headerRef} onClick={() => { if (collapsedRef.current) expandToFull(); }}>
