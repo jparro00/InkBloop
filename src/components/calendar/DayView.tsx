@@ -15,7 +15,6 @@ import {
 import { motion, useMotionValue, animate } from 'framer-motion';
 import { useDrag } from '@use-gesture/react';
 import { ChevronLeft, Plus, Search } from 'lucide-react';
-import AppHeader from '../layout/AppHeader';
 import { useUIStore } from '../../stores/uiStore';
 import { useBookingStore } from '../../stores/bookingStore';
 import { useClientStore } from '../../stores/clientStore';
@@ -191,7 +190,7 @@ function WeekRow({ baseDate, selectedDate, onDayClick, bookings }: {
 }
 
 export default function DayView() {
-  const { calendarDate, setCalendarDate, setCalendarView, openBookingForm, setSelectedBookingId, setPrefillBookingData, setTodayHandler, setCalendarSearchOpen } = useUIStore();
+  const { calendarDate, setCalendarDate, setCalendarView, openBookingForm, setSelectedBookingId, setPrefillBookingData, setTodayHandler, setCalendarSearchOpen, setHeaderLeft, setHeaderRight } = useUIStore();
   const bookings = useBookingStore((s) => s.bookings);
   const getClient = useClientStore((s) => s.getClient);
 
@@ -370,39 +369,41 @@ export default function DayView() {
     { filterTaps: true, threshold: 8, pointer: { touch: true }, axis: 'lock' }
   );
 
+  // Register header buttons
+  useEffect(() => {
+    setHeaderLeft(
+      <button
+        onClick={() => setCalendarView('month')}
+        className="flex items-center gap-1 text-text-p active:opacity-70 transition-opacity cursor-pointer press-scale min-h-[44px]"
+      >
+        <ChevronLeft size={20} />
+        <span className="text-[22px] font-medium">{format(calendarDate, 'MMMM')}</span>
+      </button>
+    );
+    setHeaderRight(
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setCalendarSearchOpen(true)}
+          className="w-12 h-12 bg-surface border border-border/40 text-text-s rounded-md flex items-center justify-center cursor-pointer press-scale transition-transform"
+        >
+          <Search size={20} />
+        </button>
+        <button
+          onClick={() => {
+            setPrefillBookingData({ date: new Date(calendarDate.getFullYear(), calendarDate.getMonth(), calendarDate.getDate(), 10, 0).toISOString() });
+            openBookingForm();
+          }}
+          className="w-12 h-12 bg-accent text-bg rounded-md flex items-center justify-center cursor-pointer press-scale transition-transform shadow-glow active:shadow-glow-strong"
+        >
+          <Plus size={20} />
+        </button>
+      </div>
+    );
+    return () => { setHeaderLeft(null); setHeaderRight(null); };
+  }, [calendarDate, setCalendarView, setCalendarSearchOpen, setPrefillBookingData, openBookingForm, setHeaderLeft, setHeaderRight]);
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
-      <AppHeader
-        left={
-          <button
-            onClick={() => setCalendarView('month')}
-            className="flex items-center gap-1 text-text-p active:opacity-70 transition-opacity cursor-pointer press-scale min-h-[44px]"
-          >
-            <ChevronLeft size={20} />
-            <span className="text-[22px] font-medium">{format(calendarDate, 'MMMM')}</span>
-          </button>
-        }
-        right={
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCalendarSearchOpen(true)}
-              className="w-12 h-12 bg-surface border border-border/40 text-text-s rounded-md flex items-center justify-center cursor-pointer press-scale transition-transform"
-            >
-              <Search size={20} />
-            </button>
-            <button
-              onClick={() => {
-                setPrefillBookingData({ date: new Date(calendarDate.getFullYear(), calendarDate.getMonth(), calendarDate.getDate(), 10, 0).toISOString() });
-                openBookingForm();
-              }}
-              className="w-12 h-12 bg-accent text-bg rounded-md flex items-center justify-center cursor-pointer press-scale transition-transform shadow-glow active:shadow-glow-strong"
-            >
-              <Plus size={20} />
-            </button>
-          </div>
-        }
-      />
-
       {/* Fixed day headers — shared with month view */}
       <div className="grid grid-cols-7 px-3 shrink-0">
         {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (

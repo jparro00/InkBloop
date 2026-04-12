@@ -1,11 +1,18 @@
 import { useClientStore } from '../stores/clientStore';
 import { useBookingStore } from '../stores/bookingStore';
-import { useState } from 'react';
-import AppHeader from '../components/layout/AppHeader';
+import { useState, useEffect } from 'react';
+import { useUIStore } from '../stores/uiStore';
 
 export default function SettingsPage() {
   const clients = useClientStore((s) => s.clients);
   const bookings = useBookingStore((s) => s.bookings);
+  const { setHeaderLeft, setHeaderRight } = useUIStore();
+
+  useEffect(() => {
+    setHeaderLeft(null);
+    setHeaderRight(null);
+    return () => { setHeaderLeft(null); setHeaderRight(null); };
+  }, [setHeaderLeft, setHeaderRight]);
   const [exportClient, setExportClient] = useState('');
   const [exported, setExported] = useState(false);
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('inkflow-anthropic-key') ?? '');
@@ -40,7 +47,6 @@ export default function SettingsPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <AppHeader />
       <div className="flex-1 overflow-y-auto px-3 pb-8 lg:px-6 max-w-xl">
       <h1 className="font-display text-2xl lg:text-2xl text-text-p mb-8">Settings</h1>
 

@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { Pen } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import Sidebar from './Sidebar';
+import AppHeader from './AppHeader';
 import MobileTabBar from './MobileTabBar';
 import { useUIStore } from '../../stores/uiStore';
 import BookingDrawer from '../booking/BookingDrawer';
@@ -25,14 +26,19 @@ export default function AppShell() {
       <Sidebar />
 
       {/* Main content — full width on mobile, offset on desktop */}
-      <main
-        className={`flex-1 overflow-y-auto pb-24 lg:pb-0 transition-all duration-300 ${
+      <div
+        className={`flex-1 flex flex-col pb-24 lg:pb-0 transition-all duration-300 overflow-hidden ${
           sidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-[240px]'
         }`}
-        style={{ WebkitOverflowScrolling: 'touch' }}
       >
-        <Outlet />
-      </main>
+        <AppHeader />
+        <main
+          className="flex-1 overflow-y-auto"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
+          <Outlet />
+        </main>
+      </div>
 
       <AnimatePresence>
         {selectedBookingId && <BookingDrawer />}

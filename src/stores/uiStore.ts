@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { ReactNode } from 'react';
 import type { CalendarView } from '../types';
 
 interface Toast {
@@ -33,6 +34,10 @@ interface UIStore {
   setTodayHandler: (handler: (() => void) | null) => void;
   calendarSearchOpen: boolean;
   setCalendarSearchOpen: (open: boolean) => void;
+  headerLeft: ReactNode;
+  headerRight: ReactNode;
+  setHeaderLeft: (node: ReactNode) => void;
+  setHeaderRight: (node: ReactNode) => void;
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -69,4 +74,8 @@ export const useUIStore = create<UIStore>((set) => ({
   setTodayHandler: (handler) => set({ todayHandler: handler }),
   calendarSearchOpen: false,
   setCalendarSearchOpen: (open) => set({ calendarSearchOpen: open }),
+  headerLeft: null,
+  headerRight: null,
+  setHeaderLeft: (node) => set({ headerLeft: node }),
+  setHeaderRight: (node) => set({ headerRight: node }),
 }));

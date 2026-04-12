@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useClientStore } from '../stores/clientStore';
 import { useBookingStore } from '../stores/bookingStore';
+import { useUIStore } from '../stores/uiStore';
 import ClientForm from '../components/client/ClientForm';
-import AppHeader from '../components/layout/AppHeader';
 
 export default function ClientsPage() {
   const navigate = useNavigate();
@@ -13,6 +13,7 @@ export default function ClientsPage() {
   const bookings = useBookingStore((s) => s.bookings);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const { setHeaderLeft, setHeaderRight } = useUIStore();
 
   const filtered = search
     ? clients.filter(
@@ -31,24 +32,27 @@ export default function ClientsPage() {
     return { total: clientBookings.length, upcoming };
   };
 
+  // Register header buttons
+  useEffect(() => {
+    setHeaderLeft(null);
+    setHeaderRight(
+      <button
+        onClick={() => setShowForm(true)}
+        className="w-12 h-12 lg:w-auto lg:h-auto lg:px-4 lg:py-2.5 bg-accent text-bg rounded-md flex items-center justify-center gap-2 text-sm cursor-pointer press-scale transition-transform shadow-glow active:shadow-glow-strong"
+      >
+        <Plus size={20} />
+        <span className="hidden lg:inline">New Client</span>
+      </button>
+    );
+    return () => { setHeaderLeft(null); setHeaderRight(null); };
+  }, [setHeaderLeft, setHeaderRight]);
+
   return (
     <div className="h-full flex flex-col">
-      {/* Fixed header + search */}
-      <div className="shrink-0">
-        <AppHeader
-          right={
-            <button
-              onClick={() => setShowForm(true)}
-              className="w-12 h-12 lg:w-auto lg:h-auto lg:px-4 lg:py-2.5 bg-accent text-bg rounded-md flex items-center justify-center gap-2 text-sm cursor-pointer press-scale transition-transform shadow-glow active:shadow-glow-strong"
-            >
-              <Plus size={20} />
-              <span className="hidden lg:inline">New Client</span>
-            </button>
-          }
-        />
-
-        <div className="relative px-3 pb-2">
-          <Search size={20} className="absolute left-7 top-1/2 -translate-y-1/2 text-text-t" />
+      {/* Search */}
+      <div className="shrink-0 px-3 pb-2">
+        <div className="relative">
+          <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-t" />
           <input
             type="text"
             value={search}
