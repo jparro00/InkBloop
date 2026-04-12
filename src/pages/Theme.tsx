@@ -46,7 +46,7 @@ function hslToHex(h: number, s: number, l: number): string {
 }
 
 // --- Swatch ---
-function Swatch({ name, value, selected, onTap, onChange }: {
+function Swatch({ name, value, selected, onTap, onChange: _onChange }: {
   name: string; value: string; selected: boolean;
   onTap: () => void; onChange: (v: string) => void;
 }) {
