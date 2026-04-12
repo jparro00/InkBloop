@@ -22,6 +22,21 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
   const isDismissing = useRef(false);
   const isDragging = useRef(false);
 
+  // Prevent autoFocus from opening keyboard during modal animation.
+  // Catches autoFocus attrs, programmatic .focus(), etc. on any child.
+  useEffect(() => {
+    const blurIfInside = () => {
+      const active = document.activeElement as HTMLElement;
+      if (active && sheetRef.current?.contains(active)) {
+        active.blur();
+      }
+    };
+    blurIfInside();
+    // autoFocus fires async after mount — catch it with a short delay
+    const timer = setTimeout(blurIfInside, 50);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Prevent overscroll bounce at top only
   useEffect(() => {
     const el = contentRef.current;
