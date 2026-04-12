@@ -38,7 +38,6 @@ export default function CreateClientForm({ onClose }: CreateClientFormProps) {
             onChange={(e) => setName(e.target.value)}
             placeholder="Client name"
             className={inputClass}
-            autoFocus
           />
         </div>
 
