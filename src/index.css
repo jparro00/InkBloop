@@ -18,6 +18,7 @@
   --color-accent: #B08CE8;
   --color-accent-dim: #8466B8;
   --color-accent-glow: rgba(176, 140, 232, 0.12);
+  --accent-rgb: 176, 140, 232;
 
   /* Status colors */
   --color-danger: #CF6679;

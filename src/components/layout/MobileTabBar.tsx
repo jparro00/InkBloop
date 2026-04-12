@@ -43,7 +43,7 @@ export default function MobileTabBar() {
                   <Icon
                     size={24}
                     strokeWidth={1.5}
-                    style={isActive ? { filter: 'drop-shadow(0 0 6px rgba(176,140,232,0.5)) drop-shadow(0 0 14px rgba(176,140,232,0.25))' } : undefined}
+                    style={isActive ? { filter: 'drop-shadow(0 0 6px rgba(var(--accent-rgb),0.5)) drop-shadow(0 0 14px rgba(var(--accent-rgb),0.25))' } : undefined}
                   />
                   <span className="text-xs mt-1 font-medium">{label}</span>
                   {isActive && (
@@ -52,7 +52,7 @@ export default function MobileTabBar() {
                       style={{
                         width: 56,
                         height: 8,
-                        background: 'radial-gradient(ellipse 40% 50% at center, rgba(176,140,232,0.9) 0%, rgba(176,140,232,0.4) 30%, rgba(176,140,232,0.1) 60%, transparent 100%)',
+                        background: 'radial-gradient(ellipse 40% 50% at center, rgba(var(--accent-rgb),0.9) 0%, rgba(var(--accent-rgb),0.4) 30%, rgba(var(--accent-rgb),0.1) 60%, transparent 100%)',
                       }}
                     />
                   )}

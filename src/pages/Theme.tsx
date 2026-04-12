@@ -149,6 +149,7 @@ export default function ThemePage() {
 
     if (key === 'accent') {
       const rgb = hexToRgb(value);
+      document.documentElement.style.setProperty('--accent-rgb', rgb);
       document.documentElement.style.setProperty('--color-accent-glow', `rgba(${rgb},0.12)`);
       document.documentElement.style.setProperty('--shadow-glow', `0 0 14px rgba(${rgb},0.20)`);
       document.documentElement.style.setProperty('--shadow-glow-strong', `0 0 22px rgba(${rgb},0.32)`);
@@ -158,7 +159,7 @@ export default function ThemePage() {
   const reset = useCallback(() => {
     setColors(defaults);
     setSelected(null);
-    const props = ['--color-accent', '--color-accent-dim', '--color-accent-glow', '--color-danger', '--color-success', '--color-today', '--color-bg', '--color-surface', '--color-elevated', '--color-input', '--shadow-glow', '--shadow-glow-strong'];
+    const props = ['--color-accent', '--color-accent-dim', '--color-accent-glow', '--accent-rgb', '--color-danger', '--color-success', '--color-today', '--color-bg', '--color-surface', '--color-elevated', '--color-input', '--shadow-glow', '--shadow-glow-strong'];
     props.forEach((p) => document.documentElement.style.removeProperty(p));
   }, []);
 
