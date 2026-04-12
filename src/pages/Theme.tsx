@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 // --- Color helpers ---
 function hexToRgb(hex: string) {
@@ -70,8 +70,9 @@ function Swatch({ name, value, selected, onTap, onChange: _onChange }: {
 // --- Hue slider ---
 function HueSlider({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [h, s, l] = hexToHsl(value);
+  const pickerRef = useRef<HTMLInputElement>(null);
   return (
-    <div className="pt-2 pb-1">
+    <div className="pt-2 pb-1 space-y-2">
       <input
         type="range"
         min={0}
@@ -83,6 +84,20 @@ function HueSlider({ value, onChange }: { value: string; onChange: (v: string) =
           background: `linear-gradient(to right, ${Array.from({ length: 13 }, (_, i) => hslToHex(i * 30, s, l)).join(', ')})`,
           WebkitAppearance: 'none',
         }}
+      />
+      <button
+        onClick={() => pickerRef.current?.click()}
+        className="flex items-center gap-2 px-3 py-2 text-xs rounded-md border border-border/60 text-text-s active:text-text-p active:bg-elevated press-scale cursor-pointer"
+      >
+        <span className="w-4 h-4 rounded-sm shrink-0 border border-border/30" style={{ background: value }} />
+        Full color picker
+      </button>
+      <input
+        ref={pickerRef}
+        type="color"
+        value={value.startsWith('#') ? value : '#888888'}
+        onChange={(e) => onChange(e.target.value)}
+        className="sr-only"
       />
       <style>{`
         input[type=range]::-webkit-slider-thumb {
