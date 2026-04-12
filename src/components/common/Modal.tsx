@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
+import { motion, useMotionValue, useTransform, animate, AnimatePresence } from 'framer-motion';
 import { useDrag } from '@use-gesture/react';
 import type { ReactNode } from 'react';
 
@@ -12,9 +12,11 @@ interface ModalProps {
   fullScreenMobile?: boolean;
   onReady?: () => void;
   instant?: boolean;
+  /** Ref that receives the animated dismiss function so callers can trigger close with animation. */
+  dismissRef?: React.MutableRefObject<(() => void) | null>;
 }
 
-export default function Modal({ title, header, onClose, children, width = 'lg:max-w-[620px]', fullScreenMobile = true, onReady, instant }: ModalProps) {
+export default function Modal({ title, header, onClose, children, width = 'lg:max-w-[620px]', fullScreenMobile = true, onReady, instant, dismissRef }: ModalProps) {
   const dragY = useMotionValue(0);
   const backdropOpacity = useTransform(dragY, [0, 400], [1, 0]);
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -25,6 +27,9 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
   const dismissTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [collapsed, setCollapsed] = useState(false);
   const collapsedRef = useRef(false); // ref mirror for use in gesture handler
+
+  // Internal open state — starts true, set to false to trigger exit animation
+  const [isOpen, setIsOpen] = useState(true);
 
   // Keep ref in sync with state
   useEffect(() => { collapsedRef.current = collapsed; }, [collapsed]);
@@ -92,18 +97,25 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
 
     const sheetHeight = sheetRef.current?.offsetHeight ?? 600;
 
+    // Safety net — if animation callback doesn't fire, still close
     dismissTimer.current = setTimeout(() => {
-      onClose();
+      setIsOpen(false);
     }, 500);
 
     animate(dragY, sheetHeight, {
       type: 'spring', stiffness: 300, damping: 30, mass: 0.8,
       onComplete: () => {
         if (dismissTimer.current) clearTimeout(dismissTimer.current);
-        onClose();
+        setIsOpen(false);
       },
     });
-  }, [onClose, dragY]);
+  }, [dragY]);
+
+  // Expose dismiss to parent via ref
+  useEffect(() => {
+    if (dismissRef) dismissRef.current = dismiss;
+    return () => { if (dismissRef) dismissRef.current = null; };
+  }, [dismiss, dismissRef]);
 
   const handleBackdropClick = useCallback(() => {
     // Check if we're on mobile (lg breakpoint = 1024px)
@@ -185,59 +197,64 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
   );
 
   return (
-    <>
-      {/* Backdrop */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="fixed inset-0 backdrop-blur-sm z-50"
-        style={{ backgroundColor: 'var(--color-overlay)', opacity: backdropOpacity }}
-        onClick={handleBackdropClick}
-      />
+    <AnimatePresence onExitComplete={onClose}>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            key="modal-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 backdrop-blur-sm z-50"
+            style={{ backgroundColor: 'var(--color-overlay)', opacity: backdropOpacity }}
+            onClick={handleBackdropClick}
+          />
 
-      {/* Mobile: bottom sheet. Desktop: centered modal */}
-      <motion.div
-        ref={sheetRef}
-        initial={instant ? false : { y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        onAnimationComplete={() => onReady?.()}
-        style={{ y: dragY }}
-        className={`fixed top-4 left-0 right-0 bottom-0 lg:inset-auto lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 ${width} bg-elevated shadow-lg z-50 flex flex-col overflow-hidden ${
-          fullScreenMobile
-            ? 'rounded-t-[28px] lg:rounded-xl lg:h-auto lg:max-h-[85vh]'
-            : 'rounded-t-[28px] lg:rounded-xl max-h-[85vh]'
-        }`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div {...bindDrag()} className="flex flex-col flex-1 overflow-hidden" style={{ touchAction: 'pan-y', overscrollBehavior: 'none' }}>
-          {/* Drag handle + header — measured together for collapse target */}
-          <div ref={headerRef} onClick={() => { if (collapsedRef.current) expandToFull(); }}>
-            {/* Drag handle — mobile */}
-            <div className="flex justify-center pt-3 pb-1 lg:hidden">
-              <div className="w-10 h-1 rounded-full bg-border-s/60" />
-            </div>
-
-            {/* Header — custom or default title */}
-            {header ? (
-              <div className="shrink-0">{header}</div>
-            ) : title ? (
-              <div className="px-5 py-4 lg:px-6 lg:py-4 border-b border-border shrink-0">
-                <h2 className="font-display text-xl text-text-p">{title}</h2>
-              </div>
-            ) : null}
-          </div>
-
-          <div ref={contentRef} className="px-5 py-5 lg:px-6 lg:py-5 overflow-y-auto overflow-x-hidden flex-1"
-            style={{ overscrollBehavior: 'contain', touchAction: 'pan-y' }}
+          {/* Mobile: bottom sheet. Desktop: centered modal */}
+          <motion.div
+            key="modal-sheet"
+            ref={sheetRef}
+            initial={instant ? false : { y: '100%' }}
+            animate={{ y: 0 }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            onAnimationComplete={() => onReady?.()}
+            style={{ y: dragY }}
+            className={`fixed top-4 left-0 right-0 bottom-0 lg:inset-auto lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 ${width} bg-elevated shadow-lg z-50 flex flex-col overflow-hidden ${
+              fullScreenMobile
+                ? 'rounded-t-[28px] lg:rounded-xl lg:h-auto lg:max-h-[85vh]'
+                : 'rounded-t-[28px] lg:rounded-xl max-h-[85vh]'
+            }`}
+            onClick={(e) => e.stopPropagation()}
           >
-            {children}
-          </div>
-        </div>
-      </motion.div>
-    </>
+            <div {...bindDrag()} className="flex flex-col flex-1 overflow-hidden" style={{ touchAction: 'pan-y', overscrollBehavior: 'none' }}>
+              {/* Drag handle + header — measured together for collapse target */}
+              <div ref={headerRef} onClick={() => { if (collapsedRef.current) expandToFull(); }}>
+                {/* Drag handle — mobile */}
+                <div className="flex justify-center pt-3 pb-1 lg:hidden">
+                  <div className="w-10 h-1 rounded-full bg-border-s/60" />
+                </div>
+
+                {/* Header — custom or default title */}
+                {header ? (
+                  <div className="shrink-0">{header}</div>
+                ) : title ? (
+                  <div className="px-5 py-4 lg:px-6 lg:py-4 border-b border-border shrink-0">
+                    <h2 className="font-display text-xl text-text-p">{title}</h2>
+                  </div>
+                ) : null}
+              </div>
+
+              <div ref={contentRef} className="px-5 py-5 lg:px-6 lg:py-5 overflow-y-auto overflow-x-hidden flex-1"
+                style={{ overscrollBehavior: 'contain', touchAction: 'pan-y' }}
+              >
+                {children}
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 }
