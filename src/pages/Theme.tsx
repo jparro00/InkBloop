@@ -1,22 +1,91 @@
-export default function ThemePage() {
-  const swatches = [
-    { name: 'accent', value: '#B08CE8' },
-    { name: 'accent-dim', value: '#8466B8' },
-    { name: 'danger', value: '#CF6679' },
-    { name: 'success', value: '#22D3EE' },
-    { name: 'today', value: '#E05068' },
-    { name: 'bg', value: '#121212' },
-    { name: 'surface', value: '#1E1E1E' },
-    { name: 'elevated', value: '#272727' },
-    { name: 'input', value: '#2C2C2C' },
-  ];
+import { useState, useCallback } from 'react';
 
-  const bookingTypes = [
-    { type: 'Regular', color: '#5BA2FF' },
-    { type: 'Touch Up', color: '#E8A87C' },
-    { type: 'Consultation', color: '#6BB89E' },
-    { type: 'Full Day', color: '#D4A65A' },
-  ];
+// Helper: convert hex to rgba string for glow effects
+function hexToRgb(hex: string) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `${r},${g},${b}`;
+}
+
+function Swatch({ name, value, onChange }: { name: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <label className="flex items-center gap-2 cursor-pointer group">
+      <div className="relative w-8 h-8 rounded-md border border-border/30 shrink-0 overflow-hidden">
+        <div className="absolute inset-0" style={{ background: value }} />
+        <input
+          type="color"
+          value={value.startsWith('#') ? value : '#888888'}
+          onChange={(e) => onChange(e.target.value)}
+          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+        />
+      </div>
+      <div>
+        <div className="text-xs text-text-s group-hover:text-text-p transition-colors">{name}</div>
+        <div className="text-xs text-text-t font-mono">{value}</div>
+      </div>
+    </label>
+  );
+}
+
+const defaults = {
+  accent: '#B08CE8',
+  'accent-dim': '#8466B8',
+  danger: '#CF6679',
+  success: '#22D3EE',
+  today: '#E05068',
+  bg: '#121212',
+  surface: '#1E1E1E',
+  elevated: '#272727',
+  input: '#2C2C2C',
+  Regular: '#5BA2FF',
+  'Touch Up': '#E8A87C',
+  Consultation: '#6BB89E',
+  'Full Day': '#D4A65A',
+};
+
+type ColorKey = keyof typeof defaults;
+
+export default function ThemePage() {
+  const [colors, setColors] = useState(defaults);
+
+  const update = useCallback((key: ColorKey, value: string) => {
+    setColors((prev) => ({ ...prev, [key]: value }));
+
+    // Live-update CSS custom properties so Tailwind classes respond
+    const cssMap: Partial<Record<ColorKey, string>> = {
+      accent: '--color-accent',
+      'accent-dim': '--color-accent-dim',
+      danger: '--color-danger',
+      success: '--color-success',
+      today: '--color-today',
+      bg: '--color-bg',
+      surface: '--color-surface',
+      elevated: '--color-elevated',
+      input: '--color-input',
+    };
+    const prop = cssMap[key];
+    if (prop) {
+      document.documentElement.style.setProperty(prop, value);
+    }
+
+    // Update glow shadows when accent changes
+    if (key === 'accent') {
+      const rgb = hexToRgb(value);
+      document.documentElement.style.setProperty('--color-accent-glow', `rgba(${rgb},0.12)`);
+      document.documentElement.style.setProperty('--shadow-glow', `0 0 14px rgba(${rgb},0.20)`);
+      document.documentElement.style.setProperty('--shadow-glow-strong', `0 0 22px rgba(${rgb},0.32)`);
+    }
+  }, []);
+
+  const reset = useCallback(() => {
+    setColors(defaults);
+    // Clear all inline overrides
+    const props = ['--color-accent', '--color-accent-dim', '--color-accent-glow', '--color-danger', '--color-success', '--color-today', '--color-bg', '--color-surface', '--color-elevated', '--color-input', '--shadow-glow', '--shadow-glow-strong'];
+    props.forEach((p) => document.documentElement.style.removeProperty(p));
+  }, []);
+
+  const accentRgb = hexToRgb(colors.accent);
 
   return (
     <div className="h-full overflow-y-auto overflow-x-hidden">
@@ -29,10 +98,16 @@ export default function ThemePage() {
             alt="InkFlow"
             className="w-14 h-14 rounded-lg"
           />
-          <div>
+          <div className="flex-1">
             <h1 className="font-display text-2xl text-text-p">InkFlow</h1>
             <p className="text-sm text-text-t">Theme Reference</p>
           </div>
+          <button
+            onClick={reset}
+            className="px-3 py-1.5 text-xs rounded-md border border-border/60 text-text-t active:text-text-s press-scale cursor-pointer"
+          >
+            Reset
+          </button>
         </div>
 
         {/* Fonts */}
@@ -57,25 +132,18 @@ export default function ThemePage() {
         {/* Colors */}
         <section className="mb-10">
           <div className="text-xs text-accent uppercase tracking-wider font-medium mb-4">Colors</div>
-          <div className="flex flex-wrap gap-3 mb-5">
-            {swatches.map((s) => (
-              <div key={s.name} className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-md border border-border/30 shrink-0" style={{ background: s.value }} />
-                <div>
-                  <div className="text-xs text-text-s">{s.name}</div>
-                  <div className="text-xs text-text-t font-mono">{s.value}</div>
-                </div>
-              </div>
+
+          <div className="text-xs text-text-t mb-2">UI colors</div>
+          <div className="flex flex-wrap gap-x-5 gap-y-3 mb-5">
+            {(['accent', 'accent-dim', 'danger', 'success', 'today', 'bg', 'surface', 'elevated', 'input'] as ColorKey[]).map((key) => (
+              <Swatch key={key} name={key} value={colors[key]} onChange={(v) => update(key, v)} />
             ))}
           </div>
 
           <div className="text-xs text-text-t mb-2">Booking types</div>
-          <div className="flex flex-wrap gap-2">
-            {bookingTypes.map((b) => (
-              <div key={b.type} className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border/30" style={{ borderLeftWidth: 3, borderLeftColor: b.color, backgroundColor: `${b.color}12` }}>
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: b.color }} />
-                <span className="text-sm text-text-p">{b.type}</span>
-              </div>
+          <div className="flex flex-wrap gap-x-5 gap-y-3">
+            {(['Regular', 'Touch Up', 'Consultation', 'Full Day'] as ColorKey[]).map((key) => (
+              <Swatch key={key} name={key} value={colors[key]} onChange={(v) => update(key, v)} />
             ))}
           </div>
         </section>
@@ -104,15 +172,23 @@ export default function ThemePage() {
             </div>
           </div>
 
-          {/* Sample card */}
+          {/* Booking cards */}
           <div className="mb-5">
-            <div className="text-xs text-text-t mb-2">Booking card</div>
-            <div
-              className="p-4 rounded-lg border border-border/30"
-              style={{ borderLeftWidth: 3, borderLeftColor: '#5BA2FF', backgroundColor: '#5BA2FF12' }}
-            >
-              <div className="text-base text-text-p font-medium">Sarah Mitchell</div>
-              <div className="text-sm text-text-s mt-1">10:00 AM &middot; Regular &middot; 3h</div>
+            <div className="text-xs text-text-t mb-2">Booking cards</div>
+            <div className="space-y-2">
+              {(['Regular', 'Touch Up', 'Consultation', 'Full Day'] as const).map((type) => (
+                <div
+                  key={type}
+                  className="p-3 rounded-lg border border-border/30 flex items-center gap-3"
+                  style={{ borderLeftWidth: 3, borderLeftColor: colors[type], backgroundColor: `${colors[type]}12` }}
+                >
+                  <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: colors[type] }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm text-text-p font-medium">{type === 'Regular' ? 'Sarah Mitchell' : type === 'Touch Up' ? 'Jake Donovan' : type === 'Consultation' ? 'Alyssa Chen' : 'Tyler Brooks'}</div>
+                    <div className="text-xs text-text-s">{type} &middot; 3h</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -129,24 +205,25 @@ export default function ThemePage() {
                 ].map((tab) => (
                   <div
                     key={tab.label}
-                    className={`relative flex flex-col items-center gap-1 px-4 py-2 rounded-lg ${tab.active ? 'text-accent' : 'text-text-t'}`}
+                    className="relative flex flex-col items-center gap-1 px-4 py-2 rounded-lg"
+                    style={{ color: tab.active ? colors.accent : undefined }}
                   >
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-                      style={tab.active ? { filter: 'drop-shadow(0 0 6px rgba(176,140,232,0.5)) drop-shadow(0 0 14px rgba(176,140,232,0.25))' } : undefined}
+                      style={tab.active ? { filter: `drop-shadow(0 0 6px rgba(${accentRgb},0.5)) drop-shadow(0 0 14px rgba(${accentRgb},0.25))` } : undefined}
                     >
                       {tab.label === 'Calendar' && <><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></>}
                       {tab.label === 'Clients' && <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></>}
                       {tab.label === 'Messages' && <><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" /></>}
                       {tab.label === 'Settings' && <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></>}
                     </svg>
-                    <span className="text-xs font-medium">{tab.label}</span>
+                    <span className={`text-xs font-medium ${tab.active ? '' : 'text-text-t'}`}>{tab.label}</span>
                     {tab.active && (
                       <span
                         className="absolute bottom-0.5 left-1/2 -translate-x-1/2 pointer-events-none"
                         style={{
                           width: 56,
                           height: 8,
-                          background: 'radial-gradient(ellipse 40% 50% at center, rgba(176,140,232,0.9) 0%, rgba(176,140,232,0.4) 30%, rgba(176,140,232,0.1) 60%, transparent 100%)',
+                          background: `radial-gradient(ellipse 40% 50% at center, rgba(${accentRgb},0.9) 0%, rgba(${accentRgb},0.4) 30%, rgba(${accentRgb},0.1) 60%, transparent 100%)`,
                         }}
                       />
                     )}
