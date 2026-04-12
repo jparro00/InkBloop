@@ -22,7 +22,7 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
   const contentRef = useRef<HTMLDivElement>(null);
   const isDismissing = useRef(false);
   const isDragging = useRef(false);
-  const dismissTimer = useRef<ReturnType<typeof setTimeout>>();
+  const dismissTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [collapsed, setCollapsed] = useState(false);
   const collapsedRef = useRef(false); // ref mirror for use in gesture handler
 
@@ -160,7 +160,6 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
         isDragging.current = false;
 
         if (isCollapsed) {
-          const currentY = collapsedY + my;
           if (my < -40 || (vy > 0.3 && dy < 0)) {
             // Swiped up from collapsed → expand to full
             expandToFull();
