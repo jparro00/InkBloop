@@ -119,21 +119,21 @@ function HueSlider({ value, onChange }: { value: string; onChange: (v: string) =
 
 // --- Defaults ---
 const defaults = {
-  accent: '#B08CE8',
-  'accent-dim': '#8466B8',
-  danger: '#CF6679',
-  success: '#22D3EE',
-  today: '#E05068',
+  accent: '#FF422D',
+  'accent-dim': '#CC0068',
+  danger: '#FE0000',
+  success: '#FECA00',
+  today: '#EE4700',
   bg: '#121212',
   surface: '#1E1E1E',
   elevated: '#272727',
   input: '#2C2C2C',
   border: '#333333',
   'border-s': '#383838',
-  Regular: '#5BA2FF',
-  'Touch Up': '#E8A87C',
-  Consultation: '#6BB89E',
-  'Full Day': '#D4A65A',
+  Regular: '#B813FF',
+  'Touch Up': '#F67100',
+  Consultation: '#FE84FF',
+  'Full Day': '#FF00AC',
 };
 
 type ColorKey = keyof typeof defaults;

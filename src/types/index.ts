@@ -31,10 +31,10 @@ const typeColorVar: Record<BookingType, string> = {
 };
 
 const typeColorFallback: Record<BookingType, string> = {
-  Regular: '#5BA2FF',
-  'Touch Up': '#E8A87C',
-  Consultation: '#6BB89E',
-  'Full Day': '#D4A65A',
+  Regular: '#B813FF',
+  'Touch Up': '#F67100',
+  Consultation: '#FE84FF',
+  'Full Day': '#FF00AC',
 };
 
 function readCssColor(varName: string, fallback: string): string {

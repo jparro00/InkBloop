@@ -14,22 +14,22 @@
   --color-text-s: rgba(255, 255, 255, 0.60);  /* medium emphasis */
   --color-text-t: rgba(255, 255, 255, 0.38);  /* disabled / tertiary */
 
-  /* Primary accent — Inky Purple */
-  --color-accent: #B08CE8;
-  --color-accent-dim: #8466B8;
-  --color-accent-glow: rgba(176, 140, 232, 0.12);
-  --accent-rgb: 176, 140, 232;
+  /* Primary accent — Keeps Red */
+  --color-accent: #FF422D;
+  --color-accent-dim: #CC0068;
+  --color-accent-glow: rgba(255, 66, 45, 0.12);
+  --accent-rgb: 255, 66, 45;
 
   /* Status colors */
-  --color-danger: #CF6679;
-  --color-success: #22D3EE;     /* Cyan — avoids conflict with accent */
-  --color-today: #E05068;
+  --color-danger: #FE0000;
+  --color-success: #FECA00;
+  --color-today: #EE4700;
 
   /* Booking type colors */
-  --color-type-regular: #5BA2FF;
-  --color-type-touchup: #E8A87C;
-  --color-type-consult: #6BB89E;
-  --color-type-fullday: #D4A65A;
+  --color-type-regular: #B813FF;
+  --color-type-touchup: #F67100;
+  --color-type-consult: #FE84FF;
+  --color-type-fullday: #FF00AC;
 
   /* Overlay colors */
   --color-overlay: rgba(0, 0, 0, 0.60);
@@ -50,8 +50,8 @@
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.6);
   --shadow-md: 0 4px 20px rgba(0,0,0,0.7);
   --shadow-lg: 0 12px 40px rgba(0,0,0,0.8);
-  --shadow-glow: 0 0 14px rgba(176,140,232,0.20);
-  --shadow-glow-strong: 0 0 22px rgba(176,140,232,0.32);
+  --shadow-glow: 0 0 14px rgba(255,66,45,0.20);
+  --shadow-glow-strong: 0 0 22px rgba(255,66,45,0.32);
 
   --radius-sm: 6px;
   --radius-md: 10px;
