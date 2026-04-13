@@ -130,28 +130,63 @@ function XButtonTrace({ trigger, buttonRef }: { trigger: number; buttonRef: Reac
 
     const len = path.getTotalLength();
     const segment = len * 0.35;
+    const travelDuration = 1400; // ms — main travel phase
+    const shrinkDuration = 600; // ms — tail catches up phase
+    const totalDuration = travelDuration + shrinkDuration;
 
     svg.style.transition = 'none';
     svg.style.opacity = '1';
+
+    let raf: number;
+    let cancelled = false;
+    const startTime = performance.now() + 30; // small delay
+
+    // Reset
     path.style.transition = 'none';
     path.style.strokeDasharray = `${segment} ${len}`;
     path.style.strokeDashoffset = `${segment}`;
-    path.getBoundingClientRect();
 
-    const startTimer = setTimeout(() => {
-      path.style.transition = 'stroke-dashoffset 1.4s cubic-bezier(0.4, 0, 0.2, 1)';
-      path.style.strokeDashoffset = `${-len}`;
-    }, 30);
+    const tick = (now: number) => {
+      if (cancelled) return;
+      const elapsed = now - startTime;
 
-    // Fade out the SVG as the laser nears the end so it dissolves
-    const fadeTimer = setTimeout(() => {
-      svg.style.transition = 'opacity 0.5s ease-out';
-      svg.style.opacity = '0';
-    }, 1100);
+      if (elapsed < 0) {
+        // Still in initial delay
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+
+      if (elapsed <= travelDuration) {
+        // Phase 1: travel at full segment size
+        const t = elapsed / travelDuration;
+        const ease = 1 - Math.pow(1 - t, 3); // ease-out cubic
+        const offset = segment - ease * (segment + len);
+        path.style.strokeDasharray = `${segment} ${len}`;
+        path.style.strokeDashoffset = `${offset}`;
+      } else if (elapsed <= totalDuration) {
+        // Phase 2: front slows down, segment shrinks to 0
+        const t2 = (elapsed - travelDuration) / shrinkDuration;
+        const ease2 = t2 * t2; // ease-in — slow start, fast end (tail catches up)
+        const currentSegment = segment * (1 - ease2);
+        // Keep moving the offset forward slowly
+        const extraTravel = len * 0.15 * t2;
+        const offset = -len - extraTravel;
+        path.style.strokeDasharray = `${Math.max(currentSegment, 0.5)} ${len}`;
+        path.style.strokeDashoffset = `${offset}`;
+      } else {
+        // Done
+        svg.style.opacity = '0';
+        return;
+      }
+
+      raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(tick);
 
     return () => {
-      clearTimeout(startTimer);
-      clearTimeout(fadeTimer);
+      cancelled = true;
+      cancelAnimationFrame(raf);
     };
   }, [shape, trigger]);
 
