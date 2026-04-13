@@ -291,6 +291,38 @@ export interface Database {
           },
         ];
       };
+      user_settings: {
+        Row: {
+          user_id: string;
+          anthropic_key: string | null;
+          has_api_key: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          anthropic_key?: string | null;
+          has_api_key?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          anthropic_key?: string | null;
+          has_api_key?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'user_settings_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: true;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

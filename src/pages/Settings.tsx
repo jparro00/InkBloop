@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useUIStore } from '../stores/uiStore';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { saveApiKey, removeApiKey, hasApiKey } from '../services/apiKeyService';
 
 export default function SettingsPage() {
   const clients = useClientStore((s) => s.clients);
@@ -18,8 +19,10 @@ export default function SettingsPage() {
   }, [setHeaderLeft, setHeaderRight]);
   const [exportClient, setExportClient] = useState('');
   const [exported, setExported] = useState(false);
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('inkflow-anthropic-key') ?? '');
-  const [keySaved, setKeySaved] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [apiKeySaving, setApiKeySaving] = useState(false);
+  const [apiKeyConfigured, setApiKeyConfigured] = useState(false);
+  const [apiKeyStatus, setApiKeyStatus] = useState<'idle' | 'saved' | 'removed' | 'error'>('idle');
   const [morningTime, setMorningTime] = useState(() => localStorage.getItem('inkflow-morning-time') ?? '10:00');
   const [eveningTime, setEveningTime] = useState(() => localStorage.getItem('inkflow-evening-time') ?? '14:00');
   const [timesSaved, setTimesSaved] = useState(false);
@@ -34,6 +37,11 @@ export default function SettingsPage() {
       const hasTotp = (data?.totp?.length ?? 0) > 0;
       setTotpStatus(hasTotp ? 'enabled' : 'disabled');
     });
+  }, []);
+
+  // Check API key status on mount
+  useEffect(() => {
+    hasApiKey().then(setApiKeyConfigured);
   }, []);
 
   const handleChangePassword = async () => {
@@ -218,30 +226,77 @@ export default function SettingsPage() {
         <h2 className="text-md text-text-p font-display mb-3">AI Quick Booking</h2>
         <div className={cardClass}>
           <div className="text-base text-text-s mb-2">Anthropic API key for AI-powered quick booking</div>
-          <div className="flex gap-3">
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="sk-ant-..."
-              className={`${inputClass} flex-1`}
-            />
-            <button
-              onClick={() => {
-                if (apiKey.trim()) {
-                  localStorage.setItem('inkflow-anthropic-key', apiKey.trim());
-                } else {
-                  localStorage.removeItem('inkflow-anthropic-key');
-                }
-                setKeySaved(true);
-                setTimeout(() => setKeySaved(false), 2000);
-              }}
-              className="px-5 py-3.5 text-base bg-accent text-bg rounded-md cursor-pointer press-scale transition-all shrink-0 min-h-[48px]"
-            >
-              {keySaved ? 'Saved!' : 'Save'}
-            </button>
-          </div>
-          <div className="text-sm text-text-t">Uses Claude Haiku to parse natural language bookings. Key is stored locally only.</div>
+          {apiKeyConfigured ? (
+            <>
+              <div className={rowClass}>
+                <div>
+                  <div className="text-base text-text-p">API Key</div>
+                  <div className="text-sm text-success mt-1">Configured</div>
+                </div>
+                <button
+                  onClick={async () => {
+                    setApiKeySaving(true);
+                    try {
+                      await removeApiKey();
+                      setApiKeyConfigured(false);
+                      setApiKeyStatus('removed');
+                      setTimeout(() => setApiKeyStatus('idle'), 2000);
+                    } catch (e) {
+                      console.error('Failed to remove API key:', e);
+                      setApiKeyStatus('error');
+                      setTimeout(() => setApiKeyStatus('idle'), 2000);
+                    }
+                    setApiKeySaving(false);
+                  }}
+                  disabled={apiKeySaving}
+                  className="text-base text-danger active:text-danger/70 transition-colors cursor-pointer press-scale min-h-[44px] px-2 disabled:opacity-40"
+                >
+                  {apiKeySaving ? '...' : 'Remove'}
+                </button>
+              </div>
+              {apiKeyStatus === 'removed' && (
+                <div className="text-sm text-success">Key removed.</div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="flex gap-3">
+                <input
+                  type="password"
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  placeholder="sk-ant-..."
+                  className={`${inputClass} flex-1`}
+                />
+                <button
+                  onClick={async () => {
+                    if (!apiKeyInput.trim()) return;
+                    setApiKeySaving(true);
+                    try {
+                      await saveApiKey(apiKeyInput.trim());
+                      setApiKeyConfigured(true);
+                      setApiKeyInput('');
+                      setApiKeyStatus('saved');
+                      setTimeout(() => setApiKeyStatus('idle'), 2000);
+                    } catch (e) {
+                      console.error('Failed to save API key:', e);
+                      setApiKeyStatus('error');
+                      setTimeout(() => setApiKeyStatus('idle'), 2000);
+                    }
+                    setApiKeySaving(false);
+                  }}
+                  disabled={!apiKeyInput.trim() || apiKeySaving}
+                  className="px-5 py-3.5 text-base bg-accent text-bg rounded-md cursor-pointer press-scale transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0 min-h-[48px]"
+                >
+                  {apiKeySaving ? '...' : apiKeyStatus === 'saved' ? 'Saved!' : 'Save'}
+                </button>
+              </div>
+              {apiKeyStatus === 'error' && (
+                <div className="text-sm text-danger">Failed to save. Try again.</div>
+              )}
+            </>
+          )}
+          <div className="text-sm text-text-t">Uses Claude Haiku to parse natural language bookings. Key is encrypted and stored securely on the server.</div>
         </div>
       </section>
 

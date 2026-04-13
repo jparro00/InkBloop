@@ -1,4 +1,5 @@
 import { useClientStore } from '../stores/clientStore';
+import { supabase } from '../lib/supabase';
 
 export interface ParsedBooking {
   client_id?: string;
@@ -11,11 +12,33 @@ export interface ParsedBooking {
   notes?: string;
 }
 
-const DURATION_PATTERN = /(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h)\b/i;
-
-export async function parseBookingWithAI(text: string, apiKey: string): Promise<ParsedBooking> {
+export async function parseBookingWithAI(text: string): Promise<ParsedBooking> {
   const clients = useClientStore.getState().clients;
   const clientList = clients.map((c) => ({ id: c.id, name: c.name }));
+
+  // Check for legacy localStorage key (migration path)
+  const legacyKey = localStorage.getItem('inkflow-anthropic-key');
+  if (legacyKey) {
+    return parseLegacy(text, legacyKey, clientList);
+  }
+
+  // Use server-side Edge Function
+  const { data, error } = await supabase.functions.invoke('parse-booking', {
+    body: { text, clients: clientList },
+  });
+
+  if (error) throw error;
+  return (data as ParsedBooking) ?? {};
+}
+
+/** Legacy direct API call for migration — used until user re-saves key via Settings. */
+const DURATION_PATTERN = /(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h)\b/i;
+
+async function parseLegacy(
+  text: string,
+  apiKey: string,
+  clientList: { id: string; name: string }[]
+): Promise<ParsedBooking> {
   const now = new Date();
 
   const systemPrompt = `You extract booking details from text for a tattoo studio. Return a JSON object.
@@ -60,7 +83,6 @@ CRITICAL: Always extract every field you can. A missing client match must NOT pr
 
   const data = await response.json();
   const rawContent = data.content?.[0]?.text ?? '{}';
-  // Strip markdown code fences if present
   const content = rawContent.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
 
   try {
@@ -71,7 +93,6 @@ CRITICAL: Always extract every field you can. A missing client match must NOT pr
       result.client_id = parsed.client_id;
     }
     if (parsed.date) result.date = parsed.date;
-    // Only accept AI duration if the user actually mentioned a duration in their text
     if (typeof parsed.duration === 'number' && DURATION_PATTERN.test(text)) {
       result.duration = parsed.duration;
     }
@@ -85,7 +106,6 @@ CRITICAL: Always extract every field you can. A missing client match must NOT pr
 
     return result;
   } catch {
-    // If AI returns invalid JSON, fall back to empty
     return {};
   }
 }

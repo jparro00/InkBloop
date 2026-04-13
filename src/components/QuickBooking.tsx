@@ -1,27 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import Modal from './common/Modal';
 import { useUIStore } from '../stores/uiStore';
 import { parseQuickBooking } from '../utils/quickBookingParser';
 import { parseBookingWithAI } from '../utils/aiBookingParser';
-
-const API_KEY_STORAGE = 'inkflow-anthropic-key';
+import { hasApiKey } from '../services/apiKeyService';
 
 export default function QuickBooking() {
   const { setQuickBookingOpen, openBookingForm, setPrefillBookingData, addToast } = useUIStore();
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(false);
+
+  useEffect(() => {
+    hasApiKey().then(setAiEnabled);
+  }, []);
 
   const handleSubmit = async () => {
     if (!text.trim()) return;
 
-    const apiKey = localStorage.getItem(API_KEY_STORAGE);
-
-    if (apiKey) {
-      // Use AI parsing
+    if (aiEnabled) {
+      // Use AI parsing (via Edge Function or legacy localStorage key)
       setLoading(true);
       try {
-        const parsed = await parseBookingWithAI(text, apiKey);
+        const parsed = await parseBookingWithAI(text);
         setPrefillBookingData(parsed);
         setQuickBookingOpen(false);
         openBookingForm();
