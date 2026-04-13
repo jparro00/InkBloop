@@ -1,7 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { Pen } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useTabSwipe } from '../../hooks/useTabSwipe';
+import { AnimatePresence } from 'framer-motion';
 import Sidebar from './Sidebar';
 import AppHeader from './AppHeader';
 import MobileTabBar from './MobileTabBar';
@@ -29,7 +28,6 @@ export default function AppShell() {
     setEditingClientId,
   } = useUIStore();
   const editingClient = useClientStore((s) => editingClientId ? s.clients.find((c) => c.id === editingClientId) : undefined);
-  const { bindSwipe, dragX } = useTabSwipe();
 
   return (
     <div className="h-full flex flex-col lg:flex-row">
@@ -42,13 +40,12 @@ export default function AppShell() {
         }`}
       >
         <AppHeader />
-        <motion.main
-          {...bindSwipe()}
+        <main
           className="flex-1 overflow-y-auto"
-          style={{ x: dragX, WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+          style={{ WebkitOverflowScrolling: 'touch' }}
         >
           <Outlet />
-        </motion.main>
+        </main>
       </div>
 
       <AnimatePresence>

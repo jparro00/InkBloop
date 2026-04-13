@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { Calendar, Users, Palette, Settings } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 
-export const tabs = [
+const tabs = [
   { to: '/', icon: Calendar, label: 'Calendar' },
   { to: '/clients', icon: Users, label: 'Clients' },
   { to: '/theme', icon: Palette, label: 'Theme' },

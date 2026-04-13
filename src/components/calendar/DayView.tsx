@@ -415,7 +415,7 @@ export default function DayView() {
 
       {/* Week strip carousel */}
       <div ref={weekStripRef} className="shrink-0 border-b border-border/30 overflow-hidden touch-none">
-        <div {...weekBind()} data-no-swipe>
+        <div {...weekBind()}>
           <motion.div className="flex" style={{ x: weekX, width: '300%', marginLeft: '-100%' }}>
             <WeekRow baseDate={prevWeekDate} selectedDate={calendarDate} onDayClick={setCalendarDate} bookings={bookings} />
             <WeekRow baseDate={calendarDate} selectedDate={calendarDate} onDayClick={setCalendarDate} bookings={bookings} />
@@ -426,7 +426,7 @@ export default function DayView() {
 
       {/* Timeline carousel: full day panels slide together */}
       <div ref={containerRef} className="flex-1 overflow-y-auto overflow-x-hidden relative">
-        <div {...timelineBind()} data-no-swipe style={{ touchAction: 'pan-y' }}>
+        <div {...timelineBind()} style={{ touchAction: 'pan-y' }}>
           <motion.div className="flex" style={{ x: stripX, width: '300%', marginLeft: '-100%' }}>
             <DayPanel day={prevDay} bookings={bookings} getClient={getClient} onSlotClick={handleSlotClick} onBookingClick={handleBookingClick} />
             <DayPanel day={calendarDate} bookings={bookings} getClient={getClient} onSlotClick={handleSlotClick} onBookingClick={handleBookingClick} />
