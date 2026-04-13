@@ -53,14 +53,14 @@ function AccentTrace({ sheetRef, headerRef, trigger }: { sheetRef: React.RefObje
 
     // Start animation
     const startTimer = setTimeout(() => {
-      path.style.transition = 'stroke-dashoffset 1.6s cubic-bezier(0.4, 0, 0.2, 1)';
+      path.style.transition = 'stroke-dashoffset 1.4s cubic-bezier(0.4, 0, 0.2, 1)';
       path.style.strokeDashoffset = `${-len}`;
     }, 50);
 
     // Hide after animation completes
     const hideTimer = setTimeout(() => {
       svg.style.opacity = '0';
-    }, 1800);
+    }, 1600);
 
     return () => {
       clearTimeout(startTimer);
