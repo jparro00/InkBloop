@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_META_API_URL || 'http://localhost:4000';
+const API_URL = import.meta.env.VITE_META_API_URL || 'http://localhost:3001';
 const PAGE_ID = import.meta.env.VITE_META_PAGE_ID || '111222333444555';
 const IG_USER_ID = import.meta.env.VITE_META_IG_USER_ID || '999888777666555';
 const ACCESS_TOKEN = import.meta.env.VITE_META_ACCESS_TOKEN || 'SIM_ACCESS_TOKEN_DEV';
