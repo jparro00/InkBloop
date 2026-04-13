@@ -301,12 +301,12 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
 
   return (
     <ModalDismissContext.Provider value={dismiss}>
-      {/* Backdrop */}
+      {/* Backdrop — pointer-events-none when collapsed so content behind is scrollable */}
       <motion.div
         initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+        animate={{ opacity: collapsed ? 0 : 1 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 backdrop-blur-sm z-50"
+        className={`fixed inset-0 backdrop-blur-sm z-50 ${collapsed ? 'pointer-events-none' : ''}`}
         style={{ backgroundColor: 'var(--color-overlay)', opacity: backdropOpacity }}
         onClick={handleBackdropClick}
       />
@@ -327,7 +327,7 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
 
         <div {...bindDrag()} className="flex flex-col flex-1 overflow-hidden" style={{ touchAction: 'pan-y', overscrollBehavior: 'none' }}>
           {/* Drag handle + header */}
-          <div ref={headerRef} onClick={() => { if (collapsedRef.current) expandToFull(); }}>
+          <div ref={headerRef} onClick={() => { if (collapsedRef.current) dismiss(); }}>
             <div className="flex justify-center pt-3 pb-1 lg:hidden">
               <div className="w-10 h-1 rounded-full bg-border-s/60" />
             </div>
