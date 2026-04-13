@@ -181,6 +181,7 @@ export function getConversation(convId, fields) {
       from: { id: m.senderId, name: profileNameOrBusiness(m.senderId) },
       to: { data: [{ id: m.recipientId, name: profileNameOrBusiness(m.recipientId) }] },
       message: m.text || '',
+      attachments: m.attachments ? { data: m.attachments } : undefined,
     }));
 
     result.messages = {
