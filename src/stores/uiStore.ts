@@ -32,6 +32,8 @@ interface UIStore {
   setPrefillBookingData: (data: UIStore['prefillBookingData']) => void;
   todayHandler: (() => void) | null;
   setTodayHandler: (handler: (() => void) | null) => void;
+  scrollToCurrentMonth: (() => void) | null;
+  setScrollToCurrentMonth: (handler: (() => void) | null) => void;
   calendarSearchOpen: boolean;
   setCalendarSearchOpen: (open: boolean) => void;
   headerLeft: ReactNode;
@@ -102,6 +104,8 @@ export const useUIStore = create<UIStore>((set) => ({
   setPrefillBookingData: (data) => set({ prefillBookingData: data }),
   todayHandler: null,
   setTodayHandler: (handler) => set({ todayHandler: handler }),
+  scrollToCurrentMonth: null,
+  setScrollToCurrentMonth: (handler) => set({ scrollToCurrentMonth: handler }),
   calendarSearchOpen: false,
   setCalendarSearchOpen: (open) => set({ calendarSearchOpen: open }),
   headerLeft: null,

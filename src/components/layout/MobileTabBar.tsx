@@ -12,13 +12,20 @@ const tabs = [
 export default function MobileTabBar() {
   const setCalendarView = useUIStore((s) => s.setCalendarView);
   const setCalendarDate = useUIStore((s) => s.setCalendarDate);
+  const scrollToCurrentMonth = useUIStore((s) => s.scrollToCurrentMonth);
+  const calendarView = useUIStore((s) => s.calendarView);
   const location = useLocation();
 
   const handleTabClick = (to: string) => {
     if (to === '/' && location.pathname === '/') {
-      // Reset to current month — MonthView re-mounts with new date
-      setCalendarDate(new Date());
-      setCalendarView('month');
+      if (calendarView === 'month' && scrollToCurrentMonth) {
+        // Already in month view — scroll to current month
+        scrollToCurrentMonth();
+      } else {
+        // In day/year view — switch to month view on current month
+        setCalendarDate(new Date());
+        setCalendarView('month');
+      }
     }
   };
 

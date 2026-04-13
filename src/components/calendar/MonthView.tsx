@@ -29,7 +29,7 @@ function getMonthRange(center: Date, buffer: number) {
 }
 
 export default function MonthView() {
-  const { calendarDate, setCalendarDate, setCalendarView, openBookingForm, setTodayHandler, setCalendarSearchOpen, setHeaderLeft, setHeaderRight } = useUIStore();
+  const { calendarDate, setCalendarDate, setCalendarView, openBookingForm, setTodayHandler, setScrollToCurrentMonth, setCalendarSearchOpen, setHeaderLeft, setHeaderRight } = useUIStore();
   const bookings = useBookingStore((s) => s.bookings);
   const getClient = useClientStore((s) => s.getClient);
 
@@ -50,20 +50,6 @@ export default function MonthView() {
     }
   }, [months]);
 
-  // Re-center when calendarDate changes externally (e.g. tab bar tap)
-  const prevDateRef = useRef(calendarDate);
-  useEffect(() => {
-    const prev = prevDateRef.current;
-    prevDateRef.current = calendarDate;
-    if (
-      prev.getFullYear() === calendarDate.getFullYear() &&
-      prev.getMonth() === calendarDate.getMonth()
-    ) return;
-
-    // Reset months around new date and scroll to it
-    setMonths(getMonthRange(calendarDate, MONTHS_BUFFER));
-    hasScrolled.current = false;
-  }, [calendarDate]);
 
   // Infinite scroll with IntersectionObserver
   const handleIntersect = useCallback(
@@ -156,6 +142,26 @@ export default function MonthView() {
     setTodayHandler(handler);
     return () => setTodayHandler(null);
   }, [setCalendarDate, setCalendarView, setTodayHandler]);
+
+  // Register scroll-to-current-month handler (like Today but stays in month view)
+  useEffect(() => {
+    const handler = () => {
+      const today = new Date();
+      const todayKey = format(today, 'yyyy-MM');
+      const todayEl = monthRefs.current.get(todayKey);
+
+      if (todayEl) {
+        todayEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        // Current month not in DOM — re-center the list
+        setMonths(getMonthRange(today, MONTHS_BUFFER));
+        hasScrolled.current = false;
+        setCalendarDate(today);
+      }
+    };
+    setScrollToCurrentMonth(handler);
+    return () => setScrollToCurrentMonth(null);
+  }, [setCalendarDate, setScrollToCurrentMonth]);
 
   const getBookingsForDay = (day: Date) =>
     bookings
