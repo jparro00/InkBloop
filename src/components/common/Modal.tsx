@@ -133,7 +133,7 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
   const dismissTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [collapsed, setCollapsed] = useState(false);
   const collapsedRef = useRef(false);
-  const [traceTrigger, setTraceTrigger] = useState(1); // 1 = fire on mount
+  const [traceTrigger, setTraceTrigger] = useState(0); // 0 = don't fire on mount
 
   // Keep ref in sync with state
   useEffect(() => { collapsedRef.current = collapsed; }, [collapsed]);
