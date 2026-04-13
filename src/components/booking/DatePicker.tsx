@@ -192,7 +192,7 @@ export default function DatePicker({ value, onChange, missing }: DatePickerProps
           </div>
 
           {/* Carousel — 3 panels, center one visible via negative margin */}
-          <div {...bindSwipe()} ref={swipeRef} className="overflow-hidden" style={{ touchAction: 'pan-y' }}>
+          <div {...bindSwipe()} ref={swipeRef} data-no-swipe className="overflow-hidden" style={{ touchAction: 'pan-y' }}>
             <motion.div
               className="flex"
               style={{ x, width: '300%', marginLeft: '-100%' }}
