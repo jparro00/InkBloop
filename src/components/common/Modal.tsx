@@ -15,25 +15,29 @@ export function useModalDismiss() {
 }
 
 const R = 28; // must match rounded-t-[28px]
-const TRACE_HEIGHT = 60; // how far down the sides the trace extends
 
 /** SVG trace that follows the rounded top edge of the modal. */
-function AccentTrace({ sheetRef, trigger }: { sheetRef: React.RefObject<HTMLDivElement | null>; trigger: number }) {
+function AccentTrace({ sheetRef, headerRef, trigger }: { sheetRef: React.RefObject<HTMLDivElement | null>; headerRef: React.RefObject<HTMLDivElement | null>; trigger: number }) {
   const pathRef = useRef<SVGPathElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [w, setW] = useState(0);
+  const [h, setH] = useState(0);
 
   useEffect(() => {
     if (sheetRef.current) {
       setW(sheetRef.current.offsetWidth);
     }
-  }, [sheetRef]);
+    if (headerRef.current) {
+      // Measure full header height (drag handle + title + border)
+      setH(headerRef.current.offsetHeight);
+    }
+  }, [sheetRef, headerRef]);
 
   // Fire laser animation whenever trigger changes
   useEffect(() => {
     const path = pathRef.current;
     const svg = svgRef.current;
-    if (!path || !svg || !w || trigger === 0) return;
+    if (!path || !svg || !w || !h || trigger === 0) return;
 
     const len = path.getTotalLength();
     const segment = len * 0.15;
@@ -62,19 +66,19 @@ function AccentTrace({ sheetRef, trigger }: { sheetRef: React.RefObject<HTMLDivE
       clearTimeout(startTimer);
       clearTimeout(hideTimer);
     };
-  }, [w, trigger]);
+  }, [w, h, trigger]);
 
-  if (!w) return null;
+  if (!w || !h) return null;
 
-  // Path: up the left side → around top-left corner → across top → around top-right corner → down right side
-  const d = `M 0,${TRACE_HEIGHT} L 0,${R} A ${R},${R} 0 0,1 ${R},0 L ${w - R},0 A ${R},${R} 0 0,1 ${w},${R} L ${w},${TRACE_HEIGHT}`;
+  // Path: down left side to header bottom → up to corner → across top → down right corner → down right side to header bottom
+  const d = `M 0,${h} L 0,${R} A ${R},${R} 0 0,1 ${R},0 L ${w - R},0 A ${R},${R} 0 0,1 ${w},${R} L ${w},${h}`;
 
   return (
     <svg
       ref={svgRef}
       className="absolute top-0 left-0 z-10 pointer-events-none"
       width={w}
-      height={TRACE_HEIGHT}
+      height={h}
       fill="none"
       style={{ overflow: 'visible', opacity: 0 }}
     >
@@ -307,7 +311,7 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
         onClick={(e) => e.stopPropagation()}
       >
         {/* Accent trace — laser traces the rounded top outline */}
-        <AccentTrace sheetRef={sheetRef} trigger={traceTrigger} />
+        <AccentTrace sheetRef={sheetRef} headerRef={headerRef} trigger={traceTrigger} />
 
         <div {...bindDrag()} className="flex flex-col flex-1 overflow-hidden" style={{ touchAction: 'pan-y', overscrollBehavior: 'none' }}>
           {/* Drag handle + header */}
