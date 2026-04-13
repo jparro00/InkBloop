@@ -9,8 +9,8 @@ export default function AppHeader() {
       {headerLeft && <div className="z-10">{headerLeft}</div>}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div className="relative flex items-center">
-          <img src={`${import.meta.env.BASE_URL}inkflow_logo.png`} alt="Keeps Ink" className="w-7 h-7 absolute -left-9" />
-          <span className="font-display text-lg font-bold text-text-p tracking-wide">Keeps Ink</span>
+          <img src={`${import.meta.env.BASE_URL}inkflow_logo.png`} alt="Ink Bloop" className="w-7 h-7 absolute -left-9" />
+          <span className="font-display text-lg font-bold text-text-p tracking-wide">Ink Bloop</span>
         </div>
       </div>
       {headerRight && <div className="ml-auto z-10">{headerRight}</div>}
