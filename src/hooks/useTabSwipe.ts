@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useDrag } from '@use-gesture/react';
 import { useMotionValue, animate } from 'framer-motion';
@@ -8,6 +9,7 @@ const TAB_ROUTES = tabs.map((t) => t.to);
 
 /**
  * Hook that provides horizontal swipe-to-change-tabs on mobile.
+ * Carousel-style: current page slides off-screen, then route changes.
  *
  * Disabled when:
  * - Any modal is fully open (not collapsed)
@@ -18,6 +20,7 @@ const TAB_ROUTES = tabs.map((t) => t.to);
 export function useTabSwipe() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const animating = useRef(false);
 
   const modalCollapsed = useUIStore((s) => s.modalCollapsed);
   const bookingFormOpen = useUIStore((s) => s.bookingFormOpen);
@@ -41,6 +44,12 @@ export function useTabSwipe() {
 
   const bindSwipe = useDrag(
     ({ movement: [mx], velocity: [vx], direction: [dx], first, last, cancel, event }) => {
+      // Block during slide-out animation
+      if (animating.current) {
+        cancel();
+        return;
+      }
+
       // Desktop guard
       if (window.innerWidth >= 1024) {
         cancel();
@@ -68,8 +77,8 @@ export function useTabSwipe() {
         }
       }
 
-      const canGoLeft = currentIndex > 0; // swipe right to go left in tabs
-      const canGoRight = currentIndex < TAB_ROUTES.length - 1; // swipe left to go right
+      const canGoLeft = currentIndex > 0;
+      const canGoRight = currentIndex < TAB_ROUTES.length - 1;
 
       // During drag: apply translation with rubber-band at edges
       if (mx > 0 && !canGoLeft) {
@@ -86,11 +95,26 @@ export function useTabSwipe() {
 
         if (swipedLeft || swipedRight) {
           const targetIndex = swipedLeft ? currentIndex + 1 : currentIndex - 1;
-          navigate(TAB_ROUTES[targetIndex]);
-        }
+          const w = window.innerWidth;
+          const slideTarget = swipedLeft ? -w : w;
 
-        // Spring back to 0 in all cases
-        animate(dragX, 0, { type: 'spring', stiffness: 400, damping: 30 });
+          // Slide current page off-screen, then navigate
+          animating.current = true;
+          animate(dragX, slideTarget, {
+            type: 'spring',
+            stiffness: 300,
+            damping: 30,
+            mass: 0.8,
+            onComplete: () => {
+              navigate(TAB_ROUTES[targetIndex]);
+              dragX.set(0);
+              animating.current = false;
+            },
+          });
+        } else {
+          // Snap back
+          animate(dragX, 0, { type: 'spring', stiffness: 400, damping: 30 });
+        }
       }
     },
     { axis: 'x', filterTaps: true, threshold: 15, pointer: { touch: true } }
