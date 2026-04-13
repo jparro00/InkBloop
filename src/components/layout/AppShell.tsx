@@ -11,6 +11,7 @@ import CreateClientForm from '../client/CreateClientForm';
 import ClientForm from '../client/ClientForm';
 import QuickBooking from '../QuickBooking';
 import SearchOverlay from '../../pages/Search';
+import ConversationDrawer from '../messaging/ConversationDrawer';
 import ToastContainer from '../common/Toast';
 import { useClientStore } from '../../stores/clientStore';
 
@@ -26,6 +27,7 @@ export default function AppShell() {
     setCreateClientFormOpen,
     editingClientId,
     setEditingClientId,
+    selectedConversationId,
   } = useUIStore();
   const editingClient = useClientStore((s) => editingClientId ? s.clients.find((c) => c.id === editingClientId) : undefined);
 
@@ -62,6 +64,10 @@ export default function AppShell() {
 
       <AnimatePresence>
         {searchOpen && <SearchOverlay />}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectedConversationId && <ConversationDrawer />}
       </AnimatePresence>
 
       <AnimatePresence>

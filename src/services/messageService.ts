@@ -17,13 +17,13 @@ interface GraphConversation {
   participants: { data: { id: string; name: string }[] };
 }
 
-interface GraphMessage {
+export interface GraphMessage {
   id: string;
   created_time: string;
   from: { id: string; name: string };
   to: { data: { id: string; name: string }[] };
   message?: string;
-  attachments?: { data: { type: string }[] };
+  attachments?: { data: { type: string; payload?: { url?: string } }[] };
 }
 
 interface GraphProfile {
@@ -124,6 +124,36 @@ async function fetchConversationsForId(
   }
 
   return results;
+}
+
+export function isBusinessMessage(msg: GraphMessage): boolean {
+  return msg.from.id === PAGE_ID || msg.from.id === IG_USER_ID;
+}
+
+export async function fetchConversationMessages(conversationId: string): Promise<GraphMessage[]> {
+  const data = await graphGet(`${conversationId}?fields=messages,participants,updated_time`) as {
+    messages?: { data: GraphMessage[] };
+  };
+  return data.messages?.data ?? [];
+}
+
+export async function sendMessage(
+  platform: 'instagram' | 'messenger',
+  recipientPsid: string,
+  text: string
+): Promise<{ recipientId: string; messageId: string }> {
+  const id = platform === 'instagram' ? IG_USER_ID : PAGE_ID;
+  const res = await fetch(`${API_URL}/v25.0/${id}/messages?access_token=${ACCESS_TOKEN}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      recipient: { id: recipientPsid },
+      messaging_type: 'RESPONSE',
+      message: { text },
+    }),
+  });
+  if (!res.ok) throw new Error(`Send API error: ${res.status}`);
+  return res.json();
 }
 
 export async function fetchAllConversations(): Promise<ConversationSummary[]> {

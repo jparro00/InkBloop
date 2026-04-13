@@ -52,7 +52,7 @@ function PlatformAvatar({ convo }: { convo: ConversationSummary }) {
   );
 }
 
-function ConversationItem({ convo, index }: { convo: ConversationSummary; index: number }) {
+function ConversationItem({ convo, index, onOpen }: { convo: ConversationSummary; index: number; onOpen: () => void }) {
   const isUnread = convo.lastMessageFromClient;
 
   return (
@@ -60,6 +60,7 @@ function ConversationItem({ convo, index }: { convo: ConversationSummary; index:
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.03 }}
+      onClick={onOpen}
       className="w-full text-left flex items-center gap-3.5 px-5 py-3.5 lg:px-4 rounded-lg active:bg-elevated/40 lg:hover:bg-elevated/30 transition-colors cursor-pointer press-scale min-h-[72px]"
     >
       <PlatformAvatar convo={convo} />
@@ -97,11 +98,12 @@ function ConversationItem({ convo, index }: { convo: ConversationSummary; index:
 }
 
 export default function MessagesPage() {
-  const { setHeaderLeft, setHeaderRight } = useUIStore();
+  const { setHeaderLeft, setHeaderRight, setSelectedConversationId } = useUIStore();
   const conversations = useMessageStore((s) => s.conversations);
   const isLoading = useMessageStore((s) => s.isLoading);
   const error = useMessageStore((s) => s.error);
   const fetchConversations = useMessageStore((s) => s.fetchConversations);
+  const markRead = useMessageStore((s) => s.markRead);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
@@ -159,7 +161,15 @@ export default function MessagesPage() {
         ) : (
           <div className="space-y-0.5">
             {filtered.map((convo, i) => (
-              <ConversationItem key={convo.id} convo={convo} index={i} />
+              <ConversationItem
+                key={convo.id}
+                convo={convo}
+                index={i}
+                onOpen={() => {
+                  setSelectedConversationId(convo.id);
+                  markRead(convo.id);
+                }}
+              />
             ))}
 
             {filtered.length === 0 && (

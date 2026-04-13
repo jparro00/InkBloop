@@ -44,6 +44,8 @@ interface UIStore {
   setCreateClientFormOpen: (open: boolean) => void;
   editingClientId: string | null;
   setEditingClientId: (id: string | null) => void;
+  selectedConversationId: string | null;
+  setSelectedConversationId: (id: string | null) => void;
   modalCollapsed: boolean;
   setModalCollapsed: (collapsed: boolean) => void;
   blockedOpenTrigger: number;
@@ -127,6 +129,14 @@ export const useUIStore = create<UIStore>((set) => ({
       return;
     }
     set({ editingClientId: id });
+  },
+  selectedConversationId: null,
+  setSelectedConversationId: (id) => {
+    if (id && useUIStore.getState().modalCollapsed) {
+      set((s) => ({ blockedOpenTrigger: s.blockedOpenTrigger + 1 }));
+      return;
+    }
+    set({ selectedConversationId: id });
   },
   modalCollapsed: false,
   setModalCollapsed: (collapsed) => set({ modalCollapsed: collapsed }),
