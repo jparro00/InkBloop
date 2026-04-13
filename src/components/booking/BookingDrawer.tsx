@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { ArrowLeft, Edit, Trash2, User } from 'lucide-react';
+import { Edit, Trash2, User } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { useUIStore } from '../../stores/uiStore';
 import { useBookingStore } from '../../stores/bookingStore';
@@ -53,36 +53,30 @@ export default function BookingDrawer() {
   return (
     <>
       <Modal
+        title="Booking Details"
         onClose={onClose}
-        header={
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border/40">
-            <button
-              onClick={onClose}
-              className="flex items-center gap-2.5 text-text-s active:text-text-p transition-colors cursor-pointer press-scale min-h-[44px]"
-            >
-              <ArrowLeft size={20} />
-              <span className="text-base">Back</span>
-            </button>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  setSelectedBookingId(null);
-                  openBookingForm(booking.id);
-                }}
-                className="w-12 h-12 rounded-md flex items-center justify-center text-text-s active:bg-surface transition-colors cursor-pointer press-scale"
-              >
-                <Edit size={20} />
-              </button>
-              <button
-                onClick={handleDelete}
-                className="w-12 h-12 rounded-md flex items-center justify-center text-text-s active:text-danger transition-colors cursor-pointer press-scale"
-              >
-                <Trash2 size={20} />
-              </button>
-            </div>
-          </div>
-        }
       >
+        {/* Actions */}
+        <div className="flex items-center gap-2 mb-5">
+          <button
+            onClick={() => {
+              setSelectedBookingId(null);
+              openBookingForm(booking.id);
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-md border border-border/60 text-sm text-text-s active:text-text-p active:bg-surface transition-colors cursor-pointer press-scale"
+          >
+            <Edit size={15} />
+            <span>Edit</span>
+          </button>
+          <button
+            onClick={handleDelete}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-md border border-border/60 text-sm text-text-s active:text-danger transition-colors cursor-pointer press-scale"
+          >
+            <Trash2 size={15} />
+            <span>Delete</span>
+          </button>
+        </div>
+
         {/* Client */}
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center text-accent text-base font-medium shrink-0">
