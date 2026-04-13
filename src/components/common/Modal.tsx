@@ -18,7 +18,6 @@ const R = 28; // must match rounded-t-[28px]
 
 /** SVG trace that follows the rounded top edge of the modal. */
 function AccentTrace({ sheetRef, headerRef, trigger }: { sheetRef: React.RefObject<HTMLDivElement | null>; headerRef: React.RefObject<HTMLDivElement | null>; trigger: number }) {
-  const pathRef = useRef<SVGPathElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [w, setW] = useState(0);
   const [h, setH] = useState(0);
@@ -33,31 +32,49 @@ function AccentTrace({ sheetRef, headerRef, trigger }: { sheetRef: React.RefObje
     }
   }, [sheetRef, headerRef]);
 
-  // Fire laser animation whenever trigger changes
+  /*
+   * Comet-tail effect: multiple layered paths with decreasing width/opacity.
+   * Each layer has a slightly longer dash offset, so the thicker front leads
+   * and the thinner layers trail behind, creating a natural taper.
+   */
+  const layers = [
+    { ref: 'tail2', width: 1, opacity: 0.15, lagPct: 0.08 },
+    { ref: 'tail1', width: 1.5, opacity: 0.3, lagPct: 0.04 },
+    { ref: 'head', width: 3, opacity: 0.9, lagPct: 0 },
+  ];
+  const tailRefs = useRef<(SVGPathElement | null)[]>([null, null, null]);
+
   useEffect(() => {
-    const path = pathRef.current;
     const svg = svgRef.current;
-    if (!path || !svg || !w || !h || trigger === 0) return;
+    const paths = tailRefs.current;
+    if (!svg || !paths[0] || !w || !h || trigger === 0) return;
 
-    const len = path.getTotalLength();
-    const segment = len * 0.15;
+    const len = paths[0].getTotalLength();
+    const segment = len * 0.12;
 
-    // Show SVG, reset to start position (no transition)
     svg.style.opacity = '1';
-    path.style.transition = 'none';
-    path.style.strokeDasharray = `${segment} ${len}`;
-    path.style.strokeDashoffset = `${segment}`;
 
-    // Force reflow so the reset takes effect before animating
-    path.getBoundingClientRect();
+    // Reset all layers
+    paths.forEach((p) => {
+      if (!p) return;
+      p.style.transition = 'none';
+      p.style.strokeDasharray = `${segment} ${len}`;
+      p.style.strokeDashoffset = `${segment}`;
+    });
 
-    // Start animation
+    // Force reflow
+    paths[0].getBoundingClientRect();
+
+    // Animate each layer with slightly different offset for taper
     const startTimer = setTimeout(() => {
-      path.style.transition = 'stroke-dashoffset 1.6s cubic-bezier(0.4, 0, 0.2, 1)';
-      path.style.strokeDashoffset = `${-len}`;
+      paths.forEach((p, i) => {
+        if (!p) return;
+        const lag = len * layers[i].lagPct;
+        p.style.transition = 'stroke-dashoffset 1.6s cubic-bezier(0.4, 0, 0.2, 1)';
+        p.style.strokeDashoffset = `${-len - lag}`;
+      });
     }, 50);
 
-    // Hide after animation completes
     const hideTimer = setTimeout(() => {
       svg.style.opacity = '0';
     }, 1800);
@@ -82,13 +99,17 @@ function AccentTrace({ sheetRef, headerRef, trigger }: { sheetRef: React.RefObje
       fill="none"
       style={{ overflow: 'visible', opacity: 0 }}
     >
-      <path
-        ref={pathRef}
-        d={d}
-        stroke="var(--color-accent)"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
+      {layers.map((layer, i) => (
+        <path
+          key={i}
+          ref={(el) => { tailRefs.current[i] = el; }}
+          d={d}
+          stroke="var(--color-accent)"
+          strokeWidth={layer.width}
+          strokeLinecap="round"
+          style={{ opacity: layer.opacity }}
+        />
+      ))}
     </svg>
   );
 }
