@@ -400,35 +400,25 @@ export async function storeOutgoingMessage(
 
 /** Fetch older messages from Graph API (beyond what's in DB). */
 export async function fetchOlderMessages(conversationId: string): Promise<GraphMessage[]> {
-  // Get the oldest message and platform info from our DB
-  const { data: dbMessages } = await supabase
+  // Get all mids currently in DB for this conversation
+  const { data: dbRows } = await supabase
     .from('messages')
-    .select('created_at, mid, sender_id, recipient_id, platform')
-    .eq('conversation_id', conversationId)
-    .order('created_at', { ascending: true })
-    .limit(1);
-
-  if (!dbMessages?.length) return [];
-
-  const oldest = dbMessages[0];
-  const oldestTime = new Date(oldest.created_at).getTime();
-  const existingMids = new Set<string>();
-
-  // Get all mids in DB for dedup
-  const { data: allDb } = await supabase
-    .from('messages')
-    .select('mid')
+    .select('mid, platform')
     .eq('conversation_id', conversationId);
-  for (const row of allDb ?? []) existingMids.add(row.mid);
 
-  // Find the matching Graph API conversation by searching both endpoints
-  const platform = oldest.platform;
+  if (!dbRows?.length) return [];
+
+  const existingMids = new Set(dbRows.map(r => r.mid));
+  const platform = dbRows[0].platform;
+
+  // Extract client PSID from conversation_id (format: t_{psid})
+  const clientPsid = conversationId.startsWith('t_') ? conversationId.slice(2) : conversationId;
+
+  // Find the real Graph API conversation ID for this client
   const ownerId = platform === 'instagram' ? IG_USER_ID : PAGE_ID;
 
   try {
     const convList = await graphGet(`${ownerId}/conversations`) as { data: GraphConversation[] };
-    // Find the conversation containing our client PSID
-    const clientPsid = conversationId.startsWith('t_') ? conversationId.slice(2) : conversationId;
 
     let graphConvId: string | null = null;
     for (const conv of convList.data ?? []) {
@@ -445,10 +435,8 @@ export async function fetchOlderMessages(conversationId: string): Promise<GraphM
     };
     const allMsgs = detail.messages?.data ?? [];
 
-    // Return messages older than what we have, excluding any already in DB
-    return allMsgs.filter(m =>
-      new Date(m.created_time).getTime() < oldestTime && !existingMids.has(m.id)
-    );
+    // Return any messages not already in our DB
+    return allMsgs.filter(m => !existingMids.has(m.id));
   } catch {
     return [];
   }
