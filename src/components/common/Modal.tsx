@@ -148,11 +148,9 @@ function XButtonTrace({ trigger, buttonRef }: { trigger: number; buttonRef: Reac
      * dashoffset moves linearly: the "back edge" of the segment advances
      * at constant speed around the entire path.
      *
-     * dasharray (segment width) starts at full size, holds steady for the
-     * first 60%, then shrinks to 0 over the remaining 40% with ease-in
-     * timing — the front edge decelerates while the back edge catches up.
-     *
-     * This is the standard technique used in Material/Fluent loading indicators.
+     * dasharray (segment width) shrinks continuously from start to end
+     * using cubic ease-in (t³) — barely noticeable at first, most of
+     * the shrinking happens in the final third. One smooth animation.
      */
 
     const tick = (now: number) => {
@@ -170,16 +168,9 @@ function XButtonTrace({ trigger, buttonRef }: { trigger: number; buttonRef: Reac
       // Goes from +segment (segment hidden before path start) to -len (past end)
       const offset = segment - t * (segment + len + segment);
 
-      // Segment width: full size for first 60%, then shrinks to 0
-      const shrinkStart = 0.6;
-      let currentSegment: number;
-      if (t < shrinkStart) {
-        currentSegment = segment;
-      } else {
-        const st = (t - shrinkStart) / (1 - shrinkStart); // 0→1 within shrink phase
-        const ease = st * st; // ease-in: slow start, accelerates (tail catches front)
-        currentSegment = segment * (1 - ease);
-      }
+      // Segment shrinks continuously: very gradual at first, accelerating toward end
+      // t^3 ease-in means at t=0.5 only 12.5% has shrunk, most shrinking is in the last 30%
+      const currentSegment = segment * (1 - t * t * t);
 
       if (currentSegment < 0.5) {
         svg.style.opacity = '0';
