@@ -177,6 +177,21 @@ export async function sendImageMessage(
   return res.json();
 }
 
+export async function sendMarkSeen(
+  platform: 'instagram' | 'messenger',
+  recipientPsid: string
+): Promise<void> {
+  const id = platform === 'instagram' ? IG_USER_ID : PAGE_ID;
+  await fetch(`${API_URL}/v25.0/${id}/messages?access_token=${ACCESS_TOKEN}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      recipient: { id: recipientPsid },
+      sender_action: 'mark_seen',
+    }),
+  });
+}
+
 export async function fetchAllConversations(): Promise<ConversationSummary[]> {
   const [messenger, instagram] = await Promise.all([
     fetchConversationsForId(PAGE_ID, 'messenger').catch(() => []),

@@ -6,6 +6,7 @@ import { useDrag } from '@use-gesture/react';
 import { useUIStore } from '../../stores/uiStore';
 import { useMessageStore, isBusinessMessage } from '../../stores/messageStore';
 import type { GraphMessage } from '../../services/messageService';
+import { sendMarkSeen } from '../../services/messageService';
 
 function MessageBubble({ msg }: { msg: GraphMessage }) {
   const isBusiness = isBusinessMessage(msg) || msg.from.id === '__self__';
@@ -107,12 +108,18 @@ export default function ConversationDrawer() {
     { axis: 'x', filterTaps: true, threshold: 10, pointer: { touch: true } }
   );
 
-  // Fetch messages on open + poll
+  // Fetch messages on open + poll + send mark_seen
   useEffect(() => {
     if (!selectedConversationId) return;
 
     fetchMessages(selectedConversationId);
     markRead(selectedConversationId);
+
+    // Tell FB/IG we've seen the messages
+    const c = conversations.find((cv) => cv.id === selectedConversationId);
+    if (c) {
+      sendMarkSeen(c.platform, c.participantPsid).catch(() => {});
+    }
 
     const interval = setInterval(() => {
       fetchMessages(selectedConversationId);
@@ -122,7 +129,7 @@ export default function ConversationDrawer() {
       clearInterval(interval);
       clearCurrentMessages();
     };
-  }, [selectedConversationId, fetchMessages, markRead, clearCurrentMessages]);
+  }, [selectedConversationId, fetchMessages, markRead, clearCurrentMessages, conversations]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {

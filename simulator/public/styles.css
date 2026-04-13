@@ -249,6 +249,7 @@ body {
 }
 .msg.client .msg-time { text-align: left; }
 .msg.business .msg-time { text-align: right; }
+.msg-seen { color: #4FC3F7; font-weight: 500; }
 
 .msg-attachment img {
   max-width: 240px;

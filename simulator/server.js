@@ -8,6 +8,7 @@ import {
   getConfig, setConfig, getProfile, getAllProfiles, hasProfile,
   listConversations, getConversation, getMessage,
   addBusinessMessage, addClientMessage, getSimConversations,
+  markConversationSeen,
 } from './lib/store.js';
 import {
   deliverMessageWithReceipts, getDeliveryLog, signPayload,
@@ -141,8 +142,16 @@ app.post('/v25.0/:id/messages', requireAuth, (req, res) => {
     if (!hasProfile(recipient.id)) {
       return metaError(res, 400, '(#100) No matching user found', 100, 2018001);
     }
-    // Broadcast typing indicator to simulator UI
-    broadcast({ type: 'sender_action', action: sender_action, recipientPsid: recipient.id });
+    // Handle mark_seen — track read watermark
+    if (sender_action === 'mark_seen') {
+      const result = markConversationSeen(recipient.id);
+      if (result) {
+        broadcast({ type: 'mark_seen', recipientPsid: recipient.id, readWatermark: result.readWatermark });
+      }
+    } else {
+      // Broadcast typing indicator to simulator UI
+      broadcast({ type: 'sender_action', action: sender_action, recipientPsid: recipient.id });
+    }
     return res.json({ recipient_id: recipient.id });
   }
 

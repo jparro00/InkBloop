@@ -82,7 +82,14 @@ function connectWebSocket() {
       if (event.recipientPsid === selectedPsid) {
         if (event.action === 'typing_on') showTyping();
         if (event.action === 'typing_off') hideTyping();
-        if (event.action === 'mark_seen') {} // Could show read receipt
+      }
+    }
+
+    if (event.type === 'mark_seen') {
+      const conv = conversations.find(c => c.participant?.psid === event.recipientPsid);
+      if (conv) {
+        conv.readWatermark = event.readWatermark;
+        if (selectedPsid === event.recipientPsid) renderMessages();
       }
     }
 
@@ -182,10 +189,22 @@ function renderMessages() {
     return;
   }
 
-  el.innerHTML = conv.messages.map(m => {
+  // Find the last client message that's been read (before readWatermark)
+  let lastSeenIndex = -1;
+  if (conv.readWatermark) {
+    for (let i = conv.messages.length - 1; i >= 0; i--) {
+      if (!conv.messages[i].isEcho && conv.messages[i].timestamp <= conv.readWatermark) {
+        lastSeenIndex = i;
+        break;
+      }
+    }
+  }
+
+  el.innerHTML = conv.messages.map((m, i) => {
     const isClient = !m.isEcho;
     const side = isClient ? 'client' : 'business';
     const time = formatTime(m.timestamp);
+    const showSeen = isClient && i === lastSeenIndex;
 
     let content = '';
     if (m.text) content += `<div>${escapeHtml(m.text)}</div>`;
@@ -200,7 +219,7 @@ function renderMessages() {
     return `
       <div class="msg ${side}">
         ${content}
-        <div class="msg-time">${time}</div>
+        <div class="msg-time">${time}${showSeen ? ' · <span class="msg-seen">Seen</span>' : ''}</div>
       </div>
     `;
   }).join('');

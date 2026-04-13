@@ -310,6 +310,7 @@ export function getSimConversations() {
       platform: conv.platform,
       participant: profile ? { psid: profile.psid, name: profile.name, instagram: profile.instagram } : null,
       updatedTime: conv.updatedTime,
+      readWatermark: conv.readWatermark || null,
       messages: conv.messages.map(m => ({
         mid: m.mid,
         senderId: m.senderId,
@@ -327,6 +328,19 @@ export function getSimConversations() {
 /** Check if a PSID exists. */
 export function hasProfile(psid) {
   return profiles.has(psid);
+}
+
+/**
+ * Mark all messages in a conversation as seen (by the business).
+ * Sets a readWatermark timestamp — all client messages before this time are "seen".
+ */
+export function markConversationSeen(psid) {
+  const convId = psidToConversation.get(psid);
+  if (!convId) return null;
+  const conv = conversations.get(convId);
+  if (!conv) return null;
+  conv.readWatermark = Date.now();
+  return { conversationId: convId, readWatermark: conv.readWatermark };
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
