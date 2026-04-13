@@ -116,7 +116,7 @@ export default function ConversationDrawer() {
     markRead(selectedConversationId);
 
     // Tell FB/IG we've seen the messages
-    const c = conversations.find((cv) => cv.id === selectedConversationId);
+    const c = useMessageStore.getState().conversations.find((cv) => cv.id === selectedConversationId);
     if (c) {
       sendMarkSeen(c.platform, c.participantPsid).catch(() => {});
     }
@@ -129,7 +129,7 @@ export default function ConversationDrawer() {
       clearInterval(interval);
       clearCurrentMessages();
     };
-  }, [selectedConversationId, fetchMessages, markRead, clearCurrentMessages, conversations]);
+  }, [selectedConversationId, fetchMessages, markRead, clearCurrentMessages]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
