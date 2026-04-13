@@ -175,7 +175,7 @@ export function getConversation(convId, fields) {
   const result = { id: conv.id };
 
   if (!fields || fields.includes('messages')) {
-    const msgs = conv.messages.slice(-20).map(m => ({
+    const msgs = conv.messages.map(m => ({
       id: m.mid,
       created_time: new Date(m.timestamp).toISOString(),
       from: { id: m.senderId, name: profileNameOrBusiness(m.senderId) },
