@@ -7,9 +7,14 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sim": "node simulator/server.js",
+    "sim:dev": "node --watch simulator/server.js"
   },
   "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "ws": "^8.18.0",
     "@tailwindcss/vite": "^4.2.2",
     "@use-gesture/react": "^10.3.1",
     "date-fns": "^4.1.0",
