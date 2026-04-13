@@ -167,7 +167,7 @@ function XButtonTrace({ trigger, buttonRef }: { trigger: number; buttonRef: Reac
       width={w}
       height={h}
       fill="none"
-      style={{ overflow: 'visible', opacity: 1 }}
+      style={{ overflow: 'visible', opacity: 0 }}
     >
       <defs>
         <filter id="x-glow" x="-50%" y="-50%" width="200%" height="200%">
@@ -185,7 +185,6 @@ function XButtonTrace({ trigger, buttonRef }: { trigger: number; buttonRef: Reac
         strokeWidth={sw}
         strokeLinecap="round"
         filter="url(#x-glow)"
-        style={{ strokeDasharray: 'none', strokeDashoffset: 0 }}
       />
     </svg>
   );
