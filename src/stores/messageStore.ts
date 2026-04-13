@@ -99,7 +99,7 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
     // Show cached messages instantly while fetching fresh ones
     const cached = get().messageCache[conversationId];
     if (cached && get().currentConversationId !== conversationId) {
-      set({ currentMessages: cached, currentConversationId: conversationId });
+      set({ currentMessages: cached, currentConversationId: conversationId, hasOlderMessages: cached.length >= 20 });
     }
 
     if (!cached) {
