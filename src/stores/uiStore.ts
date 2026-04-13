@@ -42,6 +42,8 @@ interface UIStore {
   setCreateClientFormOpen: (open: boolean) => void;
   editingClientId: string | null;
   setEditingClientId: (id: string | null) => void;
+  modalCollapsed: boolean;
+  setModalCollapsed: (collapsed: boolean) => void;
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -50,17 +52,28 @@ export const useUIStore = create<UIStore>((set) => ({
   calendarDate: new Date(2026, 3, 1),
   setCalendarDate: (date) => set({ calendarDate: date }),
   selectedBookingId: null,
-  setSelectedBookingId: (id) => set({ selectedBookingId: id }),
+  setSelectedBookingId: (id) => {
+    if (id && useUIStore.getState().modalCollapsed) return;
+    set({ selectedBookingId: id });
+  },
   bookingFormOpen: false,
   editingBookingId: null,
-  openBookingForm: (editId) =>
-    set({ bookingFormOpen: true, editingBookingId: editId ?? null }),
+  openBookingForm: (editId) => {
+    if (useUIStore.getState().modalCollapsed) return;
+    set({ bookingFormOpen: true, editingBookingId: editId ?? null });
+  },
   closeBookingForm: () =>
     set({ bookingFormOpen: false, editingBookingId: null, prefillBookingData: null }),
   quickBookingOpen: false,
-  setQuickBookingOpen: (open) => set({ quickBookingOpen: open }),
+  setQuickBookingOpen: (open) => {
+    if (open && useUIStore.getState().modalCollapsed) return;
+    set({ quickBookingOpen: open });
+  },
   searchOpen: false,
-  setSearchOpen: (open) => set({ searchOpen: open }),
+  setSearchOpen: (open) => {
+    if (open && useUIStore.getState().modalCollapsed) return;
+    set({ searchOpen: open });
+  },
   sidebarCollapsed: false,
   setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
   toasts: [],
@@ -83,7 +96,15 @@ export const useUIStore = create<UIStore>((set) => ({
   setHeaderLeft: (node) => set({ headerLeft: node }),
   setHeaderRight: (node) => set({ headerRight: node }),
   createClientFormOpen: false,
-  setCreateClientFormOpen: (open) => set({ createClientFormOpen: open }),
+  setCreateClientFormOpen: (open) => {
+    if (open && useUIStore.getState().modalCollapsed) return;
+    set({ createClientFormOpen: open });
+  },
   editingClientId: null,
-  setEditingClientId: (id) => set({ editingClientId: id }),
+  setEditingClientId: (id) => {
+    if (id && useUIStore.getState().modalCollapsed) return;
+    set({ editingClientId: id });
+  },
+  modalCollapsed: false,
+  setModalCollapsed: (collapsed) => set({ modalCollapsed: collapsed }),
 }));

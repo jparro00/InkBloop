@@ -3,6 +3,7 @@ import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { useDrag } from '@use-gesture/react';
 import { X } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useUIStore } from '../../stores/uiStore';
 
 /**
  * Context that gives any child of a Modal access to the animated dismiss function.
@@ -262,11 +263,18 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
   const [traceTrigger, setTraceTrigger] = useState(0);
   const [xTraceTrigger, setXTraceTrigger] = useState(0);
 
-  // Keep ref in sync with state, fire X trace when collapsing
+  const setModalCollapsed = useUIStore((s) => s.setModalCollapsed);
+
+  // Keep ref in sync with state, sync to global store
   useEffect(() => {
     collapsedRef.current = collapsed;
-    // No X trace on collapse — only on dead-space taps
-  }, [collapsed]);
+    setModalCollapsed(collapsed);
+  }, [collapsed, setModalCollapsed]);
+
+  // Clear collapsed on unmount
+  useEffect(() => {
+    return () => setModalCollapsed(false);
+  }, [setModalCollapsed]);
 
   // Enter animation — slide up from bottom
   useEffect(() => {
