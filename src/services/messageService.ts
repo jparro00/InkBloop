@@ -425,11 +425,20 @@ export async function fetchOlderMessages(conversationId: string, beforeCursor: s
     }
     if (!graphConvId) return { messages: [], nextCursor: null };
 
-    // Fetch page of messages using cursor
-    let url = `${graphConvId}?fields=messages&limit=20`;
-    if (beforeCursor) url += `&before=${beforeCursor}`;
+    // On first call (no cursor), do a bootstrap fetch to get the cursor that points
+    // to just before the most-recent 20 messages (which are already in the DB).
+    // Then use that cursor to fetch the actual older page.
+    let cursor = beforeCursor;
+    if (!cursor) {
+      const bootstrap = await graphGet(`${graphConvId}?fields=messages&limit=20`) as {
+        messages?: { paging?: { cursors?: { before?: string | null } } };
+      };
+      cursor = bootstrap.messages?.paging?.cursors?.before ?? null;
+      if (!cursor) return { messages: [], nextCursor: null }; // ≤20 messages total, nothing older
+    }
 
-    const detail = await graphGet(url) as {
+    // Fetch the page of older messages
+    const detail = await graphGet(`${graphConvId}?fields=messages&limit=20&before=${cursor}`) as {
       messages?: {
         data: GraphMessage[];
         paging?: { cursors?: { before?: string | null } };

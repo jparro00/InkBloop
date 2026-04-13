@@ -184,39 +184,41 @@ export function getConversation(convId, fields, { limit = 20, after, before } = 
       attachments: m.attachments ? { data: m.attachments } : undefined,
     }));
 
-    // Cursor-based pagination (cursors are message indices)
+    // Cursor-based pagination.
+    // Cursor semantics: `before=N` means "return up to `limit` messages with index < N"
+    // (i.e., the page of messages ending just before index N).
     let startIdx = 0;
     let endIdx = allMsgs.length;
 
-    if (after) {
-      // "after" cursor: start after this index
+    if (!after && !before) {
+      // Default: return the LAST `limit` messages (most recent)
+      startIdx = Math.max(0, allMsgs.length - limit);
+      endIdx = allMsgs.length;
+    } else if (before && !after) {
+      // Return the `limit` messages whose indices are < before
+      const beforeIdx = parseInt(before, 10);
+      if (!isNaN(beforeIdx)) {
+        endIdx = beforeIdx;
+        startIdx = Math.max(0, beforeIdx - limit);
+      }
+    } else if (after) {
+      // Return messages starting after this index
       const idx = parseInt(after, 10);
       if (!isNaN(idx)) startIdx = idx + 1;
     }
-    if (before) {
-      // "before" cursor: end before this index
-      const idx = parseInt(before, 10);
-      if (!isNaN(idx)) endIdx = idx;
-    }
 
-    // Default: return the LAST `limit` messages (most recent)
-    if (!after && !before) {
-      startIdx = Math.max(0, allMsgs.length - limit);
-    }
-
-    const page = allMsgs.slice(startIdx, startIdx + limit);
-    const hasNext = startIdx + limit < endIdx && startIdx + limit < allMsgs.length;
+    const page = allMsgs.slice(startIdx, endIdx);
     const hasPrev = startIdx > 0;
+    const hasNext = endIdx < allMsgs.length;
 
     result.messages = {
       data: page,
       paging: {
         cursors: {
-          before: hasPrev ? String(startIdx - 1) : null,
-          after: hasNext ? String(startIdx + page.length - 1) : null,
+          // before cursor = startIdx of current page (exclusive upper bound for next older page)
+          before: hasPrev ? String(startIdx) : null,
+          after: hasNext ? String(endIdx) : null,
         },
-        ...(hasPrev ? { previous: `?before=${startIdx}` } : {}),
-        ...(hasNext ? { next: `?after=${startIdx + page.length - 1}` } : {}),
       },
     };
   }
