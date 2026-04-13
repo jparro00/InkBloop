@@ -227,14 +227,195 @@ export async function fetchReadStates(): Promise<Record<string, string>> {
   return map;
 }
 
+// ── Graph API (legacy, used for send + load older) ──────────────────────────
+
 export async function fetchAllConversations(): Promise<ConversationSummary[]> {
   const [messenger, instagram] = await Promise.all([
     fetchConversationsForId(PAGE_ID, 'messenger').catch(() => []),
     fetchConversationsForId(IG_USER_ID, 'instagram').catch(() => []),
   ]);
 
-  // Merge and sort by most recent
   const all = [...messenger, ...instagram];
   all.sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
   return all;
+}
+
+// ── Supabase DB (primary source for messages) ───────────────────────────────
+
+interface DBMessage {
+  mid: string;
+  conversation_id: string;
+  sender_id: string;
+  sender_name: string | null;
+  recipient_id: string;
+  platform: string;
+  text: string | null;
+  attachments: unknown;
+  created_at: string;
+  is_echo: boolean;
+}
+
+/** Convert a DB row to the GraphMessage shape used by the UI. */
+function dbToGraphMessage(row: DBMessage): GraphMessage {
+  return {
+    id: row.mid,
+    created_time: row.created_at,
+    from: { id: row.sender_id, name: row.sender_name || '' },
+    to: { data: [{ id: row.recipient_id, name: '' }] },
+    message: row.text || undefined,
+    attachments: row.attachments
+      ? { data: row.attachments as { type: string; payload?: { url?: string } }[] }
+      : undefined,
+  };
+}
+
+/** Fetch messages for a conversation from Supabase (last 20). */
+export async function fetchMessagesFromDB(conversationId: string): Promise<GraphMessage[]> {
+  const { data } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: true });
+
+  return (data ?? []).map(dbToGraphMessage);
+}
+
+/** Fetch conversation list from Supabase messages table. */
+export async function fetchConversationsFromDB(): Promise<ConversationSummary[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  // Get all messages grouped by conversation (Supabase doesn't support GROUP BY,
+  // so we fetch recent messages and aggregate client-side)
+  const { data: messages } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+
+  if (!messages?.length) return [];
+
+  // Group by conversation_id, take the latest message per conversation
+  const convMap = new Map<string, {
+    lastMsg: DBMessage;
+    unreadCount: number;
+  }>();
+
+  for (const msg of messages) {
+    const existing = convMap.get(msg.conversation_id);
+    if (!existing) {
+      convMap.set(msg.conversation_id, {
+        lastMsg: msg,
+        unreadCount: !msg.is_echo ? 1 : 0,
+      });
+    } else {
+      // Count consecutive unreads (messages are newest-first)
+      if (!existing.lastMsg.is_echo && !msg.is_echo && existing.unreadCount > 0) {
+        existing.unreadCount++;
+      }
+    }
+  }
+
+  // Build summaries
+  const results: ConversationSummary[] = [];
+  for (const [convId, { lastMsg, unreadCount }] of convMap) {
+    const clientPsid = lastMsg.is_echo ? lastMsg.recipient_id : lastMsg.sender_id;
+    const lastMessageFromClient = !lastMsg.is_echo;
+
+    // Fetch profile for name and pic
+    let participantName = lastMsg.sender_name || clientPsid;
+    let profilePic: string | undefined;
+    try {
+      const profile = await fetchProfile(clientPsid);
+      participantName = profile.name;
+      profilePic = profile.profile_pic;
+    } catch {
+      // Use sender_name or PSID as fallback
+    }
+
+    const lastMessage = lastMsg.text || (lastMsg.attachments ? 'Sent an image' : undefined);
+
+    results.push({
+      id: convId,
+      platform: lastMsg.platform as 'instagram' | 'messenger',
+      participantName,
+      participantPsid: clientPsid,
+      profilePic,
+      lastMessage,
+      lastMessageTime: lastMsg.created_at,
+      lastMessageFromClient,
+      lastMid: lastMsg.mid,
+      unreadCount: lastMessageFromClient ? unreadCount : 0,
+    });
+  }
+
+  results.sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
+  return results;
+}
+
+/** Store a sent message in Supabase (when we send via Graph API). */
+export async function storeOutgoingMessage(
+  mid: string,
+  conversationId: string,
+  recipientPsid: string,
+  platform: 'instagram' | 'messenger',
+  text?: string,
+  attachments?: unknown
+): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const businessId = platform === 'instagram' ? IG_USER_ID : PAGE_ID;
+
+  await supabase.from('messages').upsert({
+    mid,
+    conversation_id: conversationId,
+    sender_id: businessId,
+    sender_name: 'Ink Bloop',
+    recipient_id: recipientPsid,
+    platform,
+    text: text || null,
+    attachments: attachments || null,
+    created_at: new Date().toISOString(),
+    is_echo: true,
+    user_id: user.id,
+  });
+
+  // Prune old messages
+  const { data: toDelete } = await supabase
+    .from('messages')
+    .select('mid')
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: false })
+    .range(20, 999);
+
+  if (toDelete?.length) {
+    await supabase.from('messages').delete().in('mid', toDelete.map(m => m.mid));
+  }
+}
+
+/** Fetch older messages from Graph API (beyond what's in DB). */
+export async function fetchOlderMessages(conversationId: string): Promise<GraphMessage[]> {
+  // Get the oldest message in our DB for this conversation
+  const { data: oldest } = await supabase
+    .from('messages')
+    .select('created_at')
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: true })
+    .limit(1);
+
+  // Fetch from Graph API — get all messages and filter to ones older than our oldest
+  try {
+    const detail = await graphGet(`${conversationId}?fields=messages`) as {
+      messages?: { data: GraphMessage[] };
+    };
+    const allMsgs = detail.messages?.data ?? [];
+
+    if (!oldest?.length) return allMsgs;
+
+    const oldestTime = new Date(oldest[0].created_at).getTime();
+    return allMsgs.filter(m => new Date(m.created_time).getTime() < oldestTime);
+  } catch {
+    return [];
+  }
 }

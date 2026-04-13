@@ -291,6 +291,56 @@ export interface Database {
           },
         ];
       };
+      messages: {
+        Row: {
+          mid: string;
+          conversation_id: string;
+          sender_id: string;
+          sender_name: string | null;
+          recipient_id: string;
+          platform: string;
+          text: string | null;
+          attachments: Json | null;
+          created_at: string;
+          is_echo: boolean;
+          user_id: string;
+        };
+        Insert: {
+          mid: string;
+          conversation_id: string;
+          sender_id: string;
+          sender_name?: string | null;
+          recipient_id: string;
+          platform: string;
+          text?: string | null;
+          attachments?: Json | null;
+          created_at: string;
+          is_echo?: boolean;
+          user_id: string;
+        };
+        Update: {
+          mid?: string;
+          conversation_id?: string;
+          sender_id?: string;
+          sender_name?: string | null;
+          recipient_id?: string;
+          platform?: string;
+          text?: string | null;
+          attachments?: Json | null;
+          created_at?: string;
+          is_echo?: boolean;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'messages_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       conversation_reads: {
         Row: {
           user_id: string;

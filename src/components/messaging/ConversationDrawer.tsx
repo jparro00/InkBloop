@@ -55,6 +55,9 @@ export default function ConversationDrawer() {
   const clearCurrentMessages = useMessageStore((s) => s.clearCurrentMessages);
   const isSending = useMessageStore((s) => s.isSending);
   const sendImage = useMessageStore((s) => s.sendImage);
+  const hasOlderMessages = useMessageStore((s) => s.hasOlderMessages);
+  const isLoadingOlder = useMessageStore((s) => s.isLoadingOlder);
+  const loadOlderMessages = useMessageStore((s) => s.loadOlderMessages);
   const drafts = useMessageStore((s) => s.drafts);
   const setDraft = useMessageStore((s) => s.setDraft);
   const clearDraft = useMessageStore((s) => s.clearDraft);
@@ -108,7 +111,7 @@ export default function ConversationDrawer() {
     { axis: 'x', filterTaps: true, threshold: 10, pointer: { touch: true } }
   );
 
-  // Fetch messages on open + poll + send mark_seen
+  // Fetch messages from DB on open + lightweight poll + send mark_seen
   useEffect(() => {
     if (!selectedConversationId) return;
 
@@ -121,6 +124,7 @@ export default function ConversationDrawer() {
       sendMarkSeen(c.platform, c.participantPsid).catch(() => {});
     }
 
+    // Poll Supabase (lightweight DB query) for new messages
     const interval = setInterval(() => {
       fetchMessages(selectedConversationId);
     }, 3000);
@@ -224,9 +228,22 @@ export default function ConversationDrawer() {
           {currentMessages.length === 0 ? (
             <div className="text-center text-text-t text-sm py-12">No messages yet</div>
           ) : (
-            currentMessages.map((msg) => (
-              <MessageBubble key={msg.id} msg={msg} />
-            ))
+            <>
+              {hasOlderMessages && (
+                <div className="text-center py-3">
+                  <button
+                    onClick={() => selectedConversationId && loadOlderMessages(selectedConversationId)}
+                    disabled={isLoadingOlder}
+                    className="text-sm text-accent cursor-pointer press-scale disabled:opacity-40"
+                  >
+                    {isLoadingOlder ? 'Loading...' : 'Load older messages'}
+                  </button>
+                </div>
+              )}
+              {currentMessages.map((msg) => (
+                <MessageBubble key={msg.id} msg={msg} />
+              ))}
+            </>
           )}
         </div>
 

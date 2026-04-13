@@ -1,12 +1,14 @@
 import { create } from 'zustand';
 import {
-  fetchAllConversations,
-  fetchConversationMessages,
+  fetchConversationsFromDB,
+  fetchMessagesFromDB,
+  fetchOlderMessages,
   sendMessage as sendMessageApi,
   sendImageMessage as sendImageApi,
+  storeOutgoingMessage,
   isBusinessMessage,
-  markConversationRead,
   fetchReadStates,
+  markConversationRead,
 } from '../services/messageService';
 import type { ConversationSummary, GraphMessage } from '../services/messageService';
 
@@ -14,7 +16,7 @@ interface MessageStore {
   conversations: ConversationSummary[];
   isLoading: boolean;
   error: string | null;
-  readMids: Record<string, string>; // conversationId → last_read_mid (from Supabase)
+  readMids: Record<string, string>;
   fetchConversations: () => Promise<void>;
   markRead: (conversationId: string) => void;
 
@@ -22,7 +24,10 @@ interface MessageStore {
   currentMessages: GraphMessage[];
   currentConversationId: string | null;
   isSending: boolean;
+  hasOlderMessages: boolean;
+  isLoadingOlder: boolean;
   fetchMessages: (conversationId: string) => Promise<void>;
+  loadOlderMessages: (conversationId: string) => Promise<void>;
   sendMessage: (conversationId: string, platform: 'instagram' | 'messenger', recipientPsid: string, text: string) => Promise<void>;
   sendImage: (conversationId: string, platform: 'instagram' | 'messenger', recipientPsid: string, imageUrl: string) => Promise<void>;
   clearCurrentMessages: () => void;
@@ -43,13 +48,12 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const [conversations, readMids] = await Promise.all([
-        fetchAllConversations(),
+        fetchConversationsFromDB(),
         fetchReadStates(),
       ]);
 
       const currentReadMids = { ...get().readMids, ...readMids };
 
-      // Apply read state: if last message mid matches what we last read, it's read
       const merged = conversations.map((c) => {
         const readMid = currentReadMids[c.id];
         if (readMid && c.lastMid && readMid === c.lastMid) {
@@ -68,7 +72,6 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
     const convo = get().conversations.find((c) => c.id === conversationId);
     const lastMid = convo?.lastMid;
 
-    // Optimistic local update
     set((s) => ({
       readMids: lastMid ? { ...s.readMids, [conversationId]: lastMid } : s.readMids,
       conversations: s.conversations.map((c) =>
@@ -76,7 +79,6 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
       ),
     }));
 
-    // Persist to Supabase (fire-and-forget)
     if (lastMid) {
       markConversationRead(conversationId, lastMid).catch(console.error);
     }
@@ -86,19 +88,24 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
   currentMessages: [],
   currentConversationId: null,
   isSending: false,
+  hasOlderMessages: true,
+  isLoadingOlder: false,
 
   fetchMessages: async (conversationId) => {
     try {
-      const messages = await fetchConversationMessages(conversationId);
+      const messages = await fetchMessagesFromDB(conversationId);
       if (get().currentConversationId === conversationId || !get().currentConversationId) {
-        set({ currentMessages: messages, currentConversationId: conversationId });
+        set({
+          currentMessages: messages,
+          currentConversationId: conversationId,
+          hasOlderMessages: messages.length >= 20,
+        });
 
-        // Update lastMid if new messages arrived while viewing
+        // Update read state if new messages arrived
         if (messages.length > 0) {
           const latestMid = messages[messages.length - 1].id;
           const convo = get().conversations.find((c) => c.id === conversationId);
           if (convo && convo.lastMid !== latestMid) {
-            // Mark read with the new latest mid
             set((s) => ({
               readMids: { ...s.readMids, [conversationId]: latestMid },
               conversations: s.conversations.map((c) =>
@@ -111,6 +118,26 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
       }
     } catch (e) {
       console.error('Failed to fetch messages:', e);
+    }
+  },
+
+  loadOlderMessages: async (conversationId) => {
+    if (get().isLoadingOlder) return;
+    set({ isLoadingOlder: true });
+
+    try {
+      const older = await fetchOlderMessages(conversationId);
+      if (older.length === 0) {
+        set({ hasOlderMessages: false, isLoadingOlder: false });
+        return;
+      }
+      set((s) => ({
+        currentMessages: [...older, ...s.currentMessages],
+        hasOlderMessages: older.length >= 20,
+        isLoadingOlder: false,
+      }));
+    } catch {
+      set({ isLoadingOlder: false });
     }
   },
 
@@ -132,7 +159,10 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
         ),
         isSending: false,
       }));
-      // Update snippet, clear draft, mark read with our own message
+
+      // Store in Supabase and update conversation list
+      storeOutgoingMessage(result.messageId, conversationId, recipientPsid, platform, text).catch(console.error);
+
       set((s) => {
         const { [conversationId]: _, ...restDrafts } = s.drafts;
         return {
@@ -179,6 +209,7 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
             : c
         ),
       }));
+      storeOutgoingMessage(result.messageId, conversationId, recipientPsid, platform, undefined, [{ type: 'image', payload: { url: imageUrl } }]).catch(console.error);
       markConversationRead(conversationId, result.messageId).catch(console.error);
     } catch (e) {
       set((s) => ({
@@ -189,7 +220,7 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
     }
   },
 
-  clearCurrentMessages: () => set({ currentMessages: [], currentConversationId: null }),
+  clearCurrentMessages: () => set({ currentMessages: [], currentConversationId: null, hasOlderMessages: true }),
 
   // Draft persistence
   drafts: {},
