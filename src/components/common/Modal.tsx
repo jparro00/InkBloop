@@ -265,10 +265,7 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
   // Keep ref in sync with state, fire X trace when collapsing
   useEffect(() => {
     collapsedRef.current = collapsed;
-    if (collapsed) {
-      // Small delay so the X button is rendered before we trigger the trace
-      setTimeout(() => setXTraceTrigger((n) => n + 1), 50);
-    }
+    // No X trace on collapse — only on dead-space taps
   }, [collapsed]);
 
   // Enter animation — slide up from bottom
