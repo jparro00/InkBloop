@@ -197,7 +197,9 @@ function XButtonTrace({ trigger, buttonRef }: { trigger: number; buttonRef: Reac
   const sw = 2;
   const i = sw / 2; // inset so stroke outer edge aligns with button outer edge
   const ri = r - i; // inset radius
-  const d = `M ${i},${h/2} L ${i},${ri+i} A ${ri},${ri} 0 0,1 ${ri+i},${i} L ${w-ri-i},${i} A ${ri},${ri} 0 0,1 ${w-i},${ri+i} L ${w-i},${h-ri-i} A ${ri},${ri} 0 0,1 ${w-ri-i},${h-i} L ${ri+i},${h-i} A ${ri},${ri} 0 0,1 ${i},${h-ri-i} Z`;
+  // Open path — no Z close. Ends 1px before start so the segment runs off the end
+  // and vanishes instead of wrapping back to the beginning.
+  const d = `M ${i},${h/2} L ${i},${ri+i} A ${ri},${ri} 0 0,1 ${ri+i},${i} L ${w-ri-i},${i} A ${ri},${ri} 0 0,1 ${w-i},${ri+i} L ${w-i},${h-ri-i} A ${ri},${ri} 0 0,1 ${w-ri-i},${h-i} L ${ri+i},${h-i} A ${ri},${ri} 0 0,1 ${i},${h-ri-i} L ${i},${h/2 + 1}`;
 
   return (
     <svg
