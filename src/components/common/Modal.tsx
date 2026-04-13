@@ -138,7 +138,7 @@ function XButtonTrace({ trigger, buttonRef }: { trigger: number; buttonRef: Reac
     if (!path || !svg || !shape || trigger === 0) return;
 
     const len = path.getTotalLength();
-    const duration = 1000;
+    const duration = 900;
 
     svg.style.transition = 'none';
     svg.style.opacity = '1';
@@ -185,7 +185,7 @@ function XButtonTrace({ trigger, buttonRef }: { trigger: number; buttonRef: Reac
   if (!shape) return null;
 
   const { w, h, r } = shape;
-  const sw = 2;
+  const sw = 1.5;
   const i = sw / 2; // inset so stroke outer edge aligns with button outer edge
   const ri = r - i; // inset radius
   // Open path — no Z close. Ends 1px before start so the segment runs off the end
