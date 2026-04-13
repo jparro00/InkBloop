@@ -50,6 +50,21 @@ export default function MonthView() {
     }
   }, [months]);
 
+  // Re-center when calendarDate changes externally (e.g. tab bar tap)
+  const prevDateRef = useRef(calendarDate);
+  useEffect(() => {
+    const prev = prevDateRef.current;
+    prevDateRef.current = calendarDate;
+    if (
+      prev.getFullYear() === calendarDate.getFullYear() &&
+      prev.getMonth() === calendarDate.getMonth()
+    ) return;
+
+    // Reset months around new date and scroll to it
+    setMonths(getMonthRange(calendarDate, MONTHS_BUFFER));
+    hasScrolled.current = false;
+  }, [calendarDate]);
+
   // Infinite scroll with IntersectionObserver
   const handleIntersect = useCallback(
     (entries: IntersectionObserverEntry[]) => {

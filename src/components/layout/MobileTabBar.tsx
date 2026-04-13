@@ -16,8 +16,9 @@ export default function MobileTabBar() {
 
   const handleTabClick = (to: string) => {
     if (to === '/' && location.pathname === '/') {
-      setCalendarView('month');
+      // Reset to current month — MonthView re-mounts with new date
       setCalendarDate(new Date());
+      setCalendarView('month');
     }
   };
 
