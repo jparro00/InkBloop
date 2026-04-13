@@ -86,7 +86,11 @@ function ConversationItem({ convo, index }: { convo: ConversationSummary; index:
             {convo.lastMessage || 'No messages yet'}
           </span>
           {isUnread && (
-            <span className="w-2.5 h-2.5 rounded-full bg-accent shrink-0" />
+            <span className="min-w-5 h-5 rounded-full bg-accent flex items-center justify-center shrink-0 px-1.5">
+              <span className="text-[11px] font-semibold text-bg leading-none">
+                {convo.unreadCount}
+              </span>
+            </span>
           )}
         </div>
       </div>

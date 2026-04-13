@@ -42,6 +42,7 @@ export interface ConversationSummary {
   lastMessage?: string;
   lastMessageTime: string;
   lastMessageFromClient: boolean;
+  unreadCount: number;
 }
 
 const profileCache = new Map<string, GraphProfile>();
@@ -69,10 +70,11 @@ async function fetchConversationsForId(
     const client = convo.participants.data.find((p) => p.id !== PAGE_ID && p.id !== IG_USER_ID);
     if (!client) continue;
 
-    // Fetch conversation detail to get last message
+    // Fetch conversation detail to get last message + unread count
     let lastMessage: string | undefined;
     let lastMessageFromClient = false;
     let lastMessageTime = convo.updated_time;
+    let unreadCount = 0;
 
     try {
       const detail = await graphGet(`${convo.id}?fields=messages,participants,updated_time`) as {
@@ -84,6 +86,15 @@ async function fetchConversationsForId(
         lastMessage = latest.message;
         lastMessageTime = latest.created_time;
         lastMessageFromClient = latest.from.id !== PAGE_ID && latest.from.id !== IG_USER_ID;
+
+        // Count consecutive client messages from the end (unread)
+        if (lastMessageFromClient) {
+          for (let i = msgs.length - 1; i >= 0; i--) {
+            const isFromClient = msgs[i].from.id !== PAGE_ID && msgs[i].from.id !== IG_USER_ID;
+            if (!isFromClient) break;
+            unreadCount++;
+          }
+        }
       }
     } catch {
       // Fall back to no snippet
@@ -107,6 +118,7 @@ async function fetchConversationsForId(
       lastMessage,
       lastMessageTime,
       lastMessageFromClient,
+      unreadCount,
     });
   }
 
