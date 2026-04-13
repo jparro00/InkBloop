@@ -109,10 +109,14 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
     try {
       const messages = await fetchMessagesFromDB(conversationId);
       if (get().currentConversationId === conversationId || !get().currentConversationId) {
+        // Preserve any older messages loaded from Graph API (not in DB)
+        const dbMids = new Set(messages.map(m => m.id));
+        const olderMessages = get().currentMessages.filter(m => !dbMids.has(m.id));
+
         set((s) => ({
-          currentMessages: messages,
+          currentMessages: [...olderMessages, ...messages],
           currentConversationId: conversationId,
-          hasOlderMessages: messages.length >= 20,
+          hasOlderMessages: messages.length >= 20 || olderMessages.length > 0,
           isLoadingMessages: false,
           messageCache: { ...s.messageCache, [conversationId]: messages },
         }));
