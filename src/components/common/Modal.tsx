@@ -367,6 +367,7 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
 
   const expandToFull = useCallback(() => {
     setCollapsed(false);
+    setXTraceTrigger(0); // Reset so X button doesn't re-fire on next collapse
     animate(dragY, 0, { type: 'spring', stiffness: 300, damping: 30 });
   }, [dragY]);
 
