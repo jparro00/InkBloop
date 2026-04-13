@@ -140,12 +140,13 @@ function XButtonTrace({ trigger }: { trigger: number }) {
     };
   }, [trigger]);
 
-  // Rounded rectangle matching the button's rounded-lg (14px radius in theme)
+  // Rounded rectangle matching the button's rounded-lg
   // Inset by half stroke width so the stroke outer edge aligns with button edge
   const s = 40;
   const sw = 2.5; // stroke width
   const inset = sw / 2;
-  const r = 14 - inset; // shrink radius by inset so outer edge of stroke matches 14px corner
+  const btnRadius = 8; // Tailwind v4 default rounded-lg = 0.5rem = 8px
+  const r = btnRadius - inset;
   const d = `M ${inset},${s/2} L ${inset},${r+inset} A ${r},${r} 0 0,1 ${r+inset},${inset} L ${s-r-inset},${inset} A ${r},${r} 0 0,1 ${s-inset},${r+inset} L ${s-inset},${s-r-inset} A ${r},${r} 0 0,1 ${s-r-inset},${s-inset} L ${r+inset},${s-inset} A ${r},${r} 0 0,1 ${inset},${s-r-inset} Z`;
 
   return (
