@@ -55,8 +55,14 @@ function connectWebSocket() {
       // Another simulator tab sent a message — sync
       const conv = conversations.find(c => c.participant?.psid === event.senderPsid);
       if (conv) {
-        // Only add if not already present (we already added it locally when sending)
-        if (!conv.messages.find(m => m.mid === event.message.mid)) {
+        // Check for existing message by mid OR a pending message with matching text
+        const existing = conv.messages.find(m => m.mid === event.message.mid);
+        const pending = !existing && conv.messages.find(m => m.mid.startsWith('pending_') && m.text === event.message.text);
+        if (pending) {
+          // Replace pending with real message
+          pending.mid = event.message.mid;
+          pending.timestamp = event.message.timestamp;
+        } else if (!existing) {
           conv.messages.push({
             mid: event.message.mid,
             senderId: event.senderPsid,
@@ -65,10 +71,10 @@ function connectWebSocket() {
             timestamp: event.message.timestamp,
             isEcho: false,
           });
-          conv.updatedTime = event.message.timestamp;
-          if (selectedPsid === event.senderPsid) renderMessages();
-          renderContacts();
         }
+        conv.updatedTime = event.message.timestamp;
+        if (selectedPsid === event.senderPsid) renderMessages();
+        renderContacts();
       }
     }
 
