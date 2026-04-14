@@ -10,7 +10,6 @@ import {
   isBusinessMessage,
   fetchReadStates,
   markConversationRead,
-  upsertParticipantProfile,
   invalidateProfileCache,
 } from '../services/messageService';
 import type { ConversationSummary, GraphMessage } from '../services/messageService';

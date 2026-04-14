@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import type { Json } from '../types/database';
 
 const API_URL = import.meta.env.VITE_META_API_URL || 'http://localhost:3001';
 const PAGE_ID = import.meta.env.VITE_META_PAGE_ID || '111222333444555';
@@ -388,7 +389,7 @@ export async function storeOutgoingMessage(
   recipientPsid: string,
   platform: 'instagram' | 'messenger',
   text?: string,
-  attachments?: unknown
+  attachments?: Json | null
 ): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;

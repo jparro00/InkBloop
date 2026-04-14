@@ -367,6 +367,67 @@ export interface Database {
           },
         ];
       };
+      conversation_map: {
+        Row: {
+          conversation_id: string;
+          graph_conversation_id: string;
+          user_id: string;
+        };
+        Insert: {
+          conversation_id: string;
+          graph_conversation_id: string;
+          user_id: string;
+        };
+        Update: {
+          conversation_id?: string;
+          graph_conversation_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'conversation_map_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      participant_profiles: {
+        Row: {
+          psid: string;
+          user_id: string;
+          name: string | null;
+          profile_pic: string | null;
+          platform: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          psid: string;
+          user_id: string;
+          name?: string | null;
+          profile_pic?: string | null;
+          platform?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          psid?: string;
+          user_id?: string;
+          name?: string | null;
+          profile_pic?: string | null;
+          platform?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'participant_profiles_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       user_settings: {
         Row: {
           user_id: string;

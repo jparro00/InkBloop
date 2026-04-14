@@ -66,7 +66,6 @@ export default function ConversationDrawer() {
   const convo = conversations.find((c) => c.id === selectedConversationId);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const prevMsgCount = useRef(0);
   const isDismissing = useRef(false);
 
   // Slide-from-right animation
@@ -201,8 +200,9 @@ export default function ConversationDrawer() {
       />
 
       {/* Panel — slides from right */}
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       <motion.div
-        {...bindDrag()}
+        {...(bindDrag() as any)}
         style={{ x: dragX, touchAction: 'pan-y' }}
         className="fixed inset-y-0 right-0 w-full lg:max-w-[480px] bg-elevated z-50 flex flex-col shadow-lg"
       >
