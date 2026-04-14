@@ -352,27 +352,27 @@ export async function fetchConversationsFromDB(readMids?: Record<string, string>
     }
   }
 
-  // Build summaries — fetch all profiles in parallel
+  // Load all participant profiles from DB in one query (no API calls)
   const entries = Array.from(convMap.entries());
-  const profiles = await Promise.all(
-    entries.map(async ([, { lastMsg }]) => {
-      const clientPsid = lastMsg.is_echo ? lastMsg.recipient_id : lastMsg.sender_id;
-      try {
-        const profile = await fetchProfile(clientPsid);
-        upsertParticipantProfile(clientPsid, profile.name, profile.profile_pic).catch(() => {});
-        return profile;
-      } catch {
-        return null;
-      }
-    })
+  const psids = entries.map(([, { lastMsg }]) =>
+    lastMsg.is_echo ? lastMsg.recipient_id : lastMsg.sender_id
+  );
+  const { data: dbProfiles } = await supabase
+    .from('participant_profiles')
+    .select('psid, name, profile_pic')
+    .eq('user_id', user.id)
+    .in('psid', psids);
+
+  const profileMap = new Map(
+    (dbProfiles ?? []).map(p => [p.psid, p])
   );
 
   const results: ConversationSummary[] = entries.map(([convId, { lastMsg, unreadCount }], i) => {
-    const clientPsid = lastMsg.is_echo ? lastMsg.recipient_id : lastMsg.sender_id;
+    const clientPsid = psids[i];
     const lastMessageFromClient = !lastMsg.is_echo;
-    const profile = profiles[i];
+    const profile = profileMap.get(clientPsid);
     const participantName = profile?.name || lastMsg.sender_name || clientPsid;
-    const profilePic = profile?.profile_pic;
+    const profilePic = profile?.profile_pic || undefined;
     const lastMessage = lastMsg.text || (lastMsg.attachments ? 'Sent an image' : undefined);
 
     return {
