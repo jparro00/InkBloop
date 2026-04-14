@@ -8,7 +8,7 @@ import {
   getConfig, setConfig, getProfile, getAllProfiles, hasProfile,
   listConversations, getConversation, getMessage,
   addBusinessMessage, addClientMessage, getSimConversations,
-  markConversationSeen,
+  markConversationSeen, createContact, updateProfilePic,
 } from './lib/store.js';
 import {
   deliverMessageWithReceipts, getDeliveryLog, signPayload,
@@ -343,6 +343,31 @@ app.post('/sim/send', async (req, res) => {
   broadcast({ type: 'webhook_log', entry: getDeliveryLog(1)[0] });
 
   res.json({ success: true, messageId: message.mid, webhookResult });
+});
+
+// Create a new contact + conversation
+app.post('/sim/contacts', (req, res) => {
+  const { name, instagram, platform, profilePic } = req.body;
+  if (!name?.trim() || !platform) return res.status(400).json({ error: 'name and platform required' });
+  const parts = name.trim().split(' ');
+  const profile = createContact({
+    name: name.trim(),
+    firstName: parts[0],
+    lastName: parts.slice(1).join(' ') || '',
+    platform,
+    instagram: instagram || undefined,
+    profilePic: profilePic || null,
+  });
+  broadcast({ type: 'contact_created', profile });
+  res.json(profile);
+});
+
+// Update a contact's profile picture
+app.post('/sim/contacts/:psid/avatar', (req, res) => {
+  const profile = updateProfilePic(req.params.psid, req.body.dataUrl);
+  if (!profile) return res.status(404).json({ error: 'Unknown PSID' });
+  broadcast({ type: 'avatar_updated', psid: req.params.psid, profilePic: profile.profilePic });
+  res.json(profile);
 });
 
 // Get/update simulator config

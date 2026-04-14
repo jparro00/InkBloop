@@ -21,7 +21,13 @@
     <!-- Main: contacts + chat -->
     <div class="main">
       <!-- Contact list -->
-      <div class="contacts" id="contacts"></div>
+      <div class="sidebar">
+        <div class="sidebar-header">
+          <span>Contacts</span>
+          <button class="new-contact-btn" onclick="toggleNewContact()" title="New contact">+</button>
+        </div>
+        <div class="contacts" id="contacts"></div>
+      </div>
 
       <!-- Chat area -->
       <div class="chat">
@@ -61,6 +67,42 @@
       <div class="webhook-log" id="webhook-log"></div>
     </div>
   </div>
+
+  <!-- New Contact modal -->
+  <div class="modal-overlay hidden" id="new-contact-modal" onclick="if(event.target===this)toggleNewContact()">
+    <div class="modal">
+      <h2>New Contact</h2>
+      <div class="field">
+        <label>Platform</label>
+        <div class="platform-toggle">
+          <button id="nc-ig-btn" class="platform-btn active" onclick="setNewContactPlatform('instagram')">Instagram</button>
+          <button id="nc-fb-btn" class="platform-btn" onclick="setNewContactPlatform('messenger')">Messenger</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Name</label>
+        <input id="nc-name" placeholder="First Last" onkeydown="if(event.key==='Enter')submitNewContact()" />
+      </div>
+      <div class="field" id="nc-handle-field">
+        <label>Instagram Handle</label>
+        <input id="nc-handle" placeholder="@handle" onkeydown="if(event.key==='Enter')submitNewContact()" />
+      </div>
+      <div class="field">
+        <label>Profile Picture (optional)</label>
+        <label class="avatar-upload-area">
+          <div class="avatar-upload-preview" id="nc-avatar-preview">+</div>
+          <input type="file" accept="image/*" onchange="previewNewContactAvatar(this)" style="display:none" />
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="toggleNewContact()">Cancel</button>
+        <button class="btn-primary" onclick="submitNewContact()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden file input for updating existing contact avatars -->
+  <input type="file" id="avatar-update-input" accept="image/*" style="display:none" onchange="handleAvatarUpdate(this)" />
 
   <!-- Config modal -->
   <div class="modal-overlay hidden" id="config-modal" onclick="if(event.target===this)toggleConfig()">

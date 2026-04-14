@@ -339,7 +339,7 @@ export function getSimConversations() {
     result.push({
       id: conv.id,
       platform: conv.platform,
-      participant: profile ? { psid: profile.psid, name: profile.name, instagram: profile.instagram } : null,
+      participant: profile ? { psid: profile.psid, name: profile.name, instagram: profile.instagram, profilePic: profile.profilePic } : null,
       updatedTime: conv.updatedTime,
       readWatermark: conv.readWatermark || null,
       messages: conv.messages.map(m => ({
@@ -359,6 +359,26 @@ export function getSimConversations() {
 /** Check if a PSID exists. */
 export function hasProfile(psid) {
   return profiles.has(psid);
+}
+
+/** Create a new contact and an empty conversation. */
+export function createContact({ name, firstName, lastName, platform, instagram, profilePic }) {
+  const psid = (platform === 'instagram' ? 'igsid-' : 'psid-') + Math.random().toString(36).slice(2, 10);
+  profiles.set(psid, { psid, firstName, lastName, name, platform, profilePic: profilePic || null, instagram: instagram || undefined });
+
+  const convId = conversationId();
+  conversations.set(convId, { id: convId, platform, participantPsid: psid, updatedTime: Date.now(), messages: [] });
+  psidToConversation.set(psid, convId);
+
+  return profiles.get(psid);
+}
+
+/** Update a contact's profile picture. */
+export function updateProfilePic(psid, dataUrl) {
+  const profile = profiles.get(psid);
+  if (!profile) return null;
+  profile.profilePic = dataUrl;
+  return profile;
 }
 
 /**

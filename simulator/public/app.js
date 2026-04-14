@@ -5,6 +5,9 @@ let conversations = [];
 let selectedPsid = null;
 let ws = null;
 let typingTimeout = null;
+let newContactPlatform = 'instagram';
+let newContactAvatarDataUrl = null;
+let avatarUpdatePsid = null;
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
@@ -96,6 +99,21 @@ function connectWebSocket() {
     if (event.type === 'webhook_log') {
       addWebhookLogEntry(event.entry);
     }
+
+    if (event.type === 'contact_created') {
+      profiles.push(event.profile);
+      conversations.push({ id: null, platform: event.profile.platform, participant: event.profile, updatedTime: Date.now(), readWatermark: null, messages: [] });
+      renderContacts();
+    }
+
+    if (event.type === 'avatar_updated') {
+      const p = profiles.find(p => p.psid === event.psid);
+      if (p) p.profilePic = event.profilePic;
+      const c = conversations.find(c => c.participant?.psid === event.psid);
+      if (c?.participant) c.participant.profilePic = event.profilePic;
+      renderContacts();
+      if (selectedPsid === event.psid) renderChatHeader();
+    }
   };
 
   ws.onclose = () => {
@@ -121,14 +139,15 @@ function renderContactGroup(label, platformClass, groupProfiles) {
   if (groupProfiles.length === 0) return '';
 
   const contacts = groupProfiles.map(p => {
-    const conv = conversations.find(c => c.participant?.psid === p.psid);
-    const lastMsg = conv?.messages[conv.messages.length - 1];
     const initials = p.name.split(' ').map(n => n[0]).join('').slice(0, 2);
     const active = selectedPsid === p.psid ? 'active' : '';
+    const avatarContent = p.profilePic
+      ? `<img src="${escapeHtml(p.profilePic)}" alt="${escapeHtml(initials)}" />`
+      : initials;
 
     return `
       <div class="contact ${active}" onclick="selectContact('${p.psid}')">
-        <div class="contact-avatar">${initials}</div>
+        <div class="contact-avatar">${avatarContent}</div>
         <div class="contact-info">
           <div class="contact-name">${p.name}</div>
           <div class="contact-handle">${p.instagram || 'Messenger'}</div>
@@ -169,7 +188,18 @@ function renderChatHeader() {
   headerEl.style.display = 'flex';
 
   const initials = profile.name.split(' ').map(n => n[0]).join('').slice(0, 2);
-  document.getElementById('chat-avatar').textContent = initials;
+  const avatarEl = document.getElementById('chat-avatar');
+  if (profile.profilePic) {
+    avatarEl.innerHTML = `<img src="${escapeHtml(profile.profilePic)}" alt="${escapeHtml(initials)}" />`;
+  } else {
+    avatarEl.textContent = initials;
+  }
+  avatarEl.title = 'Click to change photo';
+  avatarEl.onclick = () => {
+    avatarUpdatePsid = selectedPsid;
+    document.getElementById('avatar-update-input').click();
+  };
+
   document.getElementById('chat-name').textContent = profile.name;
 
   const platformEl = document.getElementById('chat-platform');
@@ -376,6 +406,106 @@ function addWebhookLogEntry(entry) {
   while (log.children.length > 100) {
     log.removeChild(log.lastChild);
   }
+}
+
+// ── New Contact Modal ─────────────────────────────────────────────────────────
+
+function toggleNewContact() {
+  const modal = document.getElementById('new-contact-modal');
+  modal.classList.toggle('hidden');
+  if (!modal.classList.contains('hidden')) {
+    // Reset form
+    newContactPlatform = 'instagram';
+    newContactAvatarDataUrl = null;
+    document.getElementById('nc-name').value = '';
+    document.getElementById('nc-handle').value = '';
+    const preview = document.getElementById('nc-avatar-preview');
+    preview.textContent = '+';
+    preview.style.backgroundImage = '';
+    document.getElementById('nc-handle-field').style.display = 'block';
+    document.getElementById('nc-ig-btn').classList.add('active');
+    document.getElementById('nc-fb-btn').classList.remove('active');
+    setTimeout(() => document.getElementById('nc-name').focus(), 50);
+  }
+}
+
+function setNewContactPlatform(platform) {
+  newContactPlatform = platform;
+  document.getElementById('nc-ig-btn').classList.toggle('active', platform === 'instagram');
+  document.getElementById('nc-fb-btn').classList.toggle('active', platform === 'messenger');
+  document.getElementById('nc-handle-field').style.display = platform === 'instagram' ? 'block' : 'none';
+}
+
+function previewNewContactAvatar(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    newContactAvatarDataUrl = e.target.result;
+    const preview = document.getElementById('nc-avatar-preview');
+    preview.textContent = '';
+    preview.style.backgroundImage = `url(${newContactAvatarDataUrl})`;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitNewContact() {
+  const name = document.getElementById('nc-name').value.trim();
+  if (!name) { document.getElementById('nc-name').focus(); return; }
+
+  let instagram = document.getElementById('nc-handle').value.trim();
+  if (instagram && !instagram.startsWith('@')) instagram = '@' + instagram;
+
+  const res = await fetch('/sim/contacts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name,
+      platform: newContactPlatform,
+      instagram: newContactPlatform === 'instagram' && instagram ? instagram : undefined,
+      profilePic: newContactAvatarDataUrl,
+    }),
+  });
+
+  const profile = await res.json();
+
+  // Sync local state (WebSocket will also fire for other tabs)
+  profiles.push(profile);
+  conversations.push({ id: null, platform: profile.platform, participant: profile, updatedTime: Date.now(), readWatermark: null, messages: [] });
+
+  toggleNewContact();
+  renderContacts();
+  selectContact(profile.psid);
+}
+
+// ── Avatar Update (existing contacts) ────────────────────────────────────────
+
+async function handleAvatarUpdate(input) {
+  const file = input.files[0];
+  if (!file || !avatarUpdatePsid) return;
+  input.value = '';
+
+  const dataUrl = await new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.readAsDataURL(file);
+  });
+
+  await fetch(`/sim/contacts/${avatarUpdatePsid}/avatar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dataUrl }),
+  });
+
+  // Update local state immediately
+  const p = profiles.find(p => p.psid === avatarUpdatePsid);
+  if (p) p.profilePic = dataUrl;
+  const c = conversations.find(c => c.participant?.psid === avatarUpdatePsid);
+  if (c?.participant) c.participant.profilePic = dataUrl;
+
+  renderContacts();
+  renderChatHeader();
+  avatarUpdatePsid = null;
 }
 
 // ── Config Modal ──────────────────────────────────────────────────────────────
