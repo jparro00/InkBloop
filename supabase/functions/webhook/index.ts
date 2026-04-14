@@ -164,17 +164,31 @@ Deno.serve(async (req: Request) => {
 
           const conversationId = existing?.[0]?.conversation_id || `t_${clientPsid}`;
 
-          // Get sender name (best effort)
-          const senderName = event.message.is_echo ? "Ink Bloop" : null;
+          // Fetch sender profile from simulator profiles (in production: Graph API)
+          let senderName: string | null = event.message.is_echo ? "Ink Bloop" : null;
+          let senderPic: string | null = null;
+          if (clientPsid && !isEcho) {
+            const { data: simProfile } = await supabase
+              .from("sim_profiles")
+              .select("name, profile_pic")
+              .eq("psid", clientPsid)
+              .maybeSingle();
+            if (simProfile) {
+              senderName = simProfile.name || null;
+              senderPic = simProfile.profile_pic || null;
+            }
+          }
 
-          // Upsert participant profile (name known for echoes; platform always known)
+          // Upsert participant profile with name + pic from simulator
           if (clientPsid) {
             await supabase.from("participant_profiles").upsert({
               psid: clientPsid,
               user_id: ownerUserId,
               platform,
+              ...(senderName ? { name: senderName } : {}),
+              ...(senderPic ? { profile_pic: senderPic } : {}),
               updated_at: new Date().toISOString(),
-            }, { onConflict: "user_id,psid", ignoreDuplicates: true });
+            }, { onConflict: "user_id,psid" });
           }
 
           // Upsert message
