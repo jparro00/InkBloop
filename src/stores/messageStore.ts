@@ -115,16 +115,19 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
         }));
       })
       .subscribe((status, err) => {
+        console.log('[Realtime] status:', status, err ?? '');
         if (status === 'SUBSCRIBED') {
-          console.log('[Realtime] connected');
-          // Stop polling if Realtime is working
+          console.log('[Realtime] connected — stopping poll');
           const pollId = get()._pollInterval;
           if (pollId) { clearInterval(pollId); set({ _pollInterval: null }); }
-        } else if (status === 'TIMED_OUT' || status === 'CHANNEL_ERROR') {
-          console.warn('[Realtime] failed, falling back to polling:', err ?? status);
+        } else if (status !== 'SUBSCRIBED') {
+          // Any non-success status: start polling as fallback
           get()._startPolling();
         }
       });
+
+    // Also start polling immediately as a safety net — it'll stop if Realtime connects
+    get()._startPolling();
 
     set({ _realtimeChannel: channel });
   },
