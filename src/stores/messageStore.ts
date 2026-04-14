@@ -10,7 +10,6 @@ import {
   isBusinessMessage,
   fetchReadStates,
   markConversationRead,
-  invalidateProfileCache,
 } from '../services/messageService';
 import type { ConversationSummary, GraphMessage } from '../services/messageService';
 
@@ -28,12 +27,6 @@ interface DBMessageRow {
   user_id: string;
 }
 
-interface ParticipantProfileRow {
-  psid: string;
-  user_id: string;
-  name: string | null;
-  profile_pic: string | null;
-}
 
 interface MessageStore {
   conversations: ConversationSummary[];
@@ -87,53 +80,10 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
 
-    // Try Supabase Realtime first
-    const channel = supabase
-      .channel('inkbloop-realtime')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
-      }, (payload) => {
-        const row = payload.new as DBMessageRow;
-        get()._handleNewMessage(row);
-      })
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'participant_profiles',
-      }, (payload) => {
-        const row = (payload.new ?? {}) as ParticipantProfileRow;
-        if (!row.psid) return;
-        invalidateProfileCache(row.psid);
-        set((s) => ({
-          conversations: s.conversations.map(c =>
-            c.participantPsid === row.psid
-              ? {
-                  ...c,
-                  ...(row.profile_pic != null ? { profilePic: row.profile_pic } : {}),
-                  ...(row.name ? { participantName: row.name } : {}),
-                }
-              : c
-          ),
-        }));
-      })
-      .subscribe((status, err) => {
-        console.log('[Realtime] status:', status, err ?? '');
-        if (status === 'SUBSCRIBED') {
-          console.log('[Realtime] connected — stopping poll');
-          const pollId = get()._pollInterval;
-          if (pollId) { clearInterval(pollId); set({ _pollInterval: null }); }
-        } else {
-          // Any non-success status: start polling as fallback
-          get()._startPolling();
-        }
-      });
-
-    // Also start polling immediately as a safety net — it'll stop if Realtime connects
+    // Realtime (postgres_changes) is disabled — use polling only.
+    // When realtime is re-enabled in the future, restore the channel
+    // subscription here and use polling as a fallback.
     get()._startPolling();
-
-    set({ _realtimeChannel: channel });
   },
 
   _handleNewMessage: (row: DBMessageRow) => {
@@ -191,11 +141,18 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
 
   _startPolling: () => {
     if (get()._pollInterval) return;
-    const id = setInterval(() => {
-      get().fetchConversations();
-      const openId = get().currentConversationId;
-      if (openId) get().fetchMessages(openId);
-    }, 3000);
+    let polling = false;
+    const id = setInterval(async () => {
+      if (polling) return; // skip if previous poll still in-flight
+      polling = true;
+      try {
+        await get().fetchConversations();
+        const openId = get().currentConversationId;
+        if (openId) await get().fetchMessages(openId);
+      } finally {
+        polling = false;
+      }
+    }, 15_000);
     set({ _pollInterval: id });
   },
 
