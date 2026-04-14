@@ -81,12 +81,11 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
 
     const channel = supabase
       .channel('inkbloop-realtime')
-      // New message inserted by the webhook
+      // New message inserted by the webhook (RLS handles row-level security)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
         table: 'messages',
-        filter: `user_id=eq.${user.id}`,
       }, (payload) => {
         const row = payload.new as DBMessageRow;
         const isFromClient = !row.is_echo;
@@ -149,7 +148,6 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
         event: '*',
         schema: 'public',
         table: 'participant_profiles',
-        filter: `user_id=eq.${user.id}`,
       }, (payload) => {
         const row = (payload.new ?? {}) as ParticipantProfileRow;
         if (!row.psid) return;
