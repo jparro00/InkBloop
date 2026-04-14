@@ -304,7 +304,7 @@ export async function fetchMessagesFromDB(conversationId: string): Promise<Graph
 }
 
 /** Fetch conversation list from Supabase messages table. */
-export async function fetchConversationsFromDB(): Promise<ConversationSummary[]> {
+export async function fetchConversationsFromDB(readMids?: Record<string, string>): Promise<ConversationSummary[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
@@ -322,23 +322,26 @@ export async function fetchConversationsFromDB(): Promise<ConversationSummary[]>
   const convMap = new Map<string, {
     lastMsg: DBMessage;
     unreadCount: number;
-    countingDone: boolean; // stop counting after hitting an echo
+    countingDone: boolean;
   }>();
 
   for (const msg of messages) {
     const existing = convMap.get(msg.conversation_id);
+    const readMid = readMids?.[msg.conversation_id];
     if (!existing) {
+      // If this latest message is the read watermark, nothing is unread
+      const alreadyRead = msg.mid === readMid;
       convMap.set(msg.conversation_id, {
         lastMsg: msg,
-        unreadCount: !msg.is_echo ? 1 : 0,
-        countingDone: msg.is_echo, // if latest is echo, no unreads
+        unreadCount: !msg.is_echo && !alreadyRead ? 1 : 0,
+        countingDone: msg.is_echo || alreadyRead,
       });
     } else if (!existing.countingDone) {
-      // Count consecutive client messages from the end (newest-first)
-      if (!msg.is_echo) {
-        existing.unreadCount++;
+      // Stop counting at read watermark or at a business reply
+      if (msg.mid === readMid || msg.is_echo) {
+        existing.countingDone = true;
       } else {
-        existing.countingDone = true; // hit a business reply, stop counting
+        existing.unreadCount++;
       }
     }
   }

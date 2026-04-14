@@ -182,22 +182,11 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
   fetchConversations: async () => {
     set({ isLoading: true, error: null });
     try {
-      const [conversations, readMids] = await Promise.all([
-        fetchConversationsFromDB(),
-        fetchReadStates(),
-      ]);
-
+      const readMids = await fetchReadStates();
       const currentReadMids = { ...get().readMids, ...readMids };
+      const conversations = await fetchConversationsFromDB(currentReadMids);
 
-      const merged = conversations.map((c) => {
-        const readMid = currentReadMids[c.id];
-        if (readMid && c.lastMid && readMid === c.lastMid) {
-          return { ...c, lastMessageFromClient: false, unreadCount: 0 };
-        }
-        return c;
-      });
-
-      set({ conversations: merged, isLoading: false, readMids: currentReadMids });
+      set({ conversations, isLoading: false, readMids: currentReadMids });
     } catch (e) {
       set({ error: (e as Error).message, isLoading: false });
     }
