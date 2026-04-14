@@ -69,10 +69,18 @@ export const useMessageStore = create<MessageStore>()(
         const channel = supabase
           .channel(`user-${session.user.id}`)
           .on('broadcast', { event: 'new-message' }, async ({ payload }) => {
-            // New message arrived — refresh conversations list from DB
+            const openId = get().currentConversationId;
+            // If the message is for the currently-open conversation, update
+            // readMids BEFORE fetching conversations so the list shows it as read
+            if (openId && payload?.conversation_id === openId && payload?.mid) {
+              set((s) => ({
+                readMids: { ...s.readMids, [openId]: payload.mid as string },
+              }));
+              markConversationRead(openId, payload.mid as string).catch(console.error);
+            }
+            // Refresh conversations list from DB
             await get().fetchConversations();
             // If the affected conversation is currently open, refresh its messages
-            const openId = get().currentConversationId;
             if (openId && payload?.conversation_id === openId) {
               await get().fetchMessages(openId);
             }
@@ -96,7 +104,9 @@ export const useMessageStore = create<MessageStore>()(
         set({ isLoading: true, error: null });
         try {
           const readMids = await fetchReadStates();
-          const currentReadMids = { ...get().readMids, ...readMids };
+          // Local readMids take precedence — we may have marked something
+          // read locally that hasn't been persisted to DB yet
+          const currentReadMids = { ...readMids, ...get().readMids };
           const conversations = await fetchConversationsFromDB(currentReadMids);
 
           set({ conversations, isLoading: false, readMids: currentReadMids });
@@ -166,19 +176,17 @@ export const useMessageStore = create<MessageStore>()(
               messageCache: { ...s.messageCache, [conversationId]: dbMessages },
             }));
 
-            // Update read state if new messages arrived
+            // Always mark the open conversation as read — this covers both
+            // initial open and new messages arriving while it's open
             if (dbMessages.length > 0) {
               const latestMid = dbMessages[dbMessages.length - 1].id;
-              const convo = get().conversations.find((c) => c.id === conversationId);
-              if (convo && convo.lastMid !== latestMid) {
-                set((s) => ({
-                  readMids: { ...s.readMids, [conversationId]: latestMid },
-                  conversations: s.conversations.map((c) =>
-                    c.id === conversationId ? { ...c, lastMid: latestMid, lastMessageFromClient: false, unreadCount: 0 } : c
-                  ),
-                }));
-                markConversationRead(conversationId, latestMid).catch(console.error);
-              }
+              set((s) => ({
+                readMids: { ...s.readMids, [conversationId]: latestMid },
+                conversations: s.conversations.map((c) =>
+                  c.id === conversationId ? { ...c, lastMid: latestMid, lastMessageFromClient: false, unreadCount: 0 } : c
+                ),
+              }));
+              markConversationRead(conversationId, latestMid).catch(console.error);
             }
           }
         } catch (e) {
