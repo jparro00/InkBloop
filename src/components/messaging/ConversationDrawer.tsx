@@ -252,7 +252,10 @@ export default function ConversationDrawer() {
         </div>
 
         {/* Composer */}
-        <div className="shrink-0 border-t border-border/40 px-4 pt-3 pb-8 flex items-end gap-2 bg-elevated safe-bottom">
+        <div
+          className="shrink-0 border-t border-border/40 px-4 pt-3 flex items-end gap-2 bg-elevated"
+          style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 0px))' }}
+        >
           <input
             ref={fileInputRef}
             type="file"
