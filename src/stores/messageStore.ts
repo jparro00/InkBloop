@@ -329,9 +329,9 @@ export const useMessageStore = create<MessageStore>()(
     }),
     {
       name: 'inkbloop-messages',
-      // Only persist conversations and read state — not loading flags, channels, or ephemeral UI state
+      // Only persist lightweight state — conversations load fast from DB on mount
+      // and are too large to reliably fit in mobile localStorage quotas
       partialize: (state) => ({
-        conversations: state.conversations,
         readMids: state.readMids,
         drafts: state.drafts,
       }),
