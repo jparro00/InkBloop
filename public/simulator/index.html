@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meta API Simulator — Ink Bloop</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <div class="header">
+      <h1>
+        <span class="accent">●</span>
+        Meta API Simulator
+        <span style="color: var(--text-t); font-weight: 400;">for Ink Bloop</span>
+      </h1>
+      <button class="config-btn" onclick="toggleConfig()">⚙ Config</button>
+    </div>
+
+    <!-- Main: contacts + chat -->
+    <div class="main">
+      <!-- Contact list -->
+      <div class="sidebar">
+        <div class="sidebar-header">
+          <span>Contacts</span>
+          <button class="new-contact-btn" onclick="toggleNewContact()" title="New contact">+</button>
+        </div>
+        <div class="contacts" id="contacts"></div>
+      </div>
+
+      <!-- Chat area -->
+      <div class="chat">
+        <div class="chat-header" id="chat-header" style="display:none;">
+          <div class="contact-avatar" id="chat-avatar"></div>
+          <div>
+            <div class="chat-header-name" id="chat-name"></div>
+            <span class="chat-header-platform" id="chat-platform"></span>
+          </div>
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+          <div class="chat-empty" id="chat-empty">Select a contact to start</div>
+        </div>
+
+        <div class="typing-indicator" id="typing-indicator">
+          <span></span><span></span><span></span>
+        </div>
+
+        <div class="composer" id="composer" style="display:none;">
+          <label class="composer-btn attach-btn" title="Attach image">
+            📎
+            <input type="file" class="attach-input" id="attach-input" accept="image/*" onchange="handleAttach(this)" />
+          </label>
+          <input type="text" id="msg-input" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendMessage()" />
+          <button class="composer-btn send-btn" id="send-btn" onclick="sendMessage()">↑</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Webhook log -->
+    <div class="webhook-panel" id="webhook-panel">
+      <div class="webhook-toggle" onclick="toggleWebhookPanel()">
+        <span>Webhook Log</span>
+        <span class="arrow">▼</span>
+      </div>
+      <div class="webhook-log" id="webhook-log"></div>
+    </div>
+  </div>
+
+  <!-- New Contact modal -->
+  <div class="modal-overlay hidden" id="new-contact-modal" onclick="if(event.target===this)toggleNewContact()">
+    <div class="modal">
+      <h2>New Contact</h2>
+      <div class="field">
+        <label>Platform</label>
+        <div class="platform-toggle">
+          <button id="nc-ig-btn" class="platform-btn active" onclick="setNewContactPlatform('instagram')">Instagram</button>
+          <button id="nc-fb-btn" class="platform-btn" onclick="setNewContactPlatform('messenger')">Messenger</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Name</label>
+        <input id="nc-name" placeholder="First Last" onkeydown="if(event.key==='Enter')submitNewContact()" />
+      </div>
+      <div class="field" id="nc-handle-field">
+        <label>Instagram Handle</label>
+        <input id="nc-handle" placeholder="@handle" onkeydown="if(event.key==='Enter')submitNewContact()" />
+      </div>
+      <div class="field">
+        <label>Profile Picture (optional)</label>
+        <label class="avatar-upload-area">
+          <div class="avatar-upload-preview" id="nc-avatar-preview">+</div>
+          <input type="file" accept="image/*" onchange="previewNewContactAvatar(this)" style="display:none" />
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="toggleNewContact()">Cancel</button>
+        <button class="btn-primary" onclick="submitNewContact()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden file input for updating existing contact avatars -->
+  <input type="file" id="avatar-update-input" accept="image/*" style="display:none" onchange="handleAvatarUpdate(this)" />
+
+  <!-- Config modal -->
+  <div class="modal-overlay hidden" id="config-modal" onclick="if(event.target===this)toggleConfig()">
+    <div class="modal">
+      <h2>Simulator Configuration</h2>
+      <div class="field">
+        <label>Webhook URL</label>
+        <input id="cfg-webhook-url" />
+      </div>
+      <div class="field">
+        <label>Verify Token</label>
+        <input id="cfg-verify-token" />
+      </div>
+      <div class="field">
+        <label>App Secret (for HMAC signing)</label>
+        <input id="cfg-app-secret" />
+      </div>
+      <div class="field">
+        <label>Page Access Token</label>
+        <input id="cfg-access-token" />
+      </div>
+      <div class="field">
+        <label>Page ID (Messenger)</label>
+        <input id="cfg-page-id" />
+      </div>
+      <div class="field">
+        <label>IG User ID (Instagram)</label>
+        <input id="cfg-ig-user-id" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="toggleConfig()">Cancel</button>
+        <button class="btn-primary" onclick="saveConfig()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
