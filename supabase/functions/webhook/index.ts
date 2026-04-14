@@ -22,7 +22,7 @@ async function broadcast(
         Authorization: `Bearer ${serviceRoleKey}`,
       },
       body: JSON.stringify({
-        messages: [{ topic: `realtime:user-${userId}`, event, payload }],
+        messages: [{ topic: `user-${userId}`, event, payload }],
       }),
     });
   } catch {
