@@ -252,7 +252,7 @@ export default function ConversationDrawer() {
         </div>
 
         {/* Composer */}
-        <div className="shrink-0 border-t border-border/40 px-4 py-3 flex items-end gap-2 bg-elevated safe-bottom">
+        <div className="shrink-0 border-t border-border/40 px-4 py-3 pb-6 flex items-end gap-2 bg-elevated safe-bottom">
           <input
             ref={fileInputRef}
             type="file"
