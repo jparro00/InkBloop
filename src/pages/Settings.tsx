@@ -32,6 +32,7 @@ export default function SettingsPage() {
   const [totpStatus, setTotpStatus] = useState<'checking' | 'enabled' | 'disabled'>('checking');
   const [totpQr, setTotpQr] = useState<string | null>(null);
   const [totpSecret, setTotpSecret] = useState<string | null>(null);
+  const [totpUri, setTotpUri] = useState<string | null>(null);
   const [totpFactorId, setTotpFactorId] = useState<string | null>(null);
   const [totpVerifyCode, setTotpVerifyCode] = useState('');
   const [totpError, setTotpError] = useState('');
@@ -125,16 +126,31 @@ export default function SettingsPage() {
           {totpQr ? (
             /* Enrollment flow — show QR + verify */
             <div className="space-y-4">
-              <div className="text-base text-text-p">Scan this QR code with your authenticator app</div>
-              <div className="flex justify-center">
-                <img src={totpQr} alt="TOTP QR Code" className="w-48 h-48 rounded-lg bg-white p-2" />
+              {/* Mobile: open authenticator app directly */}
+              <div className="lg:hidden space-y-3">
+                <div className="text-base text-text-p">Add to your authenticator app</div>
+                {totpUri && (
+                  <a
+                    href={totpUri}
+                    className="block w-full py-3.5 text-base text-center bg-accent text-bg rounded-md font-medium press-scale transition-all min-h-[48px]"
+                  >
+                    Open Authenticator App
+                  </a>
+                )}
+                {totpSecret && (
+                  <div className="text-center">
+                    <div className="text-xs text-text-t mb-1">Or copy this key into your app manually:</div>
+                    <code className="text-sm text-text-s bg-input px-3 py-1.5 rounded select-text break-all">{totpSecret}</code>
+                  </div>
+                )}
               </div>
-              {totpSecret && (
-                <div className="text-center">
-                  <div className="text-xs text-text-t mb-1">Or enter this key manually:</div>
-                  <code className="text-sm text-text-s bg-input px-3 py-1.5 rounded select-text break-all">{totpSecret}</code>
+              {/* Desktop: show QR code */}
+              <div className="hidden lg:block space-y-3">
+                <div className="text-base text-text-p">Scan this QR code with your authenticator app</div>
+                <div className="flex justify-center">
+                  <img src={totpQr} alt="TOTP QR Code" className="w-48 h-48 rounded-lg bg-white p-2" />
                 </div>
-              )}
+              </div>
               <div>
                 <label className="text-sm text-text-t uppercase tracking-wider mb-2 block font-medium">Verification Code</label>
                 <input
@@ -156,6 +172,7 @@ export default function SettingsPage() {
                     }
                     setTotpQr(null);
                     setTotpSecret(null);
+                    setTotpUri(null);
                     setTotpFactorId(null);
                     setTotpVerifyCode('');
                     setTotpError('');
@@ -181,6 +198,7 @@ export default function SettingsPage() {
                       setTotpStatus('enabled');
                       setTotpQr(null);
                       setTotpSecret(null);
+                      setTotpUri(null);
                       setTotpFactorId(null);
                       setTotpVerifyCode('');
                     } catch (e) {
@@ -221,6 +239,7 @@ export default function SettingsPage() {
                       if (enrollErr) throw enrollErr;
                       setTotpQr(data.totp.qr_code);
                       setTotpSecret(data.totp.secret);
+                      setTotpUri(data.totp.uri);
                       setTotpFactorId(data.id);
                     }
                   } catch (e) {
