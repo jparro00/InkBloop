@@ -183,7 +183,8 @@ export async function sendMessage(
     }),
   });
   if (!res.ok) throw new Error(`Send API error: ${res.status}`);
-  return res.json();
+  const data = await res.json();
+  return { recipientId: data.recipient_id, messageId: data.message_id };
 }
 
 export async function sendImageMessage(
@@ -204,7 +205,8 @@ export async function sendImageMessage(
     }),
   });
   if (!res.ok) throw new Error(`Send API error: ${res.status}`);
-  return res.json();
+  const data = await res.json();
+  return { recipientId: data.recipient_id, messageId: data.message_id };
 }
 
 export async function sendMarkSeen(
