@@ -11,6 +11,7 @@ import {
   fetchReadStates,
   markConversationRead,
   upsertParticipantProfile,
+  invalidateProfileCache,
 } from '../services/messageService';
 import type { ConversationSummary, GraphMessage } from '../services/messageService';
 
@@ -153,6 +154,9 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
       }, (payload) => {
         const row = (payload.new ?? {}) as ParticipantProfileRow;
         if (!row.psid) return;
+        // Invalidate the in-memory profile cache so the next fetchConversations
+        // call fetches fresh data from the Graph API instead of returning stale pic
+        invalidateProfileCache(row.psid);
         set((s) => ({
           conversations: s.conversations.map(c =>
             c.participantPsid === row.psid

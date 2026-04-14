@@ -60,6 +60,11 @@ export async function fetchProfile(psid: string): Promise<GraphProfile> {
   return data;
 }
 
+/** Invalidate a cached profile so the next fetchProfile call goes to the API. */
+export function invalidateProfileCache(psid: string): void {
+  profileCache.delete(psid);
+}
+
 /** Upsert participant profile info into Supabase so Realtime can broadcast changes. */
 export async function upsertParticipantProfile(
   psid: string,
