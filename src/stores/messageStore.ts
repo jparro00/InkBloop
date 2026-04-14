@@ -143,21 +143,23 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
           }
         }
       })
-      // Profile picture updated via profile_update webhook
+      // Profile picture inserted or updated via profile_update webhook.
+      // INSERT fires for new contacts; UPDATE fires when the avatar changes.
       .on('postgres_changes', {
-        event: 'UPDATE',
+        event: '*',
         schema: 'public',
         table: 'participant_profiles',
         filter: `user_id=eq.${user.id}`,
       }, (payload) => {
-        const row = payload.new as ParticipantProfileRow;
+        const row = (payload.new ?? {}) as ParticipantProfileRow;
+        if (!row.psid) return;
         set((s) => ({
           conversations: s.conversations.map(c =>
             c.participantPsid === row.psid
               ? {
                   ...c,
-                  profilePic: row.profile_pic ?? c.profilePic,
-                  participantName: row.name ?? c.participantName,
+                  ...(row.profile_pic != null ? { profilePic: row.profile_pic } : {}),
+                  ...(row.name ? { participantName: row.name } : {}),
                 }
               : c
           ),
