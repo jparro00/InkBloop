@@ -220,7 +220,7 @@ export default function ConversationDrawer() {
         {/* Messages area */}
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto px-4 pt-4 pb-8"
+          className="flex-1 overflow-y-auto px-4 pt-4 pb-16"
           style={{ minHeight: 0 }}
         >
           {currentMessages.length === 0 ? (
