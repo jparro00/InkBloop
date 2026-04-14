@@ -132,11 +132,9 @@ body::before {
   color: var(--color-text-p);
 }
 
-/* Safe area support for notched devices */
-@supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
+/* Safe area support for notched devices — always keep at least 2rem */
+.safe-bottom {
+  padding-bottom: max(2rem, env(safe-area-inset-bottom, 0px));
 }
 
 /* Active press feedback for touch */
