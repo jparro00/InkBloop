@@ -7,7 +7,7 @@ export const mockClients: Client[] = [
     name: 'Sarah Mitchell',
     phone: '615-555-0192',
     instagram: '@sarahink_tn',
-    email: 'sarah.m@email.com',
+
     dob: '1994-03-03',
     tags: ['returning', 'healed photos requested'],
     notes: [
@@ -32,7 +32,7 @@ export const mockClients: Client[] = [
     created_at: '2026-01-05T10:00:00Z',
     name: 'Jen Kowalski',
     phone: '615-555-0345',
-    email: 'jen.k@email.com',
+
     dob: '1997-11-14',
     tags: ['new'],
     notes: [
@@ -57,7 +57,7 @@ export const mockClients: Client[] = [
     name: 'Alyssa Chen',
     phone: '615-555-0567',
     instagram: '@alyssachen.art',
-    email: 'alyssa@email.com',
+
     dob: '2000-06-19',
     tags: ['new'],
     notes: [],
@@ -88,7 +88,7 @@ export const mockClients: Client[] = [
     created_at: '2025-07-20T10:00:00Z',
     name: 'Jake Donovan',
     phone: '615-555-0890',
-    email: 'jake.d@email.com',
+
     dob: '1988-04-17',
     tags: ['returning'],
     notes: [

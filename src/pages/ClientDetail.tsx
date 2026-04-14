@@ -15,6 +15,7 @@ export default function ClientDetailPage() {
   const clients = useClientStore((s) => s.clients);
   const client = useMemo(() => clients.find((c) => c.id === id), [clients, id]);
   const addNote = useClientStore((s) => s.addNote);
+  const linkedProfiles = useClientStore((s) => s.linkedProfiles);
   const allBookings = useBookingStore((s) => s.bookings);
   const clientBookings = useMemo(() => allBookings.filter((b) => b.client_id === id), [allBookings, id]);
   const { setSelectedBookingId, openBookingForm, setPrefillBookingData, setEditingClientId } = useUIStore();
@@ -100,7 +101,11 @@ export default function ClientDetailPage() {
         <div className="min-w-0">
           <h1 className="font-display text-2xl text-text-p truncate">{client.name}</h1>
           <div className="text-base text-text-s mt-1 truncate">
-            {[client.phone, client.instagram].filter(Boolean).join(' · ')}
+            {[
+              client.phone,
+              client.instagram && linkedProfiles[client.instagram]?.name,
+              client.facebook && linkedProfiles[client.facebook]?.name,
+            ].filter(Boolean).join(' · ')}
           </div>
           <div className="text-sm text-text-t mt-1.5">
             {clientBookings.length} session{clientBookings.length !== 1 ? 's' : ''}
@@ -144,8 +149,8 @@ export default function ClientDetailPage() {
         <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0 max-w-xl">
           {[
             { label: 'Phone', value: client.phone },
-            { label: 'Email', value: client.email },
-            { label: 'Instagram', value: client.instagram },
+            { label: 'Instagram', value: client.instagram ? linkedProfiles[client.instagram]?.name : undefined },
+            { label: 'Facebook', value: client.facebook ? linkedProfiles[client.facebook]?.name : undefined },
             { label: 'Date of Birth', value: client.dob ? format(new Date(client.dob), 'MMM d, yyyy') : undefined },
           ]
             .filter((f) => f.value)

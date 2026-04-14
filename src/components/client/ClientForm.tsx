@@ -1,22 +1,136 @@
 import { useState } from 'react';
+import { X, ChevronDown } from 'lucide-react';
 import Modal from '../common/Modal';
 import { useClientStore } from '../../stores/clientStore';
-import type { Client } from '../../types';
+import { fetchAvailableProfiles } from '../../services/clientService';
+import type { Client, LinkedProfile } from '../../types';
 
 interface ClientFormProps {
   client?: Client;
   onClose: () => void;
 }
 
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const instagramRegex = /^@[\w.]+$/;
-const facebookRegex = /^(\d+|https?:\/\/(www\.)?facebook\.com\/.+)$/;
+function PlatformLinkField({
+  label,
+  platform,
+  currentPsid,
+  linkedProfiles,
+  allClients,
+  onLink,
+  onUnlink,
+}: {
+  label: string;
+  platform: 'instagram' | 'messenger';
+  currentPsid?: string;
+  linkedProfiles: Record<string, LinkedProfile>;
+  allClients: Client[];
+  onLink: (psid: string) => void;
+  onUnlink: () => void;
+}) {
+  const [profiles, setProfiles] = useState<LinkedProfile[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  const linkedProfile = currentPsid ? linkedProfiles[currentPsid] : undefined;
+
+  // Which PSIDs are already linked to other clients on this platform
+  const takenPsids = new Set(
+    allClients
+      .map((c) => (platform === 'instagram' ? c.instagram : c.facebook))
+      .filter(Boolean)
+  );
+
+  const loadProfiles = async () => {
+    if (loaded) return;
+    const p = await fetchAvailableProfiles(platform);
+    setProfiles(p);
+    setLoaded(true);
+  };
+
+  const handleOpen = () => {
+    setOpen(true);
+    loadProfiles();
+  };
+
+  const available = profiles.filter((p) => !takenPsids.has(p.psid) || p.psid === currentPsid);
+
+  const labelClass = "text-sm text-text-t uppercase tracking-wider mb-2 block font-medium";
+
+  if (currentPsid && linkedProfile) {
+    return (
+      <div>
+        <label className={labelClass}>{label}</label>
+        <div className="flex items-center gap-2 bg-input border border-border/60 rounded-md px-4 py-3 min-h-[48px]">
+          {linkedProfile.profilePic && (
+            <img src={linkedProfile.profilePic} alt="" className="w-6 h-6 rounded-full object-cover shrink-0" />
+          )}
+          <span className="text-base text-text-p flex-1 truncate">{linkedProfile.name}</span>
+          <button
+            type="button"
+            onClick={onUnlink}
+            className="text-text-t hover:text-danger transition-colors cursor-pointer press-scale p-1"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <label className={labelClass}>{label}</label>
+      <button
+        type="button"
+        onClick={handleOpen}
+        className="w-full flex items-center justify-between bg-input border border-border/60 rounded-md px-4 py-3.5 text-base text-text-t cursor-pointer hover:border-border-s transition-colors min-h-[48px]"
+      >
+        <span>Link from messages...</span>
+        <ChevronDown size={16} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 right-0 top-full mt-1 bg-elevated border border-border/60 rounded-lg shadow-md z-20 max-h-48 overflow-y-auto">
+            {available.length === 0 ? (
+              <div className="px-4 py-3 text-sm text-text-t">
+                {loaded ? 'No available threads' : 'Loading...'}
+              </div>
+            ) : (
+              available.map((p) => (
+                <button
+                  key={p.psid}
+                  type="button"
+                  onClick={() => {
+                    onLink(p.psid);
+                    setOpen(false);
+                  }}
+                  className="w-full text-left flex items-center gap-3 px-4 py-3 hover:bg-surface active:bg-surface transition-colors cursor-pointer press-scale"
+                >
+                  {p.profilePic ? (
+                    <img src={p.profilePic} alt="" className="w-7 h-7 rounded-full object-cover shrink-0" />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center text-accent text-xs font-medium shrink-0">
+                      {p.name.charAt(0)}
+                    </div>
+                  )}
+                  <span className="text-sm text-text-p truncate">{p.name}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function ClientForm({ client, onClose }: ClientFormProps) {
   const addClient = useClientStore((s) => s.addClient);
   const updateClient = useClientStore((s) => s.updateClient);
+  const linkedProfiles = useClientStore((s) => s.linkedProfiles);
+  const allClients = useClientStore((s) => s.clients);
 
-  // Parse existing dob into parts
   const parseDob = (dob: string) => {
     if (!dob) return { dobMonth: '', dobDay: '', dobYear: '' };
     const [y, m, d] = dob.split('-');
@@ -29,24 +143,30 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
     name: client?.name ?? '',
     display_name: client?.display_name ?? '',
     phone: client?.phone ?? '',
-    email: client?.email ?? '',
-    instagram: client?.instagram ?? '',
-    facebook_id: client?.facebook_id ?? '',
     dobMonth: initDob.dobMonth,
     dobDay: initDob.dobDay,
     dobYear: initDob.dobYear || defaultYear,
     tags: client?.tags.join(', ') ?? '',
   });
 
-  // Compose dob string from parts
-  const dobValue = form.dobMonth && form.dobDay && form.dobYear
-    ? `${form.dobYear}-${form.dobMonth.padStart(2, '0')}-${form.dobDay.padStart(2, '0')}`
-    : '';
+  const [igPsid, setIgPsid] = useState<string | undefined>(client?.instagram);
+  const [fbPsid, setFbPsid] = useState<string | undefined>(client?.facebook);
 
-  const emailValid = !form.email || emailRegex.test(form.email);
-  const instagramValid = !form.instagram || instagramRegex.test(form.instagram);
-  const facebookValid = !form.facebook_id || facebookRegex.test(form.facebook_id);
-  const isValid = form.name.trim() && emailValid && instagramValid && facebookValid;
+  // If we just linked a new PSID, fetch its profile so it shows immediately
+  const fetchLinkedProfilesForNew = async (psids: string[]) => {
+    const { fetchLinkedProfiles } = await import('../../services/clientService');
+    const newProfiles = await fetchLinkedProfiles(psids);
+    useClientStore.setState((s) => ({
+      linkedProfiles: { ...s.linkedProfiles, ...newProfiles },
+    }));
+  };
+
+  const dobValue =
+    form.dobMonth && form.dobDay && form.dobYear
+      ? `${form.dobYear}-${form.dobMonth.padStart(2, '0')}-${form.dobDay.padStart(2, '0')}`
+      : '';
+
+  const isValid = form.name.trim().length > 0;
 
   const handleSave = async () => {
     if (!isValid) return;
@@ -54,9 +174,8 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
       name: form.name,
       display_name: form.display_name || undefined,
       phone: form.phone || undefined,
-      email: form.email || undefined,
-      instagram: form.instagram || undefined,
-      facebook_id: form.facebook_id || undefined,
+      instagram: igPsid || undefined,
+      facebook: fbPsid || undefined,
       dob: dobValue || undefined,
       tags: form.tags
         .split(',')
@@ -66,7 +185,11 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
 
     try {
       if (client) {
-        await updateClient(client.id, data);
+        // Explicitly clear unlinked fields
+        const updates: Partial<Client> = { ...data };
+        if (!igPsid && client.instagram) updates.instagram = undefined;
+        if (!fbPsid && client.facebook) updates.facebook = undefined;
+        await updateClient(client.id, updates);
       } else {
         await addClient(data);
       }
@@ -76,9 +199,9 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
     onClose();
   };
 
-  const inputClass = "w-full bg-input border border-border/60 rounded-md px-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors min-h-[48px]";
-  const errorInputClass = "w-full bg-input border border-danger/60 rounded-md px-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-danger/40 transition-colors min-h-[48px]";
-  const labelClass = "text-sm text-text-t uppercase tracking-wider mb-2 block font-medium";
+  const inputClass =
+    'w-full bg-input border border-border/60 rounded-md px-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors min-h-[48px]';
+  const labelClass = 'text-sm text-text-t uppercase tracking-wider mb-2 block font-medium';
 
   return (
     <Modal title={client ? 'Edit Client' : 'New Client'} onClose={onClose} width="lg:max-w-[520px]">
@@ -105,58 +228,41 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          <div>
-            <label className={labelClass}>Phone</label>
-            <input
-              type="tel"
-              value={form.phone}
-              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label className={labelClass}>Email</label>
-            <input
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-              placeholder="name@example.com"
-              className={form.email && !emailValid ? errorInputClass : inputClass}
-            />
-            {form.email && !emailValid && (
-              <span className="text-xs text-danger mt-1 block">Enter a valid email</span>
-            )}
-          </div>
+        <div>
+          <label className={labelClass}>Phone</label>
+          <input
+            type="tel"
+            value={form.phone}
+            onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+            className={inputClass}
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          <div>
-            <label className={labelClass}>Instagram</label>
-            <input
-              type="text"
-              value={form.instagram}
-              onChange={(e) => setForm((f) => ({ ...f, instagram: e.target.value }))}
-              placeholder="@handle"
-              className={form.instagram && !instagramValid ? errorInputClass : inputClass}
-            />
-            {form.instagram && !instagramValid && (
-              <span className="text-xs text-danger mt-1 block">Must start with @ (letters, numbers, dots, underscores)</span>
-            )}
-          </div>
-          <div>
-            <label className={labelClass}>Facebook</label>
-            <input
-              type="text"
-              value={form.facebook_id}
-              onChange={(e) => setForm((f) => ({ ...f, facebook_id: e.target.value }))}
-              placeholder="Profile URL or ID"
-              className={form.facebook_id && !facebookValid ? errorInputClass : inputClass}
-            />
-            {form.facebook_id && !facebookValid && (
-              <span className="text-xs text-danger mt-1 block">Enter a Facebook URL or numeric ID</span>
-            )}
-          </div>
+          <PlatformLinkField
+            label="Instagram"
+            platform="instagram"
+            currentPsid={igPsid}
+            linkedProfiles={linkedProfiles}
+            allClients={allClients}
+            onLink={(psid) => {
+              setIgPsid(psid);
+              fetchLinkedProfilesForNew([psid]);
+            }}
+            onUnlink={() => setIgPsid(undefined)}
+          />
+          <PlatformLinkField
+            label="Facebook"
+            platform="messenger"
+            currentPsid={fbPsid}
+            linkedProfiles={linkedProfiles}
+            allClients={allClients}
+            onLink={(psid) => {
+              setFbPsid(psid);
+              fetchLinkedProfilesForNew([psid]);
+            }}
+            onUnlink={() => setFbPsid(undefined)}
+          />
         </div>
 
         <div>
@@ -168,9 +274,13 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
               className={`${inputClass} cursor-pointer`}
             >
               <option value="">Month</option>
-              {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => (
-                <option key={i} value={String(i + 1)}>{m}</option>
-              ))}
+              {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(
+                (m, i) => (
+                  <option key={i} value={String(i + 1)}>
+                    {m}
+                  </option>
+                )
+              )}
             </select>
             <select
               value={form.dobDay}
@@ -179,7 +289,9 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
             >
               <option value="">Day</option>
               {Array.from({ length: 31 }, (_, i) => (
-                <option key={i} value={String(i + 1)}>{i + 1}</option>
+                <option key={i} value={String(i + 1)}>
+                  {i + 1}
+                </option>
               ))}
             </select>
             <select
@@ -190,7 +302,11 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
               <option value="">Year</option>
               {Array.from({ length: 100 }, (_, i) => {
                 const y = new Date().getFullYear() - i;
-                return <option key={y} value={String(y)}>{y}</option>;
+                return (
+                  <option key={y} value={String(y)}>
+                    {y}
+                  </option>
+                );
               })}
             </select>
           </div>

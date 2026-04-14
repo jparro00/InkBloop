@@ -7,13 +7,18 @@ export interface Client {
   display_name?: string;
   phone?: string;
   instagram?: string;
-  facebook_id?: string;
-  psid?: string;
-  email?: string;
+  facebook?: string;
   dob?: string;
   channel?: ClientChannel;
   tags: string[];
   notes: ClientNote[];
+}
+
+export interface LinkedProfile {
+  psid: string;
+  name: string;
+  platform: 'instagram' | 'messenger';
+  profilePic?: string;
 }
 
 export interface ClientNote {

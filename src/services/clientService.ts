@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { Client, ClientNote } from '../types';
+import type { Client, ClientNote, LinkedProfile } from '../types';
 import type { Database, Json } from '../types/database';
 
 type ClientRow = Database['public']['Tables']['clients']['Row'];
@@ -15,9 +15,7 @@ function toClient(row: ClientRow): Client {
     display_name: row.display_name ?? undefined,
     phone: row.phone ?? undefined,
     instagram: row.instagram ?? undefined,
-    facebook_id: row.facebook_id ?? undefined,
-    psid: row.psid ?? undefined,
-    email: row.email ?? undefined,
+    facebook: row.facebook ?? undefined,
     dob: row.dob ?? undefined,
     channel: row.channel ?? undefined,
     tags: row.tags ?? [],
@@ -35,6 +33,42 @@ export async function fetchClients(): Promise<Client[]> {
   return (data ?? []).map(toClient);
 }
 
+/** Fetch participant profiles for all linked PSIDs so we can display handles/names. */
+export async function fetchLinkedProfiles(psids: string[]): Promise<Record<string, LinkedProfile>> {
+  if (psids.length === 0) return {};
+  const { data } = await supabase
+    .from('participant_profiles')
+    .select('psid, name, platform, profile_pic')
+    .in('psid', psids);
+
+  const map: Record<string, LinkedProfile> = {};
+  for (const p of data ?? []) {
+    map[p.psid] = {
+      psid: p.psid,
+      name: p.name ?? 'Unknown',
+      platform: p.platform as 'instagram' | 'messenger',
+      profilePic: p.profile_pic ?? undefined,
+    };
+  }
+  return map;
+}
+
+/** Fetch all participant profiles for a platform (for the link picker in client form). */
+export async function fetchAvailableProfiles(platform: 'instagram' | 'messenger'): Promise<LinkedProfile[]> {
+  const { data } = await supabase
+    .from('participant_profiles')
+    .select('psid, name, platform, profile_pic')
+    .eq('platform', platform)
+    .order('name');
+
+  return (data ?? []).map((p) => ({
+    psid: p.psid,
+    name: p.name ?? 'Unknown',
+    platform: p.platform as 'instagram' | 'messenger',
+    profilePic: p.profile_pic ?? undefined,
+  }));
+}
+
 export async function createClient(
   client: Omit<Client, 'id' | 'created_at' | 'notes'>
 ): Promise<Client> {
@@ -43,9 +77,7 @@ export async function createClient(
     display_name: client.display_name ?? null,
     phone: client.phone ?? null,
     instagram: client.instagram ?? null,
-    facebook_id: client.facebook_id ?? null,
-    psid: client.psid ?? null,
-    email: client.email ?? null,
+    facebook: client.facebook ?? null,
     dob: client.dob ?? null,
     channel: client.channel ?? null,
     tags: client.tags ?? [],
@@ -72,9 +104,7 @@ export async function updateClient(
   if (updates.display_name !== undefined) payload.display_name = updates.display_name ?? null;
   if (updates.phone !== undefined) payload.phone = updates.phone ?? null;
   if (updates.instagram !== undefined) payload.instagram = updates.instagram ?? null;
-  if (updates.facebook_id !== undefined) payload.facebook_id = updates.facebook_id ?? null;
-  if (updates.psid !== undefined) payload.psid = updates.psid ?? null;
-  if (updates.email !== undefined) payload.email = updates.email ?? null;
+  if (updates.facebook !== undefined) payload.facebook = updates.facebook ?? null;
   if (updates.dob !== undefined) payload.dob = updates.dob ?? null;
   if (updates.channel !== undefined) payload.channel = updates.channel ?? null;
   if (updates.tags !== undefined) payload.tags = updates.tags;
@@ -86,17 +116,6 @@ export async function updateClient(
     .eq('id', id);
 
   if (error) throw error;
-}
-
-export async function findClientByPsid(psid: string): Promise<Client | null> {
-  const { data, error } = await supabase
-    .from('clients')
-    .select('*')
-    .eq('psid', psid)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data ? toClient(data) : null;
 }
 
 export async function deleteClient(id: string): Promise<void> {

@@ -5,7 +5,8 @@ import type { ClientChannel } from '../../types';
 
 export interface CreateClientInitialData {
   name?: string;
-  psid?: string;
+  instagram?: string;
+  facebook?: string;
   channel?: ClientChannel;
 }
 
@@ -20,7 +21,6 @@ const channels: ClientChannel[] = ['Phone', 'Instagram', 'Facebook'];
 const inputClass = "w-full bg-input border border-border/60 rounded-md px-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors min-h-[48px]";
 const labelClass = "text-sm text-text-t uppercase tracking-wider mb-2 block font-medium";
 
-/** Inner content — rendered inside Modal so useModalDismiss() has access to context. */
 function CreateClientFormContent({ initialData, onCreated }: { initialData?: CreateClientInitialData; onCreated?: (clientId: string) => void }) {
   const addClient = useClientStore((s) => s.addClient);
   const dismiss = useModalDismiss();
@@ -38,7 +38,8 @@ function CreateClientFormContent({ initialData, onCreated }: { initialData?: Cre
         name: name.trim(),
         phone: phone || undefined,
         channel: channel || undefined,
-        psid: initialData?.psid || undefined,
+        instagram: initialData?.instagram || undefined,
+        facebook: initialData?.facebook || undefined,
         tags: [],
       });
       onCreated?.(created.id);

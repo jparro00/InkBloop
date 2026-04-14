@@ -8,17 +8,21 @@ import { useUIStore } from '../stores/uiStore';
 export default function ClientsPage() {
   const navigate = useNavigate();
   const clients = useClientStore((s) => s.clients);
+  const linkedProfiles = useClientStore((s) => s.linkedProfiles);
   const bookings = useBookingStore((s) => s.bookings);
   const [search, setSearch] = useState('');
   const { setHeaderLeft, setHeaderRight, setCreateClientFormOpen } = useUIStore();
 
   const filtered = search
-    ? clients.filter(
-        (c) =>
-          c.name.toLowerCase().includes(search.toLowerCase()) ||
-          c.phone?.toLowerCase().includes(search.toLowerCase()) ||
-          c.instagram?.toLowerCase().includes(search.toLowerCase())
-      )
+    ? clients.filter((c) => {
+        const q = search.toLowerCase();
+        return (
+          c.name.toLowerCase().includes(q) ||
+          c.phone?.toLowerCase().includes(q) ||
+          (c.instagram && linkedProfiles[c.instagram]?.name?.toLowerCase().includes(q)) ||
+          (c.facebook && linkedProfiles[c.facebook]?.name?.toLowerCase().includes(q))
+        );
+      })
     : clients;
 
   const getStats = (clientId: string) => {
@@ -87,7 +91,11 @@ export default function ClientsPage() {
                     )}
                   </div>
                   <div className="text-sm text-text-s mt-1 truncate">
-                    {[client.phone, client.instagram].filter(Boolean).join(' · ')}
+                    {[
+                      client.phone,
+                      client.instagram && linkedProfiles[client.instagram]?.name,
+                      client.facebook && linkedProfiles[client.facebook]?.name,
+                    ].filter(Boolean).join(' · ')}
                   </div>
                 </div>
                 <div className="hidden lg:flex gap-1.5">

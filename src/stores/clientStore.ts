@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import type { Client, ClientNote } from '../types';
+import type { Client, ClientNote, LinkedProfile } from '../types';
 import * as clientService from '../services/clientService';
 
 interface ClientStore {
   clients: Client[];
+  linkedProfiles: Record<string, LinkedProfile>;
   isLoading: boolean;
   error: string | null;
   fetchClients: () => Promise<void>;
@@ -14,11 +15,13 @@ interface ClientStore {
   addNote: (clientId: string, text: string) => Promise<void>;
   searchClients: (query: string) => Client[];
   findByPsid: (psid: string) => Client | undefined;
-  linkPsidToClient: (clientId: string, psid: string) => Promise<void>;
+  linkPlatform: (clientId: string, platform: 'instagram' | 'messenger', psid: string) => Promise<void>;
+  unlinkPlatform: (clientId: string, platform: 'instagram' | 'messenger') => Promise<void>;
 }
 
 export const useClientStore = create<ClientStore>((set, get) => ({
   clients: [],
+  linkedProfiles: {},
   isLoading: false,
   error: null,
 
@@ -26,7 +29,11 @@ export const useClientStore = create<ClientStore>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const clients = await clientService.fetchClients();
-      set({ clients, isLoading: false });
+      const allPsids = clients.flatMap((c) =>
+        [c.instagram, c.facebook].filter(Boolean)
+      ) as string[];
+      const linkedProfiles = await clientService.fetchLinkedProfiles(allPsids);
+      set({ clients, linkedProfiles, isLoading: false });
     } catch (e) {
       set({ error: (e as Error).message, isLoading: false });
     }
@@ -35,7 +42,6 @@ export const useClientStore = create<ClientStore>((set, get) => ({
   getClient: (id) => get().clients.find((c) => c.id === id),
 
   addClient: async (data) => {
-    // Optimistic: create temp client in state
     const tempId = crypto.randomUUID();
     const optimistic: Client = {
       ...data,
@@ -47,12 +53,15 @@ export const useClientStore = create<ClientStore>((set, get) => ({
 
     try {
       const real = await clientService.createClient(data);
+      // Fetch linked profiles for the new client
+      const newPsids = [real.instagram, real.facebook].filter(Boolean) as string[];
+      const newProfiles = await clientService.fetchLinkedProfiles(newPsids);
       set((s) => ({
         clients: s.clients.map((c) => (c.id === tempId ? real : c)),
+        linkedProfiles: { ...s.linkedProfiles, ...newProfiles },
       }));
       return real;
     } catch (e) {
-      // Roll back
       set((s) => ({ clients: s.clients.filter((c) => c.id !== tempId) }));
       throw e;
     }
@@ -60,7 +69,6 @@ export const useClientStore = create<ClientStore>((set, get) => ({
 
   updateClient: async (id, data) => {
     const prev = get().clients.find((c) => c.id === id);
-    // Optimistic update
     set((s) => ({
       clients: s.clients.map((c) => (c.id === id ? { ...c, ...data } : c)),
     }));
@@ -68,7 +76,6 @@ export const useClientStore = create<ClientStore>((set, get) => ({
     try {
       await clientService.updateClient(id, data);
     } catch (e) {
-      // Roll back
       if (prev) {
         set((s) => ({
           clients: s.clients.map((c) => (c.id === id ? prev : c)),
@@ -80,13 +87,11 @@ export const useClientStore = create<ClientStore>((set, get) => ({
 
   deleteClient: async (id) => {
     const prev = get().clients.find((c) => c.id === id);
-    // Optimistic delete
     set((s) => ({ clients: s.clients.filter((c) => c.id !== id) }));
 
     try {
       await clientService.deleteClient(id);
     } catch (e) {
-      // Roll back
       if (prev) {
         set((s) => ({ clients: [...s.clients, prev] }));
       }
@@ -101,7 +106,6 @@ export const useClientStore = create<ClientStore>((set, get) => ({
     const note: ClientNote = { ts: new Date().toISOString(), text };
     const newNotes = [note, ...client.notes];
 
-    // Optimistic
     set((s) => ({
       clients: s.clients.map((c) =>
         c.id === clientId ? { ...c, notes: newNotes } : c
@@ -111,7 +115,6 @@ export const useClientStore = create<ClientStore>((set, get) => ({
     try {
       await clientService.updateClientNotes(clientId, newNotes);
     } catch (e) {
-      // Roll back
       set((s) => ({
         clients: s.clients.map((c) =>
           c.id === clientId ? { ...c, notes: client.notes } : c
@@ -121,33 +124,60 @@ export const useClientStore = create<ClientStore>((set, get) => ({
     }
   },
 
-  findByPsid: (psid) => get().clients.find((c) => c.psid === psid),
+  findByPsid: (psid) =>
+    get().clients.find((c) => c.instagram === psid || c.facebook === psid),
 
-  linkPsidToClient: async (clientId, psid) => {
-    // Optimistic update
+  linkPlatform: async (clientId, platform, psid) => {
+    const field = platform === 'instagram' ? 'instagram' : 'facebook';
     set((s) => ({
-      clients: s.clients.map((c) => (c.id === clientId ? { ...c, psid } : c)),
+      clients: s.clients.map((c) =>
+        c.id === clientId ? { ...c, [field]: psid } : c
+      ),
     }));
     try {
-      await clientService.updateClient(clientId, { psid });
+      await clientService.updateClient(clientId, { [field]: psid });
+      const profiles = await clientService.fetchLinkedProfiles([psid]);
+      set((s) => ({ linkedProfiles: { ...s.linkedProfiles, ...profiles } }));
     } catch (e) {
-      // Roll back
       set((s) => ({
-        clients: s.clients.map((c) => (c.id === clientId ? { ...c, psid: undefined } : c)),
+        clients: s.clients.map((c) =>
+          c.id === clientId ? { ...c, [field]: undefined } : c
+        ),
       }));
+      throw e;
+    }
+  },
+
+  unlinkPlatform: async (clientId, platform) => {
+    const field = platform === 'instagram' ? 'instagram' : 'facebook';
+    const prev = get().clients.find((c) => c.id === clientId);
+    set((s) => ({
+      clients: s.clients.map((c) =>
+        c.id === clientId ? { ...c, [field]: undefined } : c
+      ),
+    }));
+    try {
+      await clientService.updateClient(clientId, { [field]: null as unknown as undefined });
+    } catch (e) {
+      if (prev) {
+        set((s) => ({
+          clients: s.clients.map((c) => (c.id === clientId ? prev : c)),
+        }));
+      }
       throw e;
     }
   },
 
   searchClients: (query) => {
     const q = query.toLowerCase();
+    const profiles = get().linkedProfiles;
     return get().clients.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
         c.phone?.toLowerCase().includes(q) ||
-        c.instagram?.toLowerCase().includes(q) ||
-        c.email?.toLowerCase().includes(q) ||
-        c.tags.some((t) => t.toLowerCase().includes(q))
+        c.tags.some((t) => t.toLowerCase().includes(q)) ||
+        (c.instagram && profiles[c.instagram]?.name?.toLowerCase().includes(q)) ||
+        (c.facebook && profiles[c.facebook]?.name?.toLowerCase().includes(q))
     );
   },
 }));

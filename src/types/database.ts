@@ -12,9 +12,7 @@ export interface Database {
           display_name: string | null;
           phone: string | null;
           instagram: string | null;
-          facebook_id: string | null;
-          psid: string | null;
-          email: string | null;
+          facebook: string | null;
           dob: string | null;
           channel: 'Facebook' | 'Instagram' | 'Phone' | null;
           tags: string[];
@@ -28,9 +26,7 @@ export interface Database {
           display_name?: string | null;
           phone?: string | null;
           instagram?: string | null;
-          facebook_id?: string | null;
-          psid?: string | null;
-          email?: string | null;
+          facebook?: string | null;
           dob?: string | null;
           channel?: 'Facebook' | 'Instagram' | 'Phone' | null;
           tags?: string[];
@@ -44,9 +40,7 @@ export interface Database {
           display_name?: string | null;
           phone?: string | null;
           instagram?: string | null;
-          facebook_id?: string | null;
-          psid?: string | null;
-          email?: string | null;
+          facebook?: string | null;
           dob?: string | null;
           channel?: 'Facebook' | 'Instagram' | 'Phone' | null;
           tags?: string[];

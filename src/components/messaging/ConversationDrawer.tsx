@@ -68,10 +68,11 @@ export default function ConversationDrawer() {
 
   const convo = conversations.find((c) => c.id === selectedConversationId);
   const findByPsid = useClientStore((s) => s.findByPsid);
-  const linkPsidToClient = useClientStore((s) => s.linkPsidToClient);
+  // linkPsidToClient removed — now using linkPlatform
   const clients = useClientStore((s) => s.clients);
   const navigate = useNavigate();
 
+  const linkPlatform = useClientStore((s) => s.linkPlatform);
   const linkedClient = convo ? findByPsid(convo.participantPsid) : undefined;
   const [showLinkMenu, setShowLinkMenu] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -291,13 +292,16 @@ export default function ConversationDrawer() {
             </div>
             <div className="max-h-48 overflow-y-auto space-y-0.5">
               {clients
-                .filter((c) => !c.psid && c.name.toLowerCase().includes(clientSearchQuery.toLowerCase()))
+                .filter((c) => {
+                  const field = convo.platform === 'instagram' ? c.instagram : c.facebook;
+                  return !field && c.name.toLowerCase().includes(clientSearchQuery.toLowerCase());
+                })
                 .slice(0, 10)
                 .map((c) => (
                   <button
                     key={c.id}
                     onClick={async () => {
-                      await linkPsidToClient(c.id, convo.participantPsid);
+                      await linkPlatform(c.id, convo.platform, convo.participantPsid);
                       setShowClientSearch(false);
                       setClientSearchQuery('');
                     }}
@@ -307,7 +311,10 @@ export default function ConversationDrawer() {
                     {c.phone && <span className="text-text-t ml-2">{c.phone}</span>}
                   </button>
                 ))}
-              {clients.filter((c) => !c.psid && c.name.toLowerCase().includes(clientSearchQuery.toLowerCase())).length === 0 && (
+              {clients.filter((c) => {
+                  const field = convo.platform === 'instagram' ? c.instagram : c.facebook;
+                  return !field && c.name.toLowerCase().includes(clientSearchQuery.toLowerCase());
+                }).length === 0 && (
                 <div className="text-text-t text-xs py-2 text-center">No matching clients</div>
               )}
             </div>
@@ -392,7 +399,9 @@ export default function ConversationDrawer() {
             onClose={() => setShowCreateForm(false)}
             initialData={{
               name: convo.participantName,
-              psid: convo.participantPsid,
+              ...(convo.platform === 'instagram'
+                ? { instagram: convo.participantPsid }
+                : { facebook: convo.participantPsid }),
               channel: (convo.platform === 'instagram' ? 'Instagram' : 'Facebook') as ClientChannel,
             }}
             onCreated={() => setShowCreateForm(false)}
