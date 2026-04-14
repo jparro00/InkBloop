@@ -36,11 +36,16 @@ export default function SettingsPage() {
   const [totpVerifyCode, setTotpVerifyCode] = useState('');
   const [totpError, setTotpError] = useState('');
 
-  // Check TOTP status on mount
+  // Check TOTP status on mount — only count verified factors
   useEffect(() => {
     supabase.auth.mfa.listFactors().then(({ data }) => {
-      const hasTotp = (data?.totp?.length ?? 0) > 0;
-      setTotpStatus(hasTotp ? 'enabled' : 'disabled');
+      const verified = data?.totp?.filter((f) => f.status === 'verified') ?? [];
+      const unverified = data?.totp?.filter((f) => f.status !== 'verified') ?? [];
+      // Clean up any leftover unverified factors from previous broken enrollments
+      for (const f of unverified) {
+        supabase.auth.mfa.unenroll({ factorId: f.id }).catch(() => {});
+      }
+      setTotpStatus(verified.length > 0 ? 'enabled' : 'disabled');
     });
   }, []);
 
