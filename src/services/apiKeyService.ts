@@ -23,7 +23,8 @@ export async function hasApiKey(): Promise<boolean> {
   // Check legacy localStorage first (migration path)
   if (localStorage.getItem('inkbloop-anthropic-key')) return true;
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) return false;
 
   const { data } = await supabase

@@ -72,7 +72,8 @@ export async function upsertParticipantProfile(
   name: string,
   profilePic?: string
 ): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) return;
   await supabase.from('participant_profiles').upsert({
     psid,
@@ -224,7 +225,8 @@ export async function sendMarkSeen(
 // ── Read State (Supabase) ────────────────────────────────────────────────────
 
 export async function markConversationRead(conversationId: string, lastMid: string): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) return;
 
   await supabase.from('conversation_reads').upsert({
@@ -235,7 +237,8 @@ export async function markConversationRead(conversationId: string, lastMid: stri
 }
 
 export async function fetchReadStates(): Promise<Record<string, string>> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) return {};
 
   const { data } = await supabase
@@ -305,7 +308,8 @@ export async function fetchMessagesFromDB(conversationId: string): Promise<Graph
 
 /** Fetch conversation list from Supabase messages table. */
 export async function fetchConversationsFromDB(readMids?: Record<string, string>): Promise<ConversationSummary[]> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) return [];
 
   // Get all messages grouped by conversation (Supabase doesn't support GROUP BY,
@@ -394,7 +398,8 @@ export async function storeOutgoingMessage(
   text?: string,
   attachments?: Json | null
 ): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) return;
 
   const businessId = platform === 'instagram' ? IG_USER_ID : PAGE_ID;
@@ -430,7 +435,8 @@ export async function storeOutgoingMessage(
  *  Checks the conversation_map cache first; falls back to a full conversation-list
  *  scan and writes the result to the cache so future calls are instant. */
 async function resolveGraphConvId(conversationId: string, platform: string): Promise<string | null> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) return null;
 
   // Check cache

@@ -80,8 +80,8 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
   _pollInterval: null,
 
   startRealtime: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
 
     // Try Supabase Realtime first
     const channel = supabase
