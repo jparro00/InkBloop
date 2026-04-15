@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Plus } from 'lucide-react';
+import { ArrowLeft, Edit, Plus, MessageCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { useClientStore } from '../stores/clientStore';
 import { useBookingStore } from '../stores/bookingStore';
@@ -149,15 +149,25 @@ export default function ClientDetailPage() {
         <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0 max-w-xl">
           {[
             { label: 'Phone', value: client.phone },
-            { label: 'Instagram', value: client.instagram ? linkedProfiles[client.instagram]?.name : undefined },
-            { label: 'Facebook', value: client.facebook ? linkedProfiles[client.facebook]?.name : undefined },
+            { label: 'Instagram', value: client.instagram ? linkedProfiles[client.instagram]?.name : undefined, psid: client.instagram },
+            { label: 'Facebook', value: client.facebook ? linkedProfiles[client.facebook]?.name : undefined, psid: client.facebook },
             { label: 'Date of Birth', value: client.dob ? format(new Date(client.dob), 'MMM d, yyyy') : undefined },
           ]
             .filter((f) => f.value)
             .map((f) => (
               <div key={f.label} className="bg-surface/60 rounded-lg p-5 border border-border/30">
                 <div className="text-sm text-text-t uppercase tracking-wider mb-1.5 font-medium">{f.label}</div>
-                <div className="text-base text-text-p">{f.value}</div>
+                {f.psid ? (
+                  <button
+                    onClick={() => navigate('/messages', { state: { openPsid: f.psid } })}
+                    className="flex items-center gap-2 text-base text-accent cursor-pointer press-scale"
+                  >
+                    <span>{f.value}</span>
+                    <MessageCircle size={16} />
+                  </button>
+                ) : (
+                  <div className="text-base text-text-p">{f.value}</div>
+                )}
               </div>
             ))}
 

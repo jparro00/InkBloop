@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Search, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatDistanceToNowStrict } from 'date-fns';
@@ -107,6 +108,8 @@ export default function MessagesPage() {
   const stopRealtime = useMessageStore((s) => s.stopRealtime);
   const markRead = useMessageStore((s) => s.markRead);
   const [search, setSearch] = useState('');
+  const location = useLocation();
+  const pendingPsidHandled = useRef(false);
 
   useEffect(() => {
     setHeaderLeft(null);
@@ -120,6 +123,20 @@ export default function MessagesPage() {
     startRealtime();
     return () => stopRealtime();
   }, [fetchConversations, startRealtime, stopRealtime]);
+
+  // Auto-open conversation when navigated from client detail with a PSID
+  useEffect(() => {
+    const openPsid = (location.state as { openPsid?: string } | null)?.openPsid;
+    if (!openPsid || pendingPsidHandled.current || conversations.length === 0) return;
+    const match = conversations.find((c) => c.participantPsid === openPsid);
+    if (match) {
+      setSelectedConversationId(match.id);
+      markRead(match.id);
+      pendingPsidHandled.current = true;
+      // Clear the state so back-navigation doesn't re-trigger
+      window.history.replaceState({}, '');
+    }
+  }, [conversations, location.state, setSelectedConversationId, markRead]);
 
   const filtered = search
     ? conversations.filter((c) =>
