@@ -127,10 +127,6 @@ body::before {
   }
 }
 
-/* Hide scrollbar for scroll-snap wheels */
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
 ::selection {
   background: var(--color-accent-glow);
   color: var(--color-text-p);

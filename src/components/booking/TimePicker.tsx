@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { format, isSameDay, isToday } from 'date-fns';
 import { Clock, Check } from 'lucide-react';
+import { useDrag } from '@use-gesture/react';
 import { useBookingStore } from '../../stores/bookingStore';
 import { useClientStore } from '../../stores/clientStore';
 import { getTypeColor, getTypeColorAlpha } from '../../types';
@@ -12,10 +13,8 @@ const MINUTES = [0, 15, 30, 45];
 const HOURS_12 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 const PERIODS: ('AM' | 'PM')[] = ['AM', 'PM'];
 
-const WHEEL_ITEM_H = 40;
-const WHEEL_VISIBLE = 5; // show 5 items, selected is in the middle
-const WHEEL_H = WHEEL_ITEM_H * WHEEL_VISIBLE;
-const WHEEL_PAD = WHEEL_ITEM_H * 2; // padding so selected item sits in center
+// Threshold in px before a drag counts as a step
+const DRAG_STEP = 30;
 
 interface TimePickerProps {
   value: string;
@@ -38,92 +37,57 @@ function to24(hour12: number, period: 'AM' | 'PM'): number {
   return hour12 === 12 ? 12 : hour12 + 12;
 }
 
-// Scroll-snap wheel for picking from a list of values
-function ScrollWheel<T extends string | number>({
+// Inline spinner: shows one value, swipe up/down to cycle through items
+function InlineSpinner<T extends string | number>({
   items,
   value,
   onChange,
   formatItem,
+  width,
 }: {
   items: T[];
   value: T;
   onChange: (v: T) => void;
   formatItem?: (v: T) => string;
+  width?: number;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const isSnapping = useRef(false);
-  const suppressScroll = useRef(false);
+  const stepsAccum = useRef(0);
 
-  const selectedIdx = items.indexOf(value);
-
-  // Scroll to the selected item when mounting or when value changes externally
-  useEffect(() => {
-    if (!ref.current) return;
-    const target = selectedIdx * WHEEL_ITEM_H;
-    if (Math.abs(ref.current.scrollTop - target) > 2) {
-      suppressScroll.current = true;
-      ref.current.scrollTop = target;
-      requestAnimationFrame(() => { suppressScroll.current = false; });
-    }
-  }, [selectedIdx]);
-
-  const handleScroll = useCallback(() => {
-    if (!ref.current || suppressScroll.current) return;
-    // After scroll-snap settles, read which item is centered
-    if (isSnapping.current) return;
-    isSnapping.current = true;
-    // Use a timeout to wait for snap to finish
-    setTimeout(() => {
-      if (!ref.current) { isSnapping.current = false; return; }
-      const idx = Math.round(ref.current.scrollTop / WHEEL_ITEM_H);
-      const clamped = Math.max(0, Math.min(items.length - 1, idx));
-      if (items[clamped] !== value) {
-        onChange(items[clamped]);
-      }
-      isSnapping.current = false;
-    }, 80);
+  const cycle = useCallback((dir: 1 | -1) => {
+    const idx = items.indexOf(value);
+    const next = (idx + dir + items.length) % items.length;
+    onChange(items[next]);
   }, [items, value, onChange]);
 
+  const bind = useDrag(({ movement: [, my], first, memo }) => {
+    if (first) { stepsAccum.current = 0; return 0; }
+    const prevSteps = (memo as number) ?? 0;
+    const totalSteps = Math.trunc(my / DRAG_STEP);
+    const delta = totalSteps - prevSteps;
+    if (delta !== 0) {
+      // Drag down = previous (dir -1), drag up = next (dir +1)
+      for (let i = 0; i < Math.abs(delta); i++) {
+        cycle(delta > 0 ? -1 : 1);
+      }
+    }
+    return totalSteps;
+  }, { axis: 'y', filterTaps: true, pointer: { touch: true } });
+
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    cycle(e.deltaY > 0 ? 1 : -1);
+  }, [cycle]);
+
   return (
-    <div className="relative" style={{ height: WHEEL_H }}>
-      {/* Selection highlight bar */}
-      <div
-        className="absolute left-0 right-0 pointer-events-none rounded-md bg-accent/10 border-y border-accent/20 z-10"
-        style={{ top: WHEEL_PAD, height: WHEEL_ITEM_H }}
-      />
-      <div
-        ref={ref}
-        className="h-full overflow-y-auto no-scrollbar"
-        style={{
-          scrollSnapType: 'y mandatory',
-          WebkitOverflowScrolling: 'touch',
-        }}
-        onScroll={handleScroll}
-      >
-        {/* Top padding so first item can be centered */}
-        <div style={{ height: WHEEL_PAD }} />
-        {items.map((item, i) => {
-          const isSelected = i === selectedIdx;
-          return (
-            <div
-              key={String(item)}
-              className={`flex items-center justify-center transition-all ${
-                isSelected ? 'text-text-p font-medium' : 'text-text-t'
-              }`}
-              style={{
-                height: WHEEL_ITEM_H,
-                scrollSnapAlign: 'start',
-                fontSize: isSelected ? 18 : 15,
-                opacity: isSelected ? 1 : 0.5,
-              }}
-            >
-              {formatItem ? formatItem(item) : String(item)}
-            </div>
-          );
-        })}
-        {/* Bottom padding so last item can be centered */}
-        <div style={{ height: WHEEL_PAD }} />
-      </div>
+    <div
+      {...bind()}
+      onWheel={handleWheel}
+      className="select-none touch-none cursor-ns-resize flex items-center justify-center"
+      style={{ width: width ?? 32 }}
+    >
+      <span className="text-lg font-medium text-text-p tabular-nums">
+        {formatItem ? formatItem(value) : String(value)}
+      </span>
     </div>
   );
 }
@@ -239,12 +203,12 @@ export default function TimePicker({ value, onChange, date, duration, bookingTyp
       <div className="flex items-center gap-2">
         {open ? (
           <div className="flex-1 flex items-center bg-input border border-accent/40 rounded-md overflow-hidden" style={{ height: 48 }}>
-            <div className="flex items-center gap-1 px-3 flex-1">
-              <Clock size={16} className="text-text-t shrink-0 mr-1" />
-              <span className="text-lg font-medium text-text-p tabular-nums">{hour12}</span>
-              <span className="text-lg text-text-t font-medium">:</span>
-              <span className="text-lg font-medium text-text-p tabular-nums">{String(selMin).padStart(2, '0')}</span>
-              <span className="ml-1 text-sm font-medium text-accent">{period}</span>
+            <div className="flex items-center px-3 flex-1">
+              <Clock size={16} className="text-text-t shrink-0 mr-2" />
+              <InlineSpinner items={HOURS_12} value={hour12} onChange={handleHourChange} />
+              <span className="text-lg text-text-t font-medium mx-0.5">:</span>
+              <InlineSpinner items={MINUTES} value={selMin} onChange={handleMinuteChange} formatItem={(m) => String(m).padStart(2, '0')} />
+              <InlineSpinner items={PERIODS} value={period} onChange={handlePeriodChange} width={36} />
             </div>
           </div>
         ) : (
@@ -268,28 +232,6 @@ export default function TimePicker({ value, onChange, date, duration, bookingTyp
           </button>
         )}
       </div>
-
-      {/* Scroll wheels */}
-      {open && (
-        <div className="mt-2 bg-elevated border border-accent/20 rounded-lg shadow-glow overflow-hidden">
-          <div className="flex items-stretch">
-            <div className="flex-1 border-r border-border/20">
-              <ScrollWheel items={HOURS_12} value={hour12} onChange={handleHourChange} />
-            </div>
-            <div className="flex-1 border-r border-border/20">
-              <ScrollWheel
-                items={MINUTES}
-                value={selMin}
-                onChange={handleMinuteChange}
-                formatItem={(m) => String(m).padStart(2, '0')}
-              />
-            </div>
-            <div className="flex-1">
-              <ScrollWheel items={PERIODS} value={period} onChange={handlePeriodChange} />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Expanded scroll picker */}
       {open && (
