@@ -27,7 +27,7 @@ interface TimePickerProps {
   editingBookingId?: string;
   onOpenChange?: (open: boolean) => void;
   onCylinderChange?: (open: boolean) => void;
-  excludeRef?: React.RefObject<HTMLElement | null>;
+  excludeRefs?: React.RefObject<HTMLElement | null>[];
 }
 
 function to12(h24: number): { hour12: number; period: 'AM' | 'PM' } {
@@ -117,7 +117,7 @@ function CylinderColumn<T extends string | number>({
   );
 }
 
-export default function TimePicker({ value, onChange, date, duration, bookingType, editingBookingId, onOpenChange, onCylinderChange, excludeRef }: TimePickerProps) {
+export default function TimePicker({ value, onChange, date, duration, bookingType, editingBookingId, onOpenChange, onCylinderChange, excludeRefs }: TimePickerProps) {
   const [open, setOpen] = useState(false);
   const [showCylinder, setShowCylinder] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -163,14 +163,25 @@ export default function TimePicker({ value, onChange, date, duration, bookingTyp
 
   // Sync timeline scroll when opening or when value changes externally.
   // Skip if the scroll position is already close (means it came from the timeline itself).
+  const prevOpen = useRef(false);
   useEffect(() => {
     if (open && scrollRef.current) {
       const target = timeToScroll(selStart);
+      const justOpened = !prevOpen.current;
+      prevOpen.current = open;
       if (Math.abs(scrollRef.current.scrollTop - target) > HOUR_H / 2) {
         isInputDriven.current = true;
-        scrollRef.current.scrollTop = target;
-        requestAnimationFrame(() => { isInputDriven.current = false; });
+        if (justOpened) {
+          // Instant on first open — no animation needed
+          scrollRef.current.scrollTop = target;
+        } else {
+          // Animated when switching time while already open (e.g. Morning/Evening)
+          scrollRef.current.scrollTo({ top: target, behavior: 'smooth' });
+        }
+        setTimeout(() => { isInputDriven.current = false; }, justOpened ? 16 : 400);
       }
+    } else {
+      prevOpen.current = open;
     }
   }, [open, selStart, timeToScroll]);
 
@@ -215,7 +226,7 @@ export default function TimePicker({ value, onChange, date, duration, bookingTyp
     if (!open) return;
     const handler = (e: MouseEvent | TouchEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        if (excludeRef?.current?.contains(e.target as Node)) return;
+        if (excludeRefs?.some(ref => ref.current?.contains(e.target as Node))) return;
         setOpenAndNotify(false);
       }
     };

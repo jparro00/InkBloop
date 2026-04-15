@@ -55,8 +55,9 @@ export default function BookingForm() {
   const tempBookingId = useRef(crypto.randomUUID());
   const morningRef = useRef<HTMLDivElement>(null);
   const timeRef = useRef<HTMLDivElement>(null);
-  const durationRef = useRef<HTMLSelectElement>(null);
+  const durationRef = useRef<HTMLDivElement>(null);
   const timePickerOpen = useRef(false);
+  const excludeRefs = useRef([morningRef, durationRef]);
   const imageBookingId = editingBookingId ?? tempBookingId.current;
   const { thumbnails, addImages, removeImage, getOriginalUrl } = useBookingImages(imageBookingId);
   const remapBookingImages = useImageStore((s) => s.remapBookingImages);
@@ -246,19 +247,11 @@ export default function BookingForm() {
         </div>
 
         {/* Duration */}
-        <div>
+        <div ref={durationRef}>
           <label className={labelClass}>Duration</label>
           <select
-            ref={durationRef}
             value={form.duration}
             onChange={(e) => setForm((f) => ({ ...f, duration: parseFloat(e.target.value) }))}
-            onMouseDown={() => {
-              if (timePickerOpen.current) {
-                requestAnimationFrame(() => {
-                  try { durationRef.current?.showPicker(); } catch { durationRef.current?.focus(); }
-                });
-              }
-            }}
             className="w-full bg-input border border-border/60 rounded-md px-4 text-base text-text-p focus:outline-none focus:border-accent/40 transition-colors cursor-pointer"
             style={{ height: 48, boxSizing: 'border-box' }}
           >
@@ -295,7 +288,7 @@ export default function BookingForm() {
                 }
               });
             }}
-            excludeRef={morningRef}
+            excludeRefs={excludeRefs.current}
             onCylinderChange={(cylOpen) => {
               if (cylOpen && timeRef.current) {
                 requestAnimationFrame(() => {
