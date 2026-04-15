@@ -359,23 +359,6 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
     return sheetH - headerH;
   }, []);
 
-  const collapseToHeader = useCallback(() => {
-    if (!canCollapse) {
-      dismiss();
-      return;
-    }
-    const target = getCollapsedY();
-    setCollapsed(true);
-    setTraceTrigger((n) => n + 1);
-    animate(dragY, target, { type: 'spring', stiffness: 300, damping: 30 });
-  }, [dragY, getCollapsedY, canCollapse, dismiss]);
-
-  const expandToFull = useCallback(() => {
-    setCollapsed(false);
-    setXTraceTrigger(0); // Reset so X button doesn't re-fire on next collapse
-    animate(dragY, 0, { type: 'spring', stiffness: 300, damping: 30 });
-  }, [dragY]);
-
   const dismiss = useCallback(() => {
     if (isDismissing.current) return;
     isDismissing.current = true;
@@ -396,6 +379,23 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
       },
     });
   }, [onClose, dragY]);
+
+  const collapseToHeader = useCallback(() => {
+    if (!canCollapse) {
+      dismiss();
+      return;
+    }
+    const target = getCollapsedY();
+    setCollapsed(true);
+    setTraceTrigger((n) => n + 1);
+    animate(dragY, target, { type: 'spring', stiffness: 300, damping: 30 });
+  }, [dragY, getCollapsedY, canCollapse, dismiss]);
+
+  const expandToFull = useCallback(() => {
+    setCollapsed(false);
+    setXTraceTrigger(0); // Reset so X button doesn't re-fire on next collapse
+    animate(dragY, 0, { type: 'spring', stiffness: 300, damping: 30 });
+  }, [dragY]);
 
   const handleBackdropClick = useCallback(() => {
     const isMobile = window.innerWidth < 1024;
