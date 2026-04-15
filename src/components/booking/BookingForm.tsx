@@ -284,6 +284,7 @@ export default function BookingForm() {
                 }
               });
             }}
+            excludeRef={morningRef}
             onCylinderChange={(cylOpen) => {
               if (cylOpen && timeRef.current) {
                 requestAnimationFrame(() => {

@@ -27,6 +27,7 @@ interface TimePickerProps {
   editingBookingId?: string;
   onOpenChange?: (open: boolean) => void;
   onCylinderChange?: (open: boolean) => void;
+  excludeRef?: React.RefObject<HTMLElement | null>;
 }
 
 function to12(h24: number): { hour12: number; period: 'AM' | 'PM' } {
@@ -116,7 +117,7 @@ function CylinderColumn<T extends string | number>({
   );
 }
 
-export default function TimePicker({ value, onChange, date, duration, bookingType, editingBookingId, onOpenChange, onCylinderChange }: TimePickerProps) {
+export default function TimePicker({ value, onChange, date, duration, bookingType, editingBookingId, onOpenChange, onCylinderChange, excludeRef }: TimePickerProps) {
   const [open, setOpen] = useState(false);
   const [showCylinder, setShowCylinder] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -208,6 +209,7 @@ export default function TimePicker({ value, onChange, date, duration, bookingTyp
     if (!open) return;
     const handler = (e: MouseEvent | TouchEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        if (excludeRef?.current?.contains(e.target as Node)) return;
         setOpenAndNotify(false);
       }
     };
