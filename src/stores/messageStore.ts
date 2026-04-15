@@ -367,7 +367,7 @@ export const useMessageStore = create<MessageStore>()(
       // Cache conversations for instant render; strip profilePic (re-fetched
       // from DB) to keep the payload small for mobile localStorage quotas.
       partialize: (state) => ({
-        conversations: state.conversations.map(({ profilePic: _, ...c }) => c),
+        conversations: state.conversations,
         readMids: state.readMids,
         drafts: state.drafts,
       }),
