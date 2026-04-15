@@ -1,0 +1,51 @@
+import { create } from 'zustand';
+import type { Document } from '../types';
+import * as documentService from '../services/documentService';
+
+interface DocumentStore {
+  documents: Document[];
+  isLoading: boolean;
+  fetchDocuments: () => Promise<void>;
+  getDocumentsForClient: (clientId: string) => Document[];
+  getDocumentsForBooking: (bookingId: string) => Document[];
+  uploadDocument: (file: File, clientId: string, bookingId?: string) => Promise<Document>;
+  removeDocument: (doc: Document) => Promise<void>;
+}
+
+export const useDocumentStore = create<DocumentStore>((set, get) => ({
+  documents: [],
+  isLoading: false,
+
+  fetchDocuments: async () => {
+    set({ isLoading: true });
+    try {
+      const documents = await documentService.fetchDocuments();
+      set({ documents, isLoading: false });
+    } catch {
+      set({ isLoading: false });
+    }
+  },
+
+  getDocumentsForClient: (clientId) =>
+    get().documents.filter((d) => d.client_id === clientId),
+
+  getDocumentsForBooking: (bookingId) =>
+    get().documents.filter((d) => d.booking_id === bookingId),
+
+  uploadDocument: async (file, clientId, bookingId) => {
+    const doc = await documentService.uploadDocument(file, clientId, bookingId);
+    set((s) => ({ documents: [doc, ...s.documents] }));
+    return doc;
+  },
+
+  removeDocument: async (doc) => {
+    set((s) => ({ documents: s.documents.filter((d) => d.id !== doc.id) }));
+    try {
+      await documentService.deleteDocument(doc);
+    } catch (e) {
+      // Roll back
+      set((s) => ({ documents: [doc, ...s.documents] }));
+      throw e;
+    }
+  },
+}));

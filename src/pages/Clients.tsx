@@ -78,9 +78,18 @@ export default function ClientsPage() {
                 onClick={() => navigate(`/clients/${client.id}`)}
                 className="w-full text-left flex items-center gap-4 px-5 py-4 lg:px-4 rounded-lg active:bg-elevated/40 lg:hover:bg-elevated/30 transition-colors cursor-pointer group press-scale min-h-[72px]"
               >
-                <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center text-accent text-base font-medium shrink-0">
-                  {client.name.charAt(0)}
-                </div>
+                {(() => {
+                  const pic = client.profile_pic
+                    || (client.instagram && linkedProfiles[client.instagram]?.profilePic)
+                    || (client.facebook && linkedProfiles[client.facebook]?.profilePic);
+                  return pic ? (
+                    <img src={pic} alt={client.name} className="w-12 h-12 rounded-full object-cover shrink-0" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center text-accent text-base font-medium shrink-0">
+                      {client.name.charAt(0)}
+                    </div>
+                  );
+                })()}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2.5">
                     <span className="text-base text-text-p font-medium truncate">{client.name}</span>

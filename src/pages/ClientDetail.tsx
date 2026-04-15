@@ -1,13 +1,16 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Plus, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Edit, Plus, MessageCircle, Camera, FileText, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useClientStore } from '../stores/clientStore';
 import { useBookingStore } from '../stores/bookingStore';
+import { useImageStore } from '../stores/imageStore';
+import { useDocumentStore } from '../stores/documentStore';
 import { useUIStore } from '../stores/uiStore';
+import { getSignedUrl } from '../services/documentService';
 import { getTypeColor } from '../types';
 
-type Tab = 'overview' | 'appointments' | 'documents' | 'notes';
+type Tab = 'overview' | 'appointments' | 'photos' | 'documents' | 'notes';
 
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +21,10 @@ export default function ClientDetailPage() {
   const linkedProfiles = useClientStore((s) => s.linkedProfiles);
   const allBookings = useBookingStore((s) => s.bookings);
   const clientBookings = useMemo(() => allBookings.filter((b) => b.client_id === id), [allBookings, id]);
+  const allBookingImages = useImageStore((s) => s.images);
+  const clientDocuments = useDocumentStore((s) => s.getDocumentsForClient(id ?? ''));
+  const uploadDocument = useDocumentStore((s) => s.uploadDocument);
+  const removeDocument = useDocumentStore((s) => s.removeDocument);
   const { setSelectedBookingId, openBookingForm, setPrefillBookingData, setEditingClientId } = useUIStore();
   const [tab, setTab] = useState<Tab>('overview');
   const [noteText, setNoteText] = useState('');
@@ -43,9 +50,25 @@ export default function ClientDetailPage() {
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
+  // Photos: booking_images from this client's bookings + document uploads with type=image
+  const clientBookingIds = useMemo(() => new Set(clientBookings.map((b) => b.id)), [clientBookings]);
+  const bookingPhotos = useMemo(
+    () => allBookingImages.filter((img) => clientBookingIds.has(img.booking_id)),
+    [allBookingImages, clientBookingIds]
+  );
+  const docPhotos = useMemo(
+    () => clientDocuments.filter((d) => d.type === 'image'),
+    [clientDocuments]
+  );
+  const docs = useMemo(
+    () => clientDocuments.filter((d) => d.type !== 'image'),
+    [clientDocuments]
+  );
+
   const tabs: { key: Tab; label: string }[] = [
     { key: 'overview', label: 'Overview' },
     { key: 'appointments', label: 'Appts' },
+    { key: 'photos', label: 'Photos' },
     { key: 'documents', label: 'Docs' },
     { key: 'notes', label: 'Notes' },
   ];
@@ -95,9 +118,18 @@ export default function ClientDetailPage() {
 
       {/* Profile */}
       <div className="flex items-start gap-4 mb-6">
-        <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center text-accent text-xl font-medium shrink-0">
-          {client.name.charAt(0)}
-        </div>
+        {(() => {
+          const pic = client.profile_pic
+            || (client.instagram && linkedProfiles[client.instagram]?.profilePic)
+            || (client.facebook && linkedProfiles[client.facebook]?.profilePic);
+          return pic ? (
+            <img src={pic} alt={client.name} className="w-16 h-16 rounded-2xl object-cover shrink-0" />
+          ) : (
+            <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center text-accent text-xl font-medium shrink-0">
+              {client.name.charAt(0)}
+            </div>
+          );
+        })()}
         <div className="min-w-0">
           <h1 className="font-display text-2xl text-text-p truncate">{client.name}</h1>
           <div className="text-base text-text-s mt-1 truncate">
@@ -211,10 +243,108 @@ export default function ClientDetailPage() {
         </div>
       )}
 
+      {/* Photos */}
+      {tab === 'photos' && (
+        <div>
+          {bookingPhotos.length > 0 && (
+            <div className="mb-6">
+              <div className="text-sm text-text-t uppercase tracking-wider mb-3 font-medium">From Bookings</div>
+              <div className="grid grid-cols-3 gap-2">
+                {bookingPhotos.map((img) => {
+                  const booking = clientBookings.find((b) => b.id === img.booking_id);
+                  return (
+                    <button
+                      key={img.id}
+                      onClick={() => booking && setSelectedBookingId(booking.id)}
+                      className="aspect-square rounded-lg bg-surface border border-border/30 overflow-hidden cursor-pointer press-scale flex items-center justify-center"
+                    >
+                      <div className="text-center p-2">
+                        <Camera size={20} className="text-text-t mx-auto mb-1" />
+                        <div className="text-xs text-text-t truncate">{img.filename}</div>
+                        {booking && (
+                          <div className="text-xs text-text-t mt-0.5">{format(new Date(booking.date), 'MMM d')}</div>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {docPhotos.length > 0 && (
+            <div className="mb-6">
+              <div className="text-sm text-text-t uppercase tracking-wider mb-3 font-medium">Uploaded Photos</div>
+              <div className="grid grid-cols-3 gap-2">
+                {docPhotos.map((doc) => (
+                  <div key={doc.id} className="aspect-square rounded-lg bg-surface border border-border/30 overflow-hidden relative group">
+                    <button
+                      onClick={async () => {
+                        const url = await getSignedUrl(doc.storage_path);
+                        window.open(url, '_blank');
+                      }}
+                      className="w-full h-full flex items-center justify-center cursor-pointer press-scale"
+                    >
+                      <div className="text-center p-2">
+                        <Camera size={20} className="text-text-t mx-auto mb-1" />
+                        <div className="text-xs text-text-t truncate">{doc.label}</div>
+                        <div className="text-xs text-text-t mt-0.5">{format(new Date(doc.created_at), 'MMM d')}</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => removeDocument(doc)}
+                      className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-bg/80 flex items-center justify-center text-text-t active:text-danger transition-colors cursor-pointer press-scale opacity-0 group-hover:opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {bookingPhotos.length === 0 && docPhotos.length === 0 && (
+            <div className="text-center py-16 text-text-t text-sm">No photos yet.</div>
+          )}
+        </div>
+      )}
+
       {/* Documents */}
       {tab === 'documents' && (
-        <div className="text-center py-16 text-text-t text-sm">
-          Document uploads available when Supabase Storage is connected.
+        <div>
+          {docs.length > 0 ? (
+            <div className="space-y-2">
+              {docs.map((doc) => (
+                <div key={doc.id} className="flex items-center gap-3 bg-surface/60 rounded-lg p-4 border border-border/30">
+                  <FileText size={20} className="text-text-t shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <button
+                      onClick={async () => {
+                        const url = await getSignedUrl(doc.storage_path);
+                        window.open(url, '_blank');
+                      }}
+                      className="text-base text-accent truncate block cursor-pointer press-scale"
+                    >
+                      {doc.label || 'Untitled'}
+                    </button>
+                    <div className="text-xs text-text-t mt-0.5">
+                      {format(new Date(doc.created_at), 'MMM d, yyyy')}
+                      {doc.booking_id && (() => {
+                        const b = clientBookings.find((bk) => bk.id === doc.booking_id);
+                        return b ? ` · ${b.type}` : '';
+                      })()}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => removeDocument(doc)}
+                    className="w-9 h-9 rounded-md flex items-center justify-center text-text-t active:text-danger transition-colors cursor-pointer press-scale shrink-0"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16 text-text-t text-sm">No documents yet.</div>
+          )}
         </div>
       )}
 

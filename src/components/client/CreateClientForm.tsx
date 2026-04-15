@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import Modal, { useModalDismiss } from '../common/Modal';
 import { useClientStore } from '../../stores/clientStore';
-import type { ClientChannel } from '../../types';
 
 export interface CreateClientInitialData {
   name?: string;
   instagram?: string;
   facebook?: string;
-  channel?: ClientChannel;
 }
 
 interface CreateClientFormProps {
@@ -15,8 +13,6 @@ interface CreateClientFormProps {
   initialData?: CreateClientInitialData;
   onCreated?: (clientId: string) => void;
 }
-
-const channels: ClientChannel[] = ['Phone', 'Instagram', 'Facebook'];
 
 const inputClass = "w-full bg-input border border-border/60 rounded-md px-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors min-h-[48px]";
 const labelClass = "text-sm text-text-t uppercase tracking-wider mb-2 block font-medium";
@@ -27,7 +23,6 @@ function CreateClientFormContent({ initialData, onCreated }: { initialData?: Cre
 
   const [name, setName] = useState(initialData?.name ?? '');
   const [phone, setPhone] = useState('');
-  const [channel, setChannel] = useState<ClientChannel | ''>(initialData?.channel ?? '');
 
   const isValid = name.trim().length > 0;
 
@@ -37,7 +32,6 @@ function CreateClientFormContent({ initialData, onCreated }: { initialData?: Cre
       const created = await addClient({
         name: name.trim(),
         phone: phone || undefined,
-        channel: channel || undefined,
         instagram: initialData?.instagram || undefined,
         facebook: initialData?.facebook || undefined,
         tags: [],
@@ -71,26 +65,6 @@ function CreateClientFormContent({ initialData, onCreated }: { initialData?: Cre
           placeholder="Phone number"
           className={inputClass}
         />
-      </div>
-
-      <div>
-        <label className={labelClass}>Preferred Channel</label>
-        <div className="flex gap-2">
-          {channels.map((ch) => (
-            <button
-              key={ch}
-              type="button"
-              onClick={() => setChannel(channel === ch ? '' : ch)}
-              className={`flex-1 py-3 text-base rounded-md border transition-colors cursor-pointer press-scale min-h-[48px] ${
-                channel === ch
-                  ? 'bg-accent/15 border-accent/40 text-accent'
-                  : 'bg-input border-border/60 text-text-s'
-              }`}
-            >
-              {ch}
-            </button>
-          ))}
-        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row lg:justify-end gap-3 pt-4 border-t border-border/40">

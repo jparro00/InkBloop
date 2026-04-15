@@ -12,6 +12,7 @@ export interface Client {
   channel?: ClientChannel;
   tags: string[];
   notes: ClientNote[];
+  profile_pic?: string;
 }
 
 export interface LinkedProfile {

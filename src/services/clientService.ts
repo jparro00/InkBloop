@@ -20,6 +20,7 @@ function toClient(row: ClientRow): Client {
     channel: row.channel ?? undefined,
     tags: row.tags ?? [],
     notes: (row.notes as unknown as ClientNote[]) ?? [],
+    profile_pic: row.profile_pic ?? undefined,
   };
 }
 
@@ -109,6 +110,7 @@ export async function updateClient(
   if (updates.channel !== undefined) payload.channel = updates.channel ?? null;
   if (updates.tags !== undefined) payload.tags = updates.tags;
   if (updates.notes !== undefined) payload.notes = updates.notes as unknown as Json;
+  if (updates.profile_pic !== undefined) payload.profile_pic = updates.profile_pic ?? null;
 
   const { error } = await supabase
     .from('clients')

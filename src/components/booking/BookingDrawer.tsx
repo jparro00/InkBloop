@@ -1,20 +1,18 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { format } from 'date-fns';
-import { Edit, Trash2, User } from 'lucide-react';
+import { Edit, Trash2, User, Camera, FileText } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { useUIStore } from '../../stores/uiStore';
 import { useBookingStore } from '../../stores/bookingStore';
 import { useClientStore } from '../../stores/clientStore';
 import { useImageStore } from '../../stores/imageStore';
 import { useBookingImages } from '../../hooks/useBookingImages';
+import { useDocumentStore } from '../../stores/documentStore';
 import { deleteImage as deleteImageBlob } from '../../lib/imageDb';
 import ImageThumbnailGrid from './ImageThumbnailGrid';
 import ImageViewer from './ImageViewer';
 import Modal from '../common/Modal';
 import { useNavigate } from 'react-router-dom';
-import type { BookingStatus } from '../../types';
-
-const allStatuses: BookingStatus[] = ['Confirmed', 'Tentative', 'Completed', 'Cancelled', 'No-show'];
 
 export default function BookingDrawer() {
   const navigate = useNavigate();
@@ -23,9 +21,11 @@ export default function BookingDrawer() {
   const updateBooking = useBookingStore((s) => s.updateBooking);
   const deleteBooking = useBookingStore((s) => s.deleteBooking);
   const client = useClientStore((s) => s.clients.find((c) => c.id === (booking?.client_id ?? '')));
+  const linkedProfiles = useClientStore((s) => s.linkedProfiles);
   const removeImagesForBooking = useImageStore((s) => s.removeImagesForBooking);
   const allImages = useImageStore((s) => s.images);
-  const { thumbnails, getOriginalUrl } = useBookingImages(selectedBookingId ?? undefined);
+  const { thumbnails, getOriginalUrl, addImages } = useBookingImages(selectedBookingId ?? undefined);
+  const uploadDocument = useDocumentStore((s) => s.uploadDocument);
   const [viewingImageId, setViewingImageId] = useState<string | null>(null);
 
   if (!booking) return null;
@@ -50,13 +50,8 @@ export default function BookingDrawer() {
     });
   };
 
-  const handleStatusChange = async (status: BookingStatus) => {
-    try {
-      await updateBooking(booking.id, { status });
-    } catch (e) {
-      console.error('Failed to update status:', e);
-    }
-  };
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <>
@@ -87,9 +82,23 @@ export default function BookingDrawer() {
 
         {/* Client */}
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center text-accent text-base font-medium shrink-0">
-            {client ? client.name.charAt(0) : <User size={20} />}
-          </div>
+          {(() => {
+            if (!client) return (
+              <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center text-accent text-base font-medium shrink-0">
+                <User size={20} />
+              </div>
+            );
+            const pic = client.profile_pic
+              || (client.instagram && linkedProfiles[client.instagram]?.profilePic)
+              || (client.facebook && linkedProfiles[client.facebook]?.profilePic);
+            return pic ? (
+              <img src={pic} alt={client.name} className="w-12 h-12 rounded-full object-cover shrink-0" />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center text-accent text-base font-medium shrink-0">
+                {client.name.charAt(0)}
+              </div>
+            );
+          })()}
           <div>
             <div className="text-base text-text-p font-medium">{client?.name ?? 'Walk-in'}</div>
             {client?.phone && <div className="text-sm text-text-s mt-0.5">{client.phone}</div>}
@@ -148,28 +157,58 @@ export default function BookingDrawer() {
           <span className="text-base">Rescheduled</span>
         </button>
 
-        {/* Status */}
+        {/* Upload buttons */}
         <div className="h-px bg-border/40 my-5" />
-        <div>
-          <div className="text-sm text-text-t uppercase tracking-wider mb-2.5 font-medium">Status</div>
-          <div className="flex items-center gap-2.5 mb-4">
-            <span className="w-3 h-3 rounded-full bg-text-s" />
-            <span className="text-base text-text-p">{booking.status}</span>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            {allStatuses
-              .filter((s) => s !== booking.status)
-              .map((s) => (
-                <button
-                  key={s}
-                  onClick={() => handleStatusChange(s)}
-                  className="px-4 py-3 text-sm rounded-md border border-border/60 text-text-s active:text-text-p active:bg-surface transition-colors cursor-pointer press-scale min-h-[44px]"
-                >
-                  {s}
-                </button>
-              ))}
-          </div>
+        <div className="flex gap-3">
+          <button
+            onClick={() => imageInputRef.current?.click()}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-input border border-border/60 rounded-md text-text-s active:text-text-p active:bg-elevated transition-colors cursor-pointer press-scale min-h-[48px]"
+          >
+            <Camera size={18} />
+            <span className="text-sm">Add Photo</span>
+          </button>
+          <button
+            onClick={() => docInputRef.current?.click()}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-input border border-border/60 rounded-md text-text-s active:text-text-p active:bg-elevated transition-colors cursor-pointer press-scale min-h-[48px]"
+          >
+            <FileText size={18} />
+            <span className="text-sm">Add Document</span>
+          </button>
         </div>
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={(e) => {
+            if (e.target.files?.length) {
+              addImages(e.target.files);
+              e.target.value = '';
+            }
+          }}
+          className="hidden"
+        />
+        <input
+          ref={docInputRef}
+          type="file"
+          accept=".pdf,.doc,.docx,.txt"
+          multiple
+          onChange={async (e) => {
+            if (e.target.files?.length && booking.client_id) {
+              for (const file of Array.from(e.target.files)) {
+                try {
+                  await uploadDocument(file, booking.client_id, booking.id);
+                  addToast('Document uploaded');
+                } catch (err) {
+                  console.error('Failed to upload document:', err);
+                  addToast('Upload failed');
+                }
+              }
+              e.target.value = '';
+            }
+          }}
+          className="hidden"
+        />
 
         {/* View Client */}
         {client && (

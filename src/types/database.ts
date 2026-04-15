@@ -17,6 +17,7 @@ export interface Database {
           channel: 'Facebook' | 'Instagram' | 'Phone' | null;
           tags: string[];
           notes: Json;
+          profile_pic: string | null;
         };
         Insert: {
           id?: string;
@@ -31,6 +32,7 @@ export interface Database {
           channel?: 'Facebook' | 'Instagram' | 'Phone' | null;
           tags?: string[];
           notes?: Json;
+          profile_pic?: string | null;
         };
         Update: {
           id?: string;
@@ -45,6 +47,7 @@ export interface Database {
           channel?: 'Facebook' | 'Instagram' | 'Phone' | null;
           tags?: string[];
           notes?: Json;
+          profile_pic?: string | null;
         };
         Relationships: [
           {

@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useClientStore } from './stores/clientStore';
 import { useBookingStore } from './stores/bookingStore';
 import { useImageStore } from './stores/imageStore';
+import { useDocumentStore } from './stores/documentStore';
 
 // Lazy-load heavy routes — only login loads eagerly
 const AppShell = lazy(() => import('./components/layout/AppShell'));
@@ -39,14 +40,16 @@ function DataLoader({ children }: { children: React.ReactNode }) {
   const fetchClients = useClientStore((s) => s.fetchClients);
   const fetchBookings = useBookingStore((s) => s.fetchBookings);
   const fetchImages = useImageStore((s) => s.fetchImages);
+  const fetchDocuments = useDocumentStore((s) => s.fetchDocuments);
 
   useEffect(() => {
     if (session) {
       fetchClients();
       fetchBookings();
       fetchImages();
+      fetchDocuments();
     }
-  }, [session, fetchClients, fetchBookings, fetchImages]);
+  }, [session, fetchClients, fetchBookings, fetchImages, fetchDocuments]);
 
   return <>{children}</>;
 }
