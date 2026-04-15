@@ -127,6 +127,10 @@ body::before {
   }
 }
 
+/* Hide scrollbar for cylinder picker columns */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
 ::selection {
   background: var(--color-accent-glow);
   color: var(--color-text-p);

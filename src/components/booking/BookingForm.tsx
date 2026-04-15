@@ -53,7 +53,8 @@ export default function BookingForm() {
   const [missingFields, setMissingFields] = useState<Set<string>>(new Set());
 
   const tempBookingId = useRef(crypto.randomUUID());
-  const timeScrollTargetRef = useRef<HTMLDivElement>(null);
+  const morningRef = useRef<HTMLDivElement>(null);
+  const timeRef = useRef<HTMLDivElement>(null);
   const imageBookingId = editingBookingId ?? tempBookingId.current;
   const { thumbnails, addImages, removeImage, getOriginalUrl } = useBookingImages(imageBookingId);
   const remapBookingImages = useImageStore((s) => s.remapBookingImages);
@@ -217,7 +218,7 @@ export default function BookingForm() {
         </div>
 
         {/* Morning / Evening */}
-        <div className="flex gap-3 mt-2">
+        <div ref={morningRef} className="flex gap-3 mt-2" style={{ scrollMarginTop: 12 }}>
           {['Morning', 'Evening'].map((slot) => {
             const time = slot === 'Morning'
               ? (localStorage.getItem('inkbloop-morning-time') ?? '10:00')
@@ -258,7 +259,7 @@ export default function BookingForm() {
         </div>
 
         {/* Time */}
-        <div ref={timeScrollTargetRef}>
+        <div ref={timeRef}>
           <label className={labelClass}>Time</label>
           <TimePicker
             value={form.time}
@@ -268,11 +269,20 @@ export default function BookingForm() {
             bookingType={form.type}
             editingBookingId={editingBookingId ?? undefined}
             onOpenChange={(isOpen) => {
-              if (isOpen && timeScrollTargetRef.current) {
-                requestAnimationFrame(() => {
-                  timeScrollTargetRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                });
-              }
+              if (!isOpen) return;
+              requestAnimationFrame(() => {
+                const morningEl = morningRef.current;
+                const timeEl = timeRef.current;
+                if (!morningEl || !timeEl) return;
+                const morningRect = morningEl.getBoundingClientRect();
+                if (morningRect.top > 0) {
+                  // Morning/Evening is below viewport top — scroll down to put it at top
+                  morningEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                  // Morning/Evening already above — just ensure time section is visible
+                  timeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+              });
             }}
           />
         </div>
