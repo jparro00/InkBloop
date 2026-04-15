@@ -146,7 +146,7 @@ export default function DatePicker({ value, onChange, missing }: DatePickerProps
   );
 
   const displayText = value
-    ? format(new Date(value + 'T00:00:00'), 'MMM d, yyyy')
+    ? format(new Date(value + 'T00:00:00'), 'EEE, MMM d, yyyy')
     : 'Select date';
 
   // Close when clicking outside
