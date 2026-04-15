@@ -104,8 +104,6 @@ export default function MessagesPage() {
   const isLoading = useMessageStore((s) => s.isLoading);
   const error = useMessageStore((s) => s.error);
   const fetchConversations = useMessageStore((s) => s.fetchConversations);
-  const startRealtime = useMessageStore((s) => s.startRealtime);
-  const stopRealtime = useMessageStore((s) => s.stopRealtime);
   const markRead = useMessageStore((s) => s.markRead);
   const [search, setSearch] = useState('');
   const location = useLocation();
@@ -117,12 +115,13 @@ export default function MessagesPage() {
     return () => { setHeaderLeft(null); setHeaderRight(null); };
   }, [setHeaderLeft, setHeaderRight]);
 
-  // Fetch on mount, then receive updates via Supabase Realtime (no polling)
+  // Fetch conversations on mount. The realtime subscription is managed
+  // at the DataLoader level (App.tsx) so it persists across tab switches.
+  // The staleness guard in fetchConversations() skips re-fetching if data
+  // was refreshed in the last 30s; realtime events bypass the guard via force=true.
   useEffect(() => {
     fetchConversations();
-    startRealtime();
-    return () => stopRealtime();
-  }, [fetchConversations, startRealtime, stopRealtime]);
+  }, [fetchConversations]);
 
   // Auto-open conversation when navigated from client detail with a PSID
   useEffect(() => {

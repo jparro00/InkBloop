@@ -6,6 +6,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { saveApiKey, removeApiKey, hasApiKey } from '../services/apiKeyService';
 
+// Session-scoped cache so device trusts aren't re-fetched on every tab visit.
+let _cachedDevices: { id: string; device_name: string | null; last_used: string; device_id: string }[] | null = null;
+let _cachedApiKeyConfigured: boolean | null = null;
+
 export default function SettingsPage() {
   const clients = useClientStore((s) => s.clients);
   const bookings = useBookingStore((s) => s.bookings);
@@ -28,24 +32,34 @@ export default function SettingsPage() {
   const [timesSaved, setTimesSaved] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [passwordSaved, setPasswordSaved] = useState(false);
-  const [trustedDevices, setTrustedDevices] = useState<{ id: string; device_name: string | null; last_used: string; device_id: string }[]>([]);
-  const [devicesLoading, setDevicesLoading] = useState(true);
+  const [trustedDevices, setTrustedDevices] = useState<{ id: string; device_name: string | null; last_used: string; device_id: string }[]>(_cachedDevices ?? []);
+  const [devicesLoading, setDevicesLoading] = useState(_cachedDevices === null);
 
-  // Fetch trusted devices on mount
+  // Fetch trusted devices once per session; use the module-level cache on
+  // subsequent visits so the Settings tab renders instantly.
   useEffect(() => {
+    if (_cachedDevices !== null) return;
     supabase
       .from('device_trusts')
       .select('id, device_id, device_name, last_used')
       .order('last_used', { ascending: false })
       .then(({ data }) => {
-        setTrustedDevices(data ?? []);
+        _cachedDevices = data ?? [];
+        setTrustedDevices(_cachedDevices);
         setDevicesLoading(false);
       });
   }, []);
 
-  // Check API key status on mount
+  // Check API key status once per session
   useEffect(() => {
-    hasApiKey().then(setApiKeyConfigured);
+    if (_cachedApiKeyConfigured !== null) {
+      setApiKeyConfigured(_cachedApiKeyConfigured);
+      return;
+    }
+    hasApiKey().then((v) => {
+      _cachedApiKeyConfigured = v;
+      setApiKeyConfigured(v);
+    });
   }, []);
 
   const handleChangePassword = async () => {
@@ -138,7 +152,11 @@ export default function SettingsPage() {
                     <button
                       onClick={async () => {
                         await supabase.from('device_trusts').delete().eq('id', device.id);
-                        setTrustedDevices((prev) => prev.filter((d) => d.id !== device.id));
+                        setTrustedDevices((prev) => {
+                          const updated = prev.filter((d) => d.id !== device.id);
+                          _cachedDevices = updated;
+                          return updated;
+                        });
                       }}
                       className="text-sm text-danger active:text-danger/70 transition-colors cursor-pointer press-scale min-h-[44px] px-2"
                     >
@@ -243,6 +261,7 @@ export default function SettingsPage() {
                     setApiKeySaving(true);
                     try {
                       await removeApiKey();
+                      _cachedApiKeyConfigured = false;
                       setApiKeyConfigured(false);
                       setApiKeyStatus('removed');
                       setTimeout(() => setApiKeyStatus('idle'), 2000);
@@ -279,6 +298,7 @@ export default function SettingsPage() {
                     setApiKeySaving(true);
                     try {
                       await saveApiKey(apiKeyInput.trim());
+                      _cachedApiKeyConfigured = true;
                       setApiKeyConfigured(true);
                       setApiKeyInput('');
                       setApiKeyStatus('saved');

@@ -20,11 +20,12 @@ interface MessageStore {
   isLoading: boolean;
   error: string | null;
   readMids: Record<string, string>;
-  fetchConversations: () => Promise<void>;
+  fetchConversations: (force?: boolean) => Promise<void>;
   markRead: (conversationId: string) => void;
   startRealtime: () => Promise<void>;
   stopRealtime: () => void;
   _realtimeChannel: ReturnType<typeof supabase.channel> | null;
+  _conversationsFetchedAt: number | null;
 
   // Chat detail state
   currentMessages: GraphMessage[];
@@ -60,6 +61,7 @@ export const useMessageStore = create<MessageStore>()(
       error: null,
       readMids: {},
       _realtimeChannel: null,
+      _conversationsFetchedAt: null,
 
       startRealtime: async () => {
         const { data: { session } } = await supabase.auth.getSession();
@@ -79,8 +81,8 @@ export const useMessageStore = create<MessageStore>()(
               }));
               markConversationRead(openId, payload.mid as string).catch(console.error);
             }
-            // Refresh conversations list from DB
-            await get().fetchConversations();
+            // Refresh conversations list from DB (force bypass staleness guard)
+            await get().fetchConversations(true);
             // If the affected conversation is currently open, refresh its messages
             // and mark as read (which also sends read receipt + broadcasts to other devices)
             if (openId && payload?.conversation_id === openId) {
@@ -103,7 +105,7 @@ export const useMessageStore = create<MessageStore>()(
           })
           .on('broadcast', { event: 'profile-updated' }, async () => {
             // Profile changed — refresh conversations to pick up new name/pic
-            await get().fetchConversations();
+            await get().fetchConversations(true);
           })
           .subscribe();
 
@@ -116,7 +118,17 @@ export const useMessageStore = create<MessageStore>()(
         set({ _realtimeChannel: null });
       },
 
-      fetchConversations: async () => {
+      fetchConversations: async (force = false) => {
+        // Skip re-fetch if data is fresh (< 30s old) and we already have
+        // conversations — the realtime subscription keeps data current.
+        // Callers that need guaranteed-fresh data (e.g. realtime handlers)
+        // can pass force=true.
+        const now = Date.now();
+        const fetchedAt = get()._conversationsFetchedAt;
+        if (!force && fetchedAt && now - fetchedAt < 30_000 && get().conversations.length > 0) {
+          return;
+        }
+
         set({ isLoading: true, error: null });
         try {
           const readMids = await fetchReadStates();
@@ -125,7 +137,7 @@ export const useMessageStore = create<MessageStore>()(
           const currentReadMids = { ...readMids, ...get().readMids };
           const conversations = await fetchConversationsFromDB(currentReadMids);
 
-          set({ conversations, isLoading: false, readMids: currentReadMids });
+          set({ conversations, isLoading: false, readMids: currentReadMids, _conversationsFetchedAt: Date.now() });
         } catch (e) {
           set({ error: (e as Error).message, isLoading: false });
         }
