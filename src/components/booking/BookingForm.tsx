@@ -285,9 +285,9 @@ export default function BookingForm() {
               });
             }}
             onCylinderChange={(cylOpen) => {
-              if (cylOpen && morningRef.current) {
+              if (cylOpen && timeRef.current) {
                 requestAnimationFrame(() => {
-                  morningRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  timeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 });
               }
             }}
