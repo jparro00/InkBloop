@@ -431,9 +431,6 @@ export default function BookingForm() {
               )}
               onClick={(e) => {
                 if (!isValid) { e.preventDefault(); return; }
-                // Fire save alongside the native anchor download.
-                // addBooking does an optimistic Zustand update (synchronous)
-                // then persists to Supabase in the background.
                 const dateTime = new Date(`${form.date}T${form.time}`);
                 const data: Omit<Booking, 'id' | 'created_at'> = {
                   client_id: form.client_id || null,
@@ -445,8 +442,16 @@ export default function BookingForm() {
                   rescheduled: form.rescheduled || undefined,
                   notes: form.notes || undefined,
                 };
+                // Persist to localStorage synchronously BEFORE the native
+                // anchor download triggers. In PWA mode, iOS kills the app
+                // when handing off to Calendar — the addBooking API call may
+                // never complete. On next launch, DataLoader retries this.
+                localStorage.setItem('inkbloop-pending-booking', JSON.stringify(data));
                 addBooking(data)
-                  .then((nb) => remapBookingImages(tempBookingId.current, nb.id))
+                  .then((nb) => {
+                    remapBookingImages(tempBookingId.current, nb.id);
+                    localStorage.removeItem('inkbloop-pending-booking');
+                  })
                   .catch(console.error);
                 closeBookingForm();
               }}
