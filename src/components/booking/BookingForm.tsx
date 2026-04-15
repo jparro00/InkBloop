@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { format } from 'date-fns';
 import { UserPlus } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
@@ -58,6 +58,7 @@ export default function BookingForm() {
   const durationRef = useRef<HTMLDivElement>(null);
   const timePickerOpen = useRef(false);
   const excludeRefs = useRef([morningRef, durationRef]);
+  const initialFormRef = useRef<typeof defaultForm | null>(null);
   const imageBookingId = editingBookingId ?? tempBookingId.current;
   const { thumbnails, addImages, removeImage, getOriginalUrl } = useBookingImages(imageBookingId);
   const remapBookingImages = useImageStore((s) => s.remapBookingImages);
@@ -65,7 +66,7 @@ export default function BookingForm() {
   useEffect(() => {
     if (booking) {
       const d = new Date(booking.date);
-      setForm({
+      const formData = {
         client_id: booking.client_id ?? '',
         date: format(d, 'yyyy-MM-dd'),
         time: format(d, 'HH:mm'),
@@ -75,7 +76,9 @@ export default function BookingForm() {
         status: booking.status,
         rescheduled: booking.rescheduled ?? false,
         notes: booking.notes ?? '',
-      });
+      };
+      setForm(formData);
+      if (!initialFormRef.current) initialFormRef.current = formData;
       const c = clients.find((c) => c.id === booking.client_id);
       if (c) setClientSearch(c.name);
     } else if (prefillBookingData) {
@@ -106,7 +109,9 @@ export default function BookingForm() {
       if (!prefillBookingData.duration && typeDuration[typeKey]) {
         updates.duration = typeDuration[typeKey];
       }
+      const initialWithUpdates = { ...defaultForm, ...updates } as typeof defaultForm;
       setForm((f) => ({ ...f, ...updates }));
+      if (!initialFormRef.current) initialFormRef.current = initialWithUpdates;
 
       // Track which fields the AI didn't populate (only for AI-sourced prefills with multiple fields)
       const hasMultipleFields = Object.keys(prefillBookingData).length > 1;
@@ -118,8 +123,15 @@ export default function BookingForm() {
         if (!prefillBookingData.estimate) missing.add('estimate');
         setMissingFields(missing);
       }
+    } else {
+      if (!initialFormRef.current) initialFormRef.current = { ...defaultForm };
     }
   }, [booking, prefillBookingData, clients]);
+
+  const dirty = useMemo(() => {
+    if (!initialFormRef.current) return false;
+    return JSON.stringify(form) !== JSON.stringify(initialFormRef.current);
+  }, [form]);
 
   const filteredClients = clientSearch
     ? clients.filter((c) => c.name.toLowerCase().includes(clientSearch.toLowerCase()))
@@ -163,7 +175,7 @@ export default function BookingForm() {
     <Modal
       title={editingBookingId ? 'Edit Booking' : 'New Booking'}
       onClose={closeBookingForm}
-      canCollapse={!!editingBookingId || form.client_id !== ''}
+      canCollapse={dirty}
     >
       <div className="space-y-6">
         {/* Client */}

@@ -21,7 +21,8 @@ function CreateClientFormContent({ initialData, onCreated, onDirtyChange }: { in
   const addClient = useClientStore((s) => s.addClient);
   const dismiss = useModalDismiss();
 
-  const [name, setName] = useState(initialData?.name ?? '');
+  const initialName = initialData?.name ?? '';
+  const [name, setName] = useState(initialName);
   const [phone, setPhone] = useState('');
 
   const isValid = name.trim().length > 0;
@@ -50,7 +51,7 @@ function CreateClientFormContent({ initialData, onCreated, onDirtyChange }: { in
         <input
           type="text"
           value={name}
-          onChange={(e) => { setName(e.target.value); onDirtyChange?.(e.target.value.trim().length > 0 || phone.trim().length > 0); }}
+          onChange={(e) => { setName(e.target.value); onDirtyChange?.(e.target.value !== initialName || phone !== ''); }}
           placeholder="Client name"
           className={inputClass}
         />
@@ -61,7 +62,7 @@ function CreateClientFormContent({ initialData, onCreated, onDirtyChange }: { in
         <input
           type="tel"
           value={phone}
-          onChange={(e) => { setPhone(e.target.value); onDirtyChange?.(name.trim().length > 0 || e.target.value.trim().length > 0); }}
+          onChange={(e) => { setPhone(e.target.value); onDirtyChange?.(name !== initialName || e.target.value !== ''); }}
           placeholder="Phone number"
           className={inputClass}
         />
@@ -87,7 +88,7 @@ function CreateClientFormContent({ initialData, onCreated, onDirtyChange }: { in
 }
 
 export default function CreateClientForm({ onClose, initialData, onCreated }: CreateClientFormProps) {
-  const [dirty, setDirty] = useState(!!initialData?.name);
+  const [dirty, setDirty] = useState(false);
   return (
     <Modal title="New Client" onClose={onClose} width="lg:max-w-[520px]" canCollapse={dirty}>
       <CreateClientFormContent initialData={initialData} onCreated={onCreated} onDirtyChange={setDirty} />

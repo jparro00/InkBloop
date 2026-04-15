@@ -153,7 +153,17 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
   const [fbPsid, setFbPsid] = useState<string | undefined>(client?.facebook);
 
   const dirty = useMemo(() => {
-    if (!client) return form.name.trim().length > 0;
+    if (!client) return (
+      form.name !== '' ||
+      form.display_name !== '' ||
+      form.phone !== '' ||
+      form.dobMonth !== '' ||
+      form.dobDay !== '' ||
+      form.dobYear !== defaultYear ||
+      form.tags !== '' ||
+      igPsid !== undefined ||
+      fbPsid !== undefined
+    );
     return (
       form.name !== (client.name ?? '') ||
       form.display_name !== (client.display_name ?? '') ||
