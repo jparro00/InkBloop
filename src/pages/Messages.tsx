@@ -170,7 +170,7 @@ export default function MessagesPage() {
             <div className="text-text-t text-sm mb-2">Failed to load messages</div>
             <div className="text-text-t text-xs">{error}</div>
             <button
-              onClick={fetchConversations}
+              onClick={() => fetchConversations()}
               className="mt-4 text-sm text-accent cursor-pointer press-scale"
             >
               Retry
