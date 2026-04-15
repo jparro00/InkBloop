@@ -57,6 +57,7 @@ export default function BookingDrawer() {
       <Modal
         title="Booking Details"
         onClose={onClose}
+        canCollapse={false}
       >
         {/* Actions */}
         <div className="flex items-center gap-2 mb-5">

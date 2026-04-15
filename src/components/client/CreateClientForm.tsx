@@ -17,7 +17,7 @@ interface CreateClientFormProps {
 const inputClass = "w-full bg-input border border-border/60 rounded-md px-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors min-h-[48px]";
 const labelClass = "text-sm text-text-t uppercase tracking-wider mb-2 block font-medium";
 
-function CreateClientFormContent({ initialData, onCreated }: { initialData?: CreateClientInitialData; onCreated?: (clientId: string) => void }) {
+function CreateClientFormContent({ initialData, onCreated, onDirtyChange }: { initialData?: CreateClientInitialData; onCreated?: (clientId: string) => void; onDirtyChange?: (dirty: boolean) => void }) {
   const addClient = useClientStore((s) => s.addClient);
   const dismiss = useModalDismiss();
 
@@ -50,7 +50,7 @@ function CreateClientFormContent({ initialData, onCreated }: { initialData?: Cre
         <input
           type="text"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => { setName(e.target.value); onDirtyChange?.(e.target.value.trim().length > 0 || phone.trim().length > 0); }}
           placeholder="Client name"
           className={inputClass}
         />
@@ -61,7 +61,7 @@ function CreateClientFormContent({ initialData, onCreated }: { initialData?: Cre
         <input
           type="tel"
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={(e) => { setPhone(e.target.value); onDirtyChange?.(name.trim().length > 0 || e.target.value.trim().length > 0); }}
           placeholder="Phone number"
           className={inputClass}
         />
@@ -87,9 +87,10 @@ function CreateClientFormContent({ initialData, onCreated }: { initialData?: Cre
 }
 
 export default function CreateClientForm({ onClose, initialData, onCreated }: CreateClientFormProps) {
+  const [dirty, setDirty] = useState(!!initialData?.name);
   return (
-    <Modal title="New Client" onClose={onClose} width="lg:max-w-[520px]">
-      <CreateClientFormContent initialData={initialData} onCreated={onCreated} />
+    <Modal title="New Client" onClose={onClose} width="lg:max-w-[520px]" canCollapse={dirty}>
+      <CreateClientFormContent initialData={initialData} onCreated={onCreated} onDirtyChange={setDirty} />
     </Modal>
   );
 }

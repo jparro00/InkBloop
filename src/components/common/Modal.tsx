@@ -240,9 +240,10 @@ interface ModalProps {
   fullScreenMobile?: boolean;
   onReady?: () => void;
   instant?: boolean;
+  canCollapse?: boolean;
 }
 
-export default function Modal({ title, header, onClose, children, width = 'lg:max-w-[620px]', fullScreenMobile = true, onReady, instant }: ModalProps) {
+export default function Modal({ title, header, onClose, children, width = 'lg:max-w-[620px]', fullScreenMobile = true, onReady, instant, canCollapse = true }: ModalProps) {
   /*
    * dragY is the SINGLE source of truth for the sheet's y position.
    * Enter, drag, collapse, and dismiss all animate dragY.
@@ -359,11 +360,15 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
   }, []);
 
   const collapseToHeader = useCallback(() => {
+    if (!canCollapse) {
+      dismiss();
+      return;
+    }
     const target = getCollapsedY();
     setCollapsed(true);
     setTraceTrigger((n) => n + 1);
     animate(dragY, target, { type: 'spring', stiffness: 300, damping: 30 });
-  }, [dragY, getCollapsedY]);
+  }, [dragY, getCollapsedY, canCollapse, dismiss]);
 
   const expandToFull = useCallback(() => {
     setCollapsed(false);

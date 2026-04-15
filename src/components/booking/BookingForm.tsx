@@ -163,6 +163,7 @@ export default function BookingForm() {
     <Modal
       title={editingBookingId ? 'Edit Booking' : 'New Booking'}
       onClose={closeBookingForm}
+      canCollapse={!!editingBookingId || form.client_id !== '' || form.date !== ''}
     >
       <div className="space-y-6">
         {/* Client */}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { X, ChevronDown } from 'lucide-react';
 import Modal from '../common/Modal';
 import { useClientStore } from '../../stores/clientStore';
@@ -152,6 +152,20 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
   const [igPsid, setIgPsid] = useState<string | undefined>(client?.instagram);
   const [fbPsid, setFbPsid] = useState<string | undefined>(client?.facebook);
 
+  const dirty = useMemo(() => {
+    if (!client) return form.name.trim().length > 0;
+    return (
+      form.name !== (client.name ?? '') ||
+      form.display_name !== (client.display_name ?? '') ||
+      form.phone !== (client.phone ?? '') ||
+      form.dobMonth !== initDob.dobMonth ||
+      form.dobDay !== initDob.dobDay ||
+      form.tags !== (client.tags.join(', ') ?? '') ||
+      igPsid !== client.instagram ||
+      fbPsid !== client.facebook
+    );
+  }, [form, igPsid, fbPsid, client, initDob]);
+
   // If we just linked a new PSID, fetch its profile so it shows immediately
   const fetchLinkedProfilesForNew = async (psids: string[]) => {
     const { fetchLinkedProfiles } = await import('../../services/clientService');
@@ -204,7 +218,7 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
   const labelClass = 'text-sm text-text-t uppercase tracking-wider mb-2 block font-medium';
 
   return (
-    <Modal title={client ? 'Edit Client' : 'New Client'} onClose={onClose} width="lg:max-w-[520px]">
+    <Modal title={client ? 'Edit Client' : 'New Client'} onClose={onClose} width="lg:max-w-[520px]" canCollapse={dirty}>
       <div className="space-y-5">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           <div>
