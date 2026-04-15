@@ -284,6 +284,13 @@ export default function BookingForm() {
                 }
               });
             }}
+            onCylinderChange={(cylOpen) => {
+              if (cylOpen && morningRef.current) {
+                requestAnimationFrame(() => {
+                  morningRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+              }
+            }}
           />
         </div>
 

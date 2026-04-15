@@ -26,6 +26,7 @@ interface TimePickerProps {
   bookingType?: string;
   editingBookingId?: string;
   onOpenChange?: (open: boolean) => void;
+  onCylinderChange?: (open: boolean) => void;
 }
 
 function to12(h24: number): { hour12: number; period: 'AM' | 'PM' } {
@@ -115,7 +116,7 @@ function CylinderColumn<T extends string | number>({
   );
 }
 
-export default function TimePicker({ value, onChange, date, duration, bookingType, editingBookingId, onOpenChange }: TimePickerProps) {
+export default function TimePicker({ value, onChange, date, duration, bookingType, editingBookingId, onOpenChange, onCylinderChange }: TimePickerProps) {
   const [open, setOpen] = useState(false);
   const [showCylinder, setShowCylinder] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -233,7 +234,11 @@ export default function TimePicker({ value, onChange, date, duration, bookingTyp
               {/* Time pill — tap to toggle cylinder picker */}
               <button
                 type="button"
-                onClick={() => setShowCylinder(!showCylinder)}
+                onClick={() => {
+                  const next = !showCylinder;
+                  setShowCylinder(next);
+                  onCylinderChange?.(next);
+                }}
                 className={`flex items-center gap-0.5 px-3 py-1 rounded-full cursor-pointer press-scale transition-colors ${
                   showCylinder
                     ? 'bg-accent/15 border border-accent/40'
