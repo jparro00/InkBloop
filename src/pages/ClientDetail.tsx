@@ -22,7 +22,8 @@ export default function ClientDetailPage() {
   const allBookings = useBookingStore((s) => s.bookings);
   const clientBookings = useMemo(() => allBookings.filter((b) => b.client_id === id), [allBookings, id]);
   const allBookingImages = useImageStore((s) => s.images);
-  const clientDocuments = useDocumentStore((s) => s.getDocumentsForClient(id ?? ''));
+  const allDocuments = useDocumentStore((s) => s.documents);
+  const clientDocuments = useMemo(() => allDocuments.filter((d) => d.client_id === id), [allDocuments, id]);
   const removeDocument = useDocumentStore((s) => s.removeDocument);
   const { setSelectedBookingId, openBookingForm, setPrefillBookingData, setEditingClientId } = useUIStore();
   const [tab, setTab] = useState<Tab>('overview');
