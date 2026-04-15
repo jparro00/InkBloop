@@ -7,6 +7,7 @@ import { useClientStore } from './stores/clientStore';
 import { useBookingStore } from './stores/bookingStore';
 import { useImageStore } from './stores/imageStore';
 import { useDocumentStore } from './stores/documentStore';
+import { useMessageStore } from './stores/messageStore';
 
 // Lazy-load heavy routes — only login loads eagerly
 const AppShell = lazy(() => import('./components/layout/AppShell'));
@@ -41,15 +42,21 @@ function DataLoader({ children }: { children: React.ReactNode }) {
   const fetchBookings = useBookingStore((s) => s.fetchBookings);
   const fetchImages = useImageStore((s) => s.fetchImages);
   const fetchDocuments = useDocumentStore((s) => s.fetchDocuments);
+  const startRealtime = useMessageStore((s) => s.startRealtime);
+  const stopRealtime = useMessageStore((s) => s.stopRealtime);
 
   useEffect(() => {
-    if (session) {
-      fetchClients();
-      fetchBookings();
-      fetchImages();
-      fetchDocuments();
-    }
-  }, [session, fetchClients, fetchBookings, fetchImages, fetchDocuments]);
+    if (!session) return;
+    fetchClients();
+    fetchBookings();
+    fetchImages();
+    fetchDocuments();
+    // Start the realtime subscription once per session rather than on every
+    // Messages tab mount — prevents the 1-2s WebSocket teardown/re-setup on
+    // each tab switch.
+    startRealtime();
+    return () => stopRealtime();
+  }, [session, fetchClients, fetchBookings, fetchImages, fetchDocuments, startRealtime, stopRealtime]);
 
   return <>{children}</>;
 }
