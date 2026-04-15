@@ -27,6 +27,8 @@ export default function BookingDrawer() {
   const { thumbnails, getOriginalUrl, addImages } = useBookingImages(selectedBookingId ?? undefined);
   const uploadDocument = useDocumentStore((s) => s.uploadDocument);
   const [viewingImageId, setViewingImageId] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
 
   if (!booking) return null;
 
@@ -49,9 +51,6 @@ export default function BookingDrawer() {
       onClick: () => { useBookingStore.getState().addBooking(bookingCopy).catch(console.error); },
     });
   };
-
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const docInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <>
