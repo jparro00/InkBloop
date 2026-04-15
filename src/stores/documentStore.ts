@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { Document } from '../types';
 import * as documentService from '../services/documentService';
 
@@ -12,12 +13,12 @@ interface DocumentStore {
   removeDocument: (doc: Document) => Promise<void>;
 }
 
-export const useDocumentStore = create<DocumentStore>((set, get) => ({
+export const useDocumentStore = create<DocumentStore>()(persist((set, get) => ({
   documents: [],
   isLoading: false,
 
   fetchDocuments: async () => {
-    set({ isLoading: true });
+    if (get().documents.length === 0) set({ isLoading: true });
     try {
       const documents = await documentService.fetchDocuments();
       set({ documents, isLoading: false });
@@ -48,4 +49,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
       throw e;
     }
   },
+}), {
+  name: 'inkbloop-documents',
+  partialize: (state) => ({ documents: state.documents }),
 }));

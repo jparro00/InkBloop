@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { Booking } from '../types';
 import * as bookingService from '../services/bookingService';
 
@@ -17,13 +18,14 @@ interface BookingStore {
   searchBookings: (query: string, clients: { id: string; name: string }[]) => Booking[];
 }
 
-export const useBookingStore = create<BookingStore>((set, get) => ({
+export const useBookingStore = create<BookingStore>()(persist((set, get) => ({
   bookings: [],
   isLoading: false,
   error: null,
 
   fetchBookings: async () => {
-    set({ isLoading: true, error: null });
+    if (get().bookings.length === 0) set({ isLoading: true });
+    set({ error: null });
     try {
       const bookings = await bookingService.fetchBookings();
       set({ bookings, isLoading: false });
@@ -113,4 +115,7 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
       );
     });
   },
+}), {
+  name: 'inkbloop-bookings',
+  partialize: (state) => ({ bookings: state.bookings }),
 }));

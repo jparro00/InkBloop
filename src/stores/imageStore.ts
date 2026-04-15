@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { BookingImage, ImageSyncStatus } from '../types';
 import * as imageService from '../services/imageService';
 
@@ -18,12 +19,12 @@ interface ImageStore {
   updateSyncStatus: (id: string, status: ImageSyncStatus, remotePath?: string) => void;
 }
 
-export const useImageStore = create<ImageStore>((set, get) => ({
+export const useImageStore = create<ImageStore>()(persist((set, get) => ({
   images: [],
   isLoading: false,
 
   fetchImages: async () => {
-    set({ isLoading: true });
+    if (get().images.length === 0) set({ isLoading: true });
     try {
       const images = await imageService.fetchImages();
       set({ images, isLoading: false });
@@ -142,4 +143,7 @@ export const useImageStore = create<ImageStore>((set, get) => ({
     // Persist sync status update
     imageService.updateImageSyncStatus(id, status, remotePath).catch(console.error);
   },
+}), {
+  name: 'inkbloop-images',
+  partialize: (state) => ({ images: state.images }),
 }));

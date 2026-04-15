@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { Client, ClientNote, LinkedProfile } from '../types';
 import * as clientService from '../services/clientService';
 
@@ -19,14 +20,16 @@ interface ClientStore {
   unlinkPlatform: (clientId: string, platform: 'instagram' | 'messenger') => Promise<void>;
 }
 
-export const useClientStore = create<ClientStore>((set, get) => ({
+export const useClientStore = create<ClientStore>()(persist((set, get) => ({
   clients: [],
   linkedProfiles: {},
   isLoading: false,
   error: null,
 
   fetchClients: async () => {
-    set({ isLoading: true, error: null });
+    // Only show loading spinner if there's no cached data
+    if (get().clients.length === 0) set({ isLoading: true });
+    set({ error: null });
     try {
       const clients = await clientService.fetchClients();
       const allPsids = clients.flatMap((c) =>
@@ -180,4 +183,10 @@ export const useClientStore = create<ClientStore>((set, get) => ({
         (c.facebook && profiles[c.facebook]?.name?.toLowerCase().includes(q))
     );
   },
+}), {
+  name: 'inkbloop-clients',
+  partialize: (state) => ({
+    clients: state.clients,
+    linkedProfiles: state.linkedProfiles,
+  }),
 }));

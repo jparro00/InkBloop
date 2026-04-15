@@ -129,7 +129,8 @@ export const useMessageStore = create<MessageStore>()(
           return;
         }
 
-        set({ isLoading: true, error: null });
+        if (get().conversations.length === 0) set({ isLoading: true });
+        set({ error: null });
         try {
           const readMids = await fetchReadStates();
           // Local readMids take precedence — we may have marked something
