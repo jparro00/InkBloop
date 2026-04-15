@@ -79,13 +79,6 @@ export default function BookingDrawer() {
             <Trash2 size={15} />
             <span>Delete</span>
           </button>
-          <button
-            onClick={() => exportBookingToCalendar(booking, client?.name ?? 'Walk-in')}
-            className="flex items-center justify-center w-10 h-10 rounded-md border border-border/60 text-text-s active:text-accent transition-colors cursor-pointer press-scale ml-auto"
-            title="Add to Calendar"
-          >
-            <CalendarPlus size={17} />
-          </button>
         </div>
 
         {/* Client */}
@@ -233,6 +226,16 @@ export default function BookingDrawer() {
             </button>
           </>
         )}
+
+        {/* Export to Calendar */}
+        <div className="h-px bg-border/40 my-5" />
+        <button
+          onClick={() => exportBookingToCalendar(booking, client?.name ?? 'Walk-in')}
+          className="w-full flex items-center justify-center gap-2.5 px-4 py-3.5 bg-input border border-border/60 rounded-md text-text-s active:text-accent active:bg-elevated transition-colors cursor-pointer press-scale min-h-[52px]"
+        >
+          <CalendarPlus size={20} />
+          <span className="text-sm">Add to Calendar</span>
+        </button>
       </Modal>
 
       <AnimatePresence>
