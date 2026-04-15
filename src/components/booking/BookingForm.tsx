@@ -217,7 +217,7 @@ export default function BookingForm() {
         </div>
 
         {/* Morning / Evening */}
-        <div ref={timeScrollTargetRef} className="flex gap-3">
+        <div className="flex gap-3 mt-2">
           {['Morning', 'Evening'].map((slot) => {
             const time = slot === 'Morning'
               ? (localStorage.getItem('inkbloop-morning-time') ?? '10:00')
@@ -258,7 +258,7 @@ export default function BookingForm() {
         </div>
 
         {/* Time */}
-        <div>
+        <div ref={timeScrollTargetRef}>
           <label className={labelClass}>Time</label>
           <TimePicker
             value={form.time}
@@ -270,7 +270,7 @@ export default function BookingForm() {
             onOpenChange={(isOpen) => {
               if (isOpen && timeScrollTargetRef.current) {
                 requestAnimationFrame(() => {
-                  timeScrollTargetRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  timeScrollTargetRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 });
               }
             }}
