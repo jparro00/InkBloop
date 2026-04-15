@@ -17,6 +17,7 @@ const ClientDetailPage = lazy(() => import('./pages/ClientDetail'));
 const SettingsPage = lazy(() => import('./pages/Settings'));
 const MessagesPage = lazy(() => import('./pages/Messages'));
 const ThemePage = lazy(() => import('./pages/Theme'));
+const FeedbackPage = lazy(() => import('./pages/Feedback'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
@@ -62,6 +63,7 @@ function DataLoader({ children }: { children: React.ReactNode }) {
     import('./pages/Messages');
     import('./pages/Settings');
     import('./pages/Theme');
+    import('./pages/Feedback');
     return () => stopRealtime();
   }, [session, fetchClients, fetchBookings, fetchImages, fetchDocuments, fetchConversations, startRealtime, stopRealtime]);
 
@@ -120,6 +122,7 @@ function AppContent() {
           <Route path="/messages" element={<MessagesPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/theme" element={<ThemePage />} />
+          <Route path="/feedback" element={<FeedbackPage />} />
         </Route>
       </Routes>
     </Suspense>

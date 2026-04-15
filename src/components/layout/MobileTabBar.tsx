@@ -1,12 +1,12 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Calendar, Users, MessageCircle, Palette, Settings } from 'lucide-react';
+import { Calendar, Users, MessageCircle, MessageSquareText, Settings } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 
 const tabs = [
   { to: '/', icon: Calendar, label: 'Calendar' },
   { to: '/clients', icon: Users, label: 'Clients' },
   { to: '/messages', icon: MessageCircle, label: 'Messages' },
-  { to: '/theme', icon: Palette, label: 'Theme' },
+  { to: '/feedback', icon: MessageSquareText, label: 'Feedback' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
