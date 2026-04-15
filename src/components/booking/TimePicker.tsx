@@ -161,12 +161,18 @@ export default function TimePicker({ value, onChange, date, duration, bookingTyp
     onOpenChange?.(next);
   }, [onOpenChange]);
 
-  // Set initial scroll position when opening
+  // Sync timeline scroll when opening or when value changes externally.
+  // Skip if the scroll position is already close (means it came from the timeline itself).
   useEffect(() => {
     if (open && scrollRef.current) {
-      scrollRef.current.scrollTop = timeToScroll(selStart);
+      const target = timeToScroll(selStart);
+      if (Math.abs(scrollRef.current.scrollTop - target) > HOUR_H / 2) {
+        isInputDriven.current = true;
+        scrollRef.current.scrollTop = target;
+        requestAnimationFrame(() => { isInputDriven.current = false; });
+      }
     }
-  }, [open]);
+  }, [open, selStart, timeToScroll]);
 
   // Sync timeline scroll when value changes from the cylinder
   const syncScrollToValue = useCallback((h24: number, m: number) => {
