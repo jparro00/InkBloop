@@ -143,18 +143,6 @@ export default function BookingForm() {
 
   const handleSave = async (andExportCalendar = false) => {
     const dateTime = new Date(`${form.date}T${form.time}`);
-
-    // Trigger .ics download synchronously — before any await — so iOS
-    // Safari treats it as a user-initiated action (no permission prompt).
-    // We have all the data we need from the form already.
-    if (andExportCalendar) {
-      const clientName = clients.find((c) => c.id === form.client_id)?.name ?? 'Walk-in';
-      exportBookingToCalendar(
-        { id: 'new', created_at: '', client_id: form.client_id || null, date: dateTime.toISOString(), duration: form.duration, type: form.type, status: form.status } as Booking,
-        clientName,
-      );
-    }
-
     const data: Omit<Booking, 'id' | 'created_at'> = {
       client_id: form.client_id || null,
       date: dateTime.toISOString(),
@@ -165,6 +153,25 @@ export default function BookingForm() {
       rescheduled: form.rescheduled || undefined,
       notes: form.notes || undefined,
     };
+
+    if (andExportCalendar) {
+      // iOS Safari hands off to Calendar on .ics download, which can
+      // interrupt any JS that hasn't run yet. So: save (fire-and-forget,
+      // addBooking is optimistic), close form, trigger .ics LAST.
+      // Everything is synchronous — no awaits — to avoid both the
+      // permission prompt and the interrupted-save problem.
+      addBooking(data).then((newBooking) => {
+        remapBookingImages(tempBookingId.current, newBooking.id);
+      }).catch(console.error);
+      closeBookingForm();
+
+      const clientName = clients.find((c) => c.id === form.client_id)?.name ?? 'Walk-in';
+      exportBookingToCalendar(
+        { id: 'new', created_at: '', ...data } as Booking,
+        clientName,
+      );
+      return;
+    }
 
     try {
       if (editingBookingId) {
