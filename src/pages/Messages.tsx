@@ -115,10 +115,10 @@ export default function MessagesPage() {
     return () => { setHeaderLeft(null); setHeaderRight(null); };
   }, [setHeaderLeft, setHeaderRight]);
 
-  // Fetch conversations on mount. The realtime subscription is managed
-  // at the DataLoader level (App.tsx) so it persists across tab switches.
-  // The staleness guard in fetchConversations() skips re-fetching if data
-  // was refreshed in the last 30s; realtime events bypass the guard via force=true.
+  // Conversations are fetched + kept fresh by DataLoader (App.tsx).
+  // The staleness guard in fetchConversations() deduplicates, so this
+  // is a no-op if data is already fresh; it only re-fetches if the tab
+  // hasn't been visited for >30s.
   useEffect(() => {
     fetchConversations();
   }, [fetchConversations]);
