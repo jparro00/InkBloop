@@ -57,11 +57,7 @@ export function executeBookingEdit(data: ResolvedBookingEdit) {
   const store = useAgentStore.getState();
   const ui = useUIStore.getState();
 
-  // Store which fields are being changed by the agent
-  // BookingForm will read these and highlight them with accent border + "AI updated" label
-  ui.setChangedBookingFields(new Set(Object.keys(data.changes)));
-
-  // Build prefill from changes
+  // Build prefill from changes — only include fields that actually have values
   const prefill: Record<string, unknown> = {};
   if (data.changes.date) prefill.date = data.changes.date;
   if (data.changes.duration) prefill.duration = data.changes.duration;
@@ -70,6 +66,9 @@ export function executeBookingEdit(data: ResolvedBookingEdit) {
   if (data.changes.estimate) prefill.estimate = data.changes.estimate;
   if (data.changes.notes) prefill.notes = data.changes.notes;
   if (data.changes.rescheduled !== undefined) prefill.rescheduled = data.changes.rescheduled;
+
+  // Track only the fields that actually have values, not all keys
+  ui.setChangedBookingFields(new Set(Object.keys(prefill)));
 
   ui.setPrefillBookingData(prefill as Parameters<typeof ui.setPrefillBookingData>[0]);
 

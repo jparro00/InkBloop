@@ -70,7 +70,8 @@ export default function BookingForm() {
   useEffect(() => {
     if (booking) {
       const d = new Date(booking.date);
-      const formData = {
+      // Original booking values — used as the baseline for dirty detection
+      const originalData = {
         client_id: booking.client_id ?? '',
         date: format(d, 'yyyy-MM-dd'),
         time: format(d, 'HH:mm'),
@@ -81,10 +82,35 @@ export default function BookingForm() {
         rescheduled: booking.rescheduled ?? false,
         notes: booking.notes ?? '',
       };
+
+      // Start with original data, then overlay any agent edit changes
+      const formData = { ...originalData };
+      if (prefillBookingData) {
+        if (prefillBookingData.date) {
+          const pd = new Date(prefillBookingData.date);
+          formData.date = format(pd, 'yyyy-MM-dd');
+          formData.time = format(pd, 'HH:mm');
+        }
+        if (prefillBookingData.client_id) formData.client_id = prefillBookingData.client_id;
+        if (prefillBookingData.type) formData.type = prefillBookingData.type as BookingType;
+        if (prefillBookingData.duration) formData.duration = prefillBookingData.duration;
+        if (prefillBookingData.estimate) formData.estimate = prefillBookingData.estimate.toString();
+        if (prefillBookingData.rescheduled !== undefined) formData.rescheduled = prefillBookingData.rescheduled;
+        if (prefillBookingData.timeSlot) {
+          formData.time = prefillBookingData.timeSlot === 'morning'
+            ? (localStorage.getItem('inkbloop-morning-time') ?? '10:00')
+            : (localStorage.getItem('inkbloop-evening-time') ?? '14:00');
+        }
+        if (prefillBookingData.notes) formData.notes = prefillBookingData.notes;
+      }
+
       setForm(formData);
-      if (!initialFormRef.current) initialFormRef.current = formData;
-      const c = clients.find((c) => c.id === booking.client_id);
-      if (c) setClientSearch(c.name);
+      // Store original (pre-agent) values so form is dirty when agent made changes
+      if (!initialFormRef.current) initialFormRef.current = originalData;
+      const displayClient = prefillBookingData?.client_id
+        ? clients.find((c) => c.id === prefillBookingData.client_id)
+        : clients.find((c) => c.id === booking.client_id);
+      if (displayClient) setClientSearch(displayClient.name);
     } else if (prefillBookingData) {
       const updates: Partial<typeof defaultForm> = {};
       if (prefillBookingData.date) {
