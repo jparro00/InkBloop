@@ -289,10 +289,13 @@ async function routeBooking(
     // Resolve booking
     if (!resolved.booking_id) {
       const bookings = useBookingStore.getState().bookings;
+      // For edit actions, the date in entities is the TARGET date (what to
+      // change to), not the current booking date. Don't use it as a filter
+      // or we'll fail to find the existing booking.
       const bookingResult = resolveBooking(
         {
           client_id: resolved.client_id as string | undefined,
-          date: intent.entities.date,
+          date: intent.action === 'open' ? intent.entities.date : undefined,
           type: intent.entities.type,
         },
         bookings
