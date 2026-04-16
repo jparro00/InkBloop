@@ -15,7 +15,7 @@
  *   EVAL_EMAIL=you@example.com EVAL_PASSWORD=secret npm run eval
  */
 
-import { readFileSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { createClient } from '@supabase/supabase-js';
 
 // ── Config ──────────────────────────────────────────────────────────
@@ -206,15 +206,25 @@ async function run() {
     console.log(`  Filtering to category: "${filterArg}" (${filtered.length} evals)\n`);
   }
 
+  // Verbose mode: show prompts for all evals (default). Use --quiet for compact.
+  const quiet = process.argv.includes('--quiet') || process.argv.includes('-q');
+  let currentCategory = '';
+
   for (const evalCase of filtered) {
-    const { id, prompt, expected_parse } = evalCase;
-    process.stdout.write(`  ${id} ... `);
+    const { id, prompt, expected_parse, category, resolution } = evalCase;
+
+    // Print category header when it changes
+    if (category !== currentCategory) {
+      currentCategory = category;
+      console.log(`\n  ── ${category} ${'─'.repeat(Math.max(0, 50 - category.length))}\n`);
+    }
 
     const result = await callAgentParse(prompt, session.access_token);
 
     if (result.error) {
-      console.log('❌ ERROR');
-      console.log(`    ${result.error}\n`);
+      console.log(`  ❌ ${id}`);
+      console.log(`     Prompt:  "${prompt}"`);
+      console.log(`     Error:   ${result.error}\n`);
       results.push({ id, status: 'error', error: result.error });
       failed++;
       continue;
@@ -236,17 +246,34 @@ async function run() {
       failures.push(...entityFailures);
     }
 
+    // Format key entities for display (skip date ISOs, just show what matters)
+    const entitiesDisplay = Object.entries(result.entities || {})
+      .filter(([k]) => k !== 'date' && k !== 'date_range_start' && k !== 'date_range_end')
+      .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
+      .join(', ');
+    const hasDate = result.entities?.date || result.entities?.date_range_start;
+    const dateNote = hasDate ? ' +date' : '';
+    const parsedLine = `${result.agent}/${result.action} → {${entitiesDisplay}${dateNote}}`;
+
     if (failures.length === 0) {
-      console.log('✅');
+      if (quiet) {
+        console.log(`  ✅ ${id}`);
+      } else {
+        console.log(`  ✅ ${id}`);
+        console.log(`     Prompt:  "${prompt}"`);
+        console.log(`     Parsed:  ${parsedLine}`);
+        console.log(`     Expect:  ${resolution}`);
+      }
       results.push({ id, status: 'pass', actual: result });
       passed++;
     } else {
-      console.log('❌ FAIL');
+      console.log(`  ❌ ${id}`);
+      console.log(`     Prompt:  "${prompt}"`);
+      console.log(`     Parsed:  ${parsedLine}`);
+      console.log(`     Expect:  ${expected_parse.agent}/${expected_parse.action}`);
       for (const f of failures) {
-        console.log(`    • ${f}`);
+        console.log(`     FAIL:    ${f}`);
       }
-      console.log(`    Got: ${JSON.stringify(result)}`);
-      console.log();
       results.push({ id, status: 'fail', failures, actual: result });
       failed++;
     }
@@ -257,40 +284,71 @@ async function run() {
 
   // ── Summary ───────────────────────────────────────────────────────
 
-  console.log('\n  ─────────────────────────');
-  console.log(`  Results: ${passed} passed, ${failed} failed out of ${filtered.length}`);
-  console.log(`  Pass rate: ${((passed / filtered.length) * 100).toFixed(0)}%`);
+  // ── Write detailed results file ────────────────────────────────────
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const detailedResults = filtered.map((evalCase) => {
+    const result = results.find((r) => r.id === evalCase.id);
+    return {
+      id: evalCase.id,
+      category: evalCase.category,
+      prompt: evalCase.prompt,
+      context: evalCase.context,
+      expected: {
+        agent: evalCase.expected_parse.agent,
+        action: evalCase.expected_parse.action,
+        entities: evalCase.expected_parse.entities,
+      },
+      actual: result?.actual || null,
+      expected_resolution: evalCase.resolution,
+      expected_outcome: evalCase.expected_outcome,
+      status: result?.status || 'unknown',
+      failures: result?.failures || [],
+    };
+  });
+
+  const report = {
+    timestamp: new Date().toISOString(),
+    total: filtered.length,
+    passed,
+    failed,
+    pass_rate: `${((passed / filtered.length) * 100).toFixed(0)}%`,
+    filter: filterArg || null,
+    results: detailedResults,
+  };
+
+  mkdirSync('evals/results', { recursive: true });
+  const resultsPath = `evals/results/eval-${timestamp}.json`;
+  const latestPath = 'evals/results/latest.json';
+  writeFileSync(resultsPath, JSON.stringify(report, null, 2));
+  writeFileSync(latestPath, JSON.stringify(report, null, 2));
+
+  // ── Console summary ───────────────────────────────────────────────
+
+  console.log(`\n  ${'═'.repeat(56)}`);
+  console.log(`  Results: ${passed} passed, ${failed} failed out of ${filtered.length} (${((passed / filtered.length) * 100).toFixed(0)}%)`);
+  console.log(`  Detailed results: ${resultsPath}`);
 
   // Category breakdown
   const byCategory = {};
   for (const r of results) {
     const evalCase = filtered.find((e) => e.id === r.id);
     const cat = evalCase?.category || 'unknown';
-    if (!byCategory[cat]) byCategory[cat] = { passed: 0, failed: 0 };
+    if (!byCategory[cat]) byCategory[cat] = { passed: 0, failed: 0, evals: [] };
     if (r.status === 'pass') byCategory[cat].passed++;
     else byCategory[cat].failed++;
+    byCategory[cat].evals.push(r);
   }
 
   console.log('\n  By category:');
-  for (const [cat, counts] of Object.entries(byCategory)) {
-    const total = counts.passed + counts.failed;
-    const icon = counts.failed === 0 ? '✅' : '❌';
-    console.log(`    ${icon} ${cat}: ${counts.passed}/${total}`);
-  }
-
-  // List failures for quick reference
-  const failedEvals = results.filter((r) => r.status !== 'pass');
-  if (failedEvals.length > 0) {
-    console.log('\n  Failed evals:');
-    for (const f of failedEvals) {
-      const evalCase = filtered.find((e) => e.id === f.id);
-      console.log(`    • ${f.id}: "${evalCase?.prompt}"`);
-      if (f.failures) {
-        for (const msg of f.failures) {
-          console.log(`      ${msg}`);
-        }
-      }
-    }
+  for (const [cat, data] of Object.entries(byCategory)) {
+    const total = data.passed + data.failed;
+    const icon = data.failed === 0 ? '✅' : '❌';
+    const failedIds = data.evals
+      .filter((r) => r.status !== 'pass')
+      .map((r) => r.id);
+    const failNote = failedIds.length > 0 ? `  ← failed: ${failedIds.join(', ')}` : '';
+    console.log(`    ${icon} ${cat}: ${data.passed}/${total}${failNote}`);
   }
 
   console.log();

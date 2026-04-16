@@ -415,7 +415,11 @@ async function routeClient(
           },
         });
 
-        if (!error && data && !data.error) {
+        if (error) {
+          console.error('agent-resolve-edit returned error:', error);
+        } else if (data?.error) {
+          console.error('agent-resolve-edit data error:', data.error);
+        } else if (data) {
           executeClientEdit({
             client_id: resolved.client_id as string,
             changes: {
@@ -427,11 +431,15 @@ async function routeClient(
           return;
         }
       } catch (err) {
-        console.error('agent-resolve-edit error:', err);
+        console.error('agent-resolve-edit exception:', err);
       }
+    } else {
+      console.warn('No originalText in resolved — skipping second AI call');
     }
 
-    // Fallback: use raw entities from the first parse
+    // Fallback: use raw entities from the first parse (only for
+    // direct-value edits like "update phone to 555-1234" where
+    // the first parse already has the correct value)
     executeClientEdit({
       client_id: resolved.client_id as string,
       changes: {
