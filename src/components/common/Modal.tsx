@@ -345,10 +345,48 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
     };
   }, []);
 
-  // Keyboard handling is done via `interactive-widget=resizes-content` in the
-  // viewport meta tag (see index.html). That tells the browser to shrink the
-  // layout viewport when the keyboard opens, so `position: fixed; top: 16;
-  // bottom: 0` naturally fits above the keyboard without any JS.
+  // Keyboard handling: `interactive-widget=resizes-content` (iOS 17.2+/Chrome)
+  // handles this natively, but we also need a JS fallback for older iOS.
+  // We position the sheet directly on the DOM based on visualViewport so
+  // updates are synchronous (no React state lag that caused prior jumping).
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const mq = window.matchMedia('(max-width: 1023px)');
+
+    let rafId = 0;
+    const update = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const el = sheetRef.current;
+        if (!el) return;
+        if (!mq.matches) {
+          el.style.top = '';
+          el.style.bottom = '';
+          el.style.height = '';
+          return;
+        }
+        // Anchor to visual viewport: top tracks offsetTop (in case iOS scrolls
+        // the layout to reveal the input), height matches the visible area.
+        el.style.top = `${vv.offsetTop + 16}px`;
+        el.style.bottom = 'auto';
+        el.style.height = `${vv.height - 32}px`;
+      });
+    };
+
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    mq.addEventListener('change', update);
+    window.addEventListener('orientationchange', update);
+    update();
+    return () => {
+      cancelAnimationFrame(rafId);
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+      mq.removeEventListener('change', update);
+      window.removeEventListener('orientationchange', update);
+    };
+  }, []);
 
   // Lock background scrolling so the page behind the modal doesn't move.
   useEffect(() => {

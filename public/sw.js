@@ -1,5 +1,5 @@
 // Ink Bloop Service Worker — cache-first for app shell, network-first for API
-const CACHE_NAME = 'inkbloop-v1';
+const CACHE_NAME = 'inkbloop-v2';
 
 // Cache the app shell on install
 self.addEventListener('install', (event) => {
