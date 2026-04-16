@@ -263,14 +263,6 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
   const collapsedRef = useRef(false);
   const [traceTrigger, setTraceTrigger] = useState(0);
   const [xTraceTrigger, setXTraceTrigger] = useState(0);
-  // Visual viewport anchoring for mobile keyboard handling.
-  // On iOS (Safari + PWA), focusing an input makes the browser scroll the
-  // layout viewport to keep the input visible, which pushes `fixed` elements
-  // off-screen. We anchor the sheet to the visual viewport instead:
-  //   top = visualViewport.offsetTop + 16  (keep the 16px gap at top)
-  //   bottom = how much of the layout viewport is below the visual viewport
-  // On desktop we skip this and let the Tailwind classes handle positioning.
-  const [vvAnchor, setVvAnchor] = useState<{ top: number; bottom: number } | null>(null);
 
   const setModalCollapsed = useUIStore((s) => s.setModalCollapsed);
 
@@ -353,40 +345,12 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
     };
   }, []);
 
-  // Shrink the sheet from the bottom as the keyboard opens.
-  // Top stays pinned at 16px — we lock document scroll below so iOS can't
-  // push the modal up, which would otherwise cause `visualViewport.offsetTop`
-  // to jump around during the keyboard animation.
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const mq = window.matchMedia('(max-width: 1023px)');
-    const update = () => {
-      if (!mq.matches) {
-        setVvAnchor(null);
-        return;
-      }
-      // Use only vv.height — ignore offsetTop since scroll is locked and any
-      // transient offsetTop values would cause the sheet to jump.
-      const bottom = Math.max(0, window.innerHeight - vv.height);
-      setVvAnchor({ top: 0, bottom });
-    };
-    vv.addEventListener('resize', update);
-    window.addEventListener('resize', update);
-    mq.addEventListener('change', update);
-    update();
-    return () => {
-      vv.removeEventListener('resize', update);
-      window.removeEventListener('resize', update);
-      mq.removeEventListener('change', update);
-    };
-  }, []);
+  // Keyboard handling is done via `interactive-widget=resizes-content` in the
+  // viewport meta tag (see index.html). That tells the browser to shrink the
+  // layout viewport when the keyboard opens, so `position: fixed; top: 16;
+  // bottom: 0` naturally fits above the keyboard without any JS.
 
-  // Lock the body so iOS cannot scroll the layout viewport while the modal
-  // is open. Without this, focusing an input inside the modal causes iOS to
-  // scroll the page up to "reveal" the input, pushing our fixed sheet off
-  // the top of the screen. Plain `overflow: hidden` isn't enough on iOS —
-  // we have to pin the body with `position: fixed` to really block it.
+  // Lock background scrolling so the page behind the modal doesn't move.
   useEffect(() => {
     const body = document.body;
     const html = document.documentElement;
@@ -548,16 +512,12 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
       />
 
       {/* Sheet — dragY is the sole controller of y position.
-          On mobile, `vvAnchor.bottom` shrinks the sheet from the bottom as
-          the keyboard opens. The top stays anchored at 16px so there's no
-          jumping during the keyboard animation. */}
+          Keyboard resize is handled by `interactive-widget=resizes-content`
+          in the viewport meta, which shrinks the layout viewport so the
+          sheet's `bottom: 0` naturally sits above the keyboard. */}
       <motion.div
         ref={sheetRef}
-        style={
-          vvAnchor
-            ? { y: dragY, bottom: vvAnchor.bottom }
-            : { y: dragY }
-        }
+        style={{ y: dragY }}
         className={`fixed top-4 left-0 right-0 bottom-0 lg:inset-auto lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 ${width} bg-elevated shadow-lg z-50 flex flex-col overflow-hidden ${
           fullScreenMobile
             ? 'rounded-t-[28px] lg:rounded-xl lg:h-auto lg:max-h-[85vh]'
