@@ -87,9 +87,13 @@ export default function BookingForm() {
       const formData = { ...originalData };
       if (prefillBookingData) {
         if (prefillBookingData.date) {
-          const pd = new Date(prefillBookingData.date);
-          formData.date = format(pd, 'yyyy-MM-dd');
-          formData.time = format(pd, 'HH:mm');
+          // Parse ISO string directly to avoid UTC→local timezone shift
+          // (new Date("2026-04-23") treats date-only as UTC midnight, which
+          // shifts back a day in western timezones)
+          const [datePart, timePart] = String(prefillBookingData.date).split('T');
+          formData.date = datePart;
+          if (timePart) formData.time = timePart.slice(0, 5);
+          // If no time in ISO string, keep the existing booking's time
         }
         if (prefillBookingData.client_id) formData.client_id = prefillBookingData.client_id;
         if (prefillBookingData.type) formData.type = prefillBookingData.type as BookingType;
@@ -114,9 +118,10 @@ export default function BookingForm() {
     } else if (prefillBookingData) {
       const updates: Partial<typeof defaultForm> = {};
       if (prefillBookingData.date) {
-        const d = new Date(prefillBookingData.date);
-        updates.date = format(d, 'yyyy-MM-dd');
-        updates.time = format(d, 'HH:mm');
+        // Parse ISO string directly to avoid UTC→local timezone shift
+        const [datePart, timePart] = String(prefillBookingData.date).split('T');
+        updates.date = datePart;
+        if (timePart) updates.time = timePart.slice(0, 5);
       }
       if (prefillBookingData.client_id) {
         updates.client_id = prefillBookingData.client_id;
