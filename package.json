@@ -11,7 +11,7 @@
     "sim": "node simulator/server.js",
     "sim:dev": "node --watch simulator/server.js",
     "deploy:prod": "npx vercel --prod --yes",
-    "deploy:dev": "npx vercel -b VITE_SUPABASE_URL=https://kshwkljbhbwyqumnxuzu.supabase.co -b VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzaHdrbGpiaGJ3eXF1bW54dXp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDg1NzgsImV4cCI6MjA5MTgyNDU3OH0.cOQA-iz60Ut-4RRpRPnKKXf7U1OqjUqCe-aJUEyXkzs --yes && npx vercel alias set inkbloop-dev.vercel.app"
+    "deploy:dev": "node scripts/deploy-dev.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.103.0",
