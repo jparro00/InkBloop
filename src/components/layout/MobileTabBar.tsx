@@ -32,7 +32,7 @@ export default function MobileTabBar() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 lg:hidden safe-bottom">
-      <div className="bg-surface/80 backdrop-blur-xl border-t border-border/60 pt-4">
+      <div className="bg-surface/80 backdrop-blur-xl border-t border-border/60">
         <div className="flex items-start justify-around h-[100px]">
           {tabs.map(({ to, icon: Icon, label }) => (
             <NavLink
