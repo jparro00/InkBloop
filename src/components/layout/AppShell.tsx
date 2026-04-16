@@ -9,19 +9,18 @@ import BookingDrawer from '../booking/BookingDrawer';
 import BookingForm from '../booking/BookingForm';
 import CreateClientForm from '../client/CreateClientForm';
 import ClientForm from '../client/ClientForm';
-import QuickBooking from '../QuickBooking';
+import AgentPanel from '../agent/AgentPanel';
 import SearchOverlay from '../../pages/Search';
 import ConversationDrawer from '../messaging/ConversationDrawer';
 import ToastContainer from '../common/Toast';
 import { useClientStore } from '../../stores/clientStore';
+import { useAgentStore } from '../../stores/agentStore';
 
 export default function AppShell() {
   const {
     sidebarCollapsed,
     selectedBookingId,
     bookingFormOpen,
-    quickBookingOpen,
-    setQuickBookingOpen,
     searchOpen,
     createClientFormOpen,
     setCreateClientFormOpen,
@@ -30,6 +29,8 @@ export default function AppShell() {
     selectedConversationId,
   } = useUIStore();
   const editingClient = useClientStore((s) => editingClientId ? s.clients.find((c) => c.id === editingClientId) : undefined);
+  const agentPanelOpen = useAgentStore((s) => s.panelOpen);
+  const openAgentPanel = useAgentStore((s) => s.openPanel);
 
   return (
     <div className="h-full flex flex-col lg:flex-row">
@@ -59,7 +60,7 @@ export default function AppShell() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {quickBookingOpen && <QuickBooking />}
+        {agentPanelOpen && <AgentPanel />}
       </AnimatePresence>
 
       <AnimatePresence>
@@ -71,18 +72,29 @@ export default function AppShell() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {createClientFormOpen && <CreateClientForm onClose={() => setCreateClientFormOpen(false)} />}
+        {createClientFormOpen && (
+          <CreateClientForm
+            onClose={() => {
+              setCreateClientFormOpen(false);
+              useUIStore.getState().setPrefillClientData(null);
+            }}
+            initialData={useUIStore.getState().prefillClientData
+              ? { name: useUIStore.getState().prefillClientData?.name }
+              : undefined
+            }
+          />
+        )}
       </AnimatePresence>
 
       <AnimatePresence>
         {editingClient && <ClientForm client={editingClient} onClose={() => setEditingClientId(null)} />}
       </AnimatePresence>
 
-      {/* Quick Booking FAB */}
+      {/* Agent FAB */}
       <button
-        onClick={() => setQuickBookingOpen(true)}
+        onClick={openAgentPanel}
         className="fixed bottom-[116px] right-5 lg:bottom-8 lg:right-8 w-[84px] h-[84px] bg-accent text-bg rounded-2xl shadow-lg shadow-glow flex items-center justify-center z-30 cursor-pointer press-scale transition-transform active:shadow-glow-strong"
-        title="Quick Booking"
+        title="InkBloop Agent"
       >
         <Bot size={40} />
       </button>

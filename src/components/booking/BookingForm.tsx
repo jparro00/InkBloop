@@ -169,10 +169,19 @@ export default function BookingForm() {
 
   const isValid = form.date && form.client_id;
 
+  const changedBookingFields = useUIStore((s) => s.changedBookingFields);
   const inputClass = "w-full bg-input border border-border/60 rounded-md px-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors min-h-[48px]";
   const missingInputClass = "w-full bg-input border-2 border-danger/60 rounded-md px-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-danger/40 transition-colors min-h-[48px]";
+  const changedInputClass = "w-full bg-input border-2 border-accent/60 rounded-md px-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors min-h-[48px]";
   const labelClass = "text-sm text-text-t uppercase tracking-wider mb-2 block font-medium";
-  const inputFor = (field: string) => missingFields.has(field) ? missingInputClass : inputClass;
+  const inputFor = (field: string) =>
+    missingFields.has(field) ? missingInputClass :
+    changedBookingFields.has(field) ? changedInputClass :
+    inputClass;
+  const changedLabel = (field: string) =>
+    changedBookingFields.has(field) ? (
+      <span className="text-xs text-accent ml-2 font-normal normal-case tracking-normal">AI updated</span>
+    ) : null;
 
   return (
     <>
@@ -185,7 +194,7 @@ export default function BookingForm() {
         {/* Client */}
         <div className="relative">
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm text-text-t uppercase tracking-wider font-medium">Client *</label>
+            <label className="text-sm text-text-t uppercase tracking-wider font-medium">Client *{changedLabel('client')}</label>
             <button
               onClick={() => setShowNewClient(true)}
               className="flex items-center gap-1.5 text-sm text-accent active:text-accent-dim transition-colors cursor-pointer press-scale"
@@ -229,7 +238,7 @@ export default function BookingForm() {
 
         {/* Date */}
         <div>
-          <label className={labelClass}>Date *</label>
+          <label className={labelClass}>Date *{changedLabel('date')}</label>
           <DatePicker
             value={form.date}
             onChange={(date) => { setForm((f) => ({ ...f, date })); setMissingFields((s) => { const n = new Set(s); n.delete('date'); return n; }); }}
@@ -265,7 +274,7 @@ export default function BookingForm() {
 
         {/* Duration */}
         <div ref={durationRef}>
-          <label className={labelClass}>Duration</label>
+          <label className={labelClass}>Duration{changedLabel('duration')}</label>
           <select
             value={form.duration}
             onChange={(e) => setForm((f) => ({ ...f, duration: parseFloat(e.target.value) }))}
@@ -280,7 +289,7 @@ export default function BookingForm() {
 
         {/* Time */}
         <div ref={timeRef}>
-          <label className={labelClass}>Time</label>
+          <label className={labelClass}>Time{changedLabel('timeSlot')}</label>
           <TimePicker
             value={form.time}
             onChange={(time) => setForm((f) => ({ ...f, time }))}
@@ -318,7 +327,7 @@ export default function BookingForm() {
 
         {/* Type */}
         <div>
-          <label className={labelClass}>Type</label>
+          <label className={labelClass}>Type{changedLabel('type')}</label>
           <div className="grid grid-cols-2 gap-3">
             {bookingTypes.map((t) => {
               const color = getTypeColor(t);
@@ -347,7 +356,7 @@ export default function BookingForm() {
 
         {/* Estimate */}
         <div>
-          <label className={labelClass}>Estimate ($)</label>
+          <label className={labelClass}>Estimate ($){changedLabel('estimate')}</label>
           <input
             type="text"
             inputMode="decimal"
@@ -360,7 +369,7 @@ export default function BookingForm() {
 
         {/* Notes */}
         <div>
-          <label className={labelClass}>Notes</label>
+          <label className={labelClass}>Notes{changedLabel('notes')}</label>
           <textarea
             value={form.notes}
             onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}

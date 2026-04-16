@@ -42,8 +42,14 @@ interface UIStore {
   setHeaderRight: (node: ReactNode) => void;
   createClientFormOpen: boolean;
   setCreateClientFormOpen: (open: boolean) => void;
+  prefillClientData: { name?: string; phone?: string } | null;
+  setPrefillClientData: (data: { name?: string; phone?: string } | null) => void;
   editingClientId: string | null;
   setEditingClientId: (id: string | null) => void;
+  changedBookingFields: Set<string>;
+  setChangedBookingFields: (fields: Set<string>) => void;
+  changedClientFields: Set<string>;
+  setChangedClientFields: (fields: Set<string>) => void;
   selectedConversationId: string | null;
   setSelectedConversationId: (id: string | null) => void;
   modalCollapsed: boolean;
@@ -74,7 +80,7 @@ export const useUIStore = create<UIStore>((set) => ({
     set({ bookingFormOpen: true, editingBookingId: editId ?? null });
   },
   closeBookingForm: () =>
-    set({ bookingFormOpen: false, editingBookingId: null, prefillBookingData: null }),
+    set({ bookingFormOpen: false, editingBookingId: null, prefillBookingData: null, changedBookingFields: new Set() }),
   quickBookingOpen: false,
   setQuickBookingOpen: (open) => {
     if (open && useUIStore.getState().modalCollapsed) {
@@ -122,7 +128,13 @@ export const useUIStore = create<UIStore>((set) => ({
     }
     set({ createClientFormOpen: open });
   },
+  prefillClientData: null,
+  setPrefillClientData: (data) => set({ prefillClientData: data }),
   editingClientId: null,
+  changedBookingFields: new Set<string>(),
+  setChangedBookingFields: (fields) => set({ changedBookingFields: fields }),
+  changedClientFields: new Set<string>(),
+  setChangedClientFields: (fields) => set({ changedClientFields: fields }),
   setEditingClientId: (id) => {
     if (id && useUIStore.getState().modalCollapsed) {
       set((s) => ({ blockedOpenTrigger: s.blockedOpenTrigger + 1 }));
