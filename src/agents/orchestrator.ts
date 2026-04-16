@@ -95,10 +95,15 @@ function showNoMatch(query: string, suggestions: import('../types').Client[]) {
 export async function processInput(text: string) {
   const store = useAgentStore.getState();
 
+  // Start a fresh trace for this exchange
+  store.startTrace();
+  store.logTrace('user_input', { text });
+
   store.addUserMessage(text);
   store.setLoading(true);
 
   try {
+    store.logTrace('edge_call', { fn: 'agent-parse', body: { text } });
     const { data, error } = await supabase.functions.invoke('agent-parse', {
       body: { text },
     });
@@ -106,6 +111,7 @@ export async function processInput(text: string) {
     if (error) {
       const errMsg = await describeFunctionError(error);
       console.error('Agent parse error:', errMsg, error);
+      store.logTrace('edge_error', { fn: 'agent-parse', message: errMsg });
       store.replaceLastLoading({
         text: `Error: ${errMsg}`,
       });
@@ -115,20 +121,26 @@ export async function processInput(text: string) {
     // Check if the response itself contains an error (from the edge function)
     if (data?.error) {
       console.error('Agent parse returned error:', data.error);
+      store.logTrace('edge_error', { fn: 'agent-parse', message: data.error });
       store.replaceLastLoading({
         text: `Error: ${data.error}`,
       });
       return;
     }
 
+    store.logTrace('edge_response', { fn: 'agent-parse', data });
+
     const intent = data as AgentIntent;
 
     if (intent.agent === 'unknown' || intent.action === 'unknown') {
+      store.logTrace('unknown_intent', { intent });
       store.replaceLastLoading({
         text: "I'm not sure what you'd like to do. Try something like \"book Chris Friday 2pm\" or \"how many tattoos this week\".",
       });
       return;
     }
+
+    store.logTrace('intent_parsed', { agent: intent.agent, action: intent.action, entities: intent.entities });
 
     // Stash intent and original text for potential follow-up AI calls
     store.setPending(intent);
@@ -137,6 +149,7 @@ export async function processInput(text: string) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('Agent parse error:', err);
+    store.logTrace('exception', { message: msg });
     store.replaceLastLoading({
       text: `Something went wrong: ${msg}`,
     });
@@ -199,7 +212,7 @@ async function routeBooking(
       }
     }
 
-    executeBookingCreate({
+    const bookingPayload = {
       client_id: resolved.client_id as string | undefined,
       date: intent.entities.date,
       duration: intent.entities.duration,
@@ -208,7 +221,9 @@ async function routeBooking(
       estimate: intent.entities.estimate,
       notes: intent.entities.notes,
       rescheduled: intent.entities.rescheduled,
-    });
+    };
+    store.logTrace('sub_agent', { agent: 'booking', action: 'create', payload: bookingPayload });
+    executeBookingCreate(bookingPayload);
     return;
   }
 
@@ -359,19 +374,22 @@ async function routeBooking(
     }
 
     if (intent.action === 'open') {
+      store.logTrace('sub_agent', { agent: 'booking', action: 'open', booking_id: resolved.booking_id });
       executeBookingOpen({ booking_id: resolved.booking_id as string });
     } else {
+      const changes = {
+        date: intent.entities.date,
+        duration: intent.entities.duration,
+        type: intent.entities.type as 'Regular' | 'Touch Up' | 'Consultation' | 'Full Day' | undefined,
+        timeSlot: intent.entities.timeSlot,
+        estimate: intent.entities.estimate,
+        notes: intent.entities.notes,
+        rescheduled: intent.entities.rescheduled,
+      };
+      store.logTrace('sub_agent', { agent: 'booking', action: 'edit', booking_id: resolved.booking_id, changes });
       executeBookingEdit({
         booking_id: resolved.booking_id as string,
-        changes: {
-          date: intent.entities.date,
-          duration: intent.entities.duration,
-          type: intent.entities.type as 'Regular' | 'Touch Up' | 'Consultation' | 'Full Day' | undefined,
-          timeSlot: intent.entities.timeSlot,
-          estimate: intent.entities.estimate,
-          notes: intent.entities.notes,
-          rescheduled: intent.entities.rescheduled,
-        },
+        changes,
       });
     }
     return;
@@ -387,10 +405,12 @@ async function routeClient(
   const store = useAgentStore.getState();
 
   if (intent.action === 'create') {
-    executeClientCreate({
+    const payload = {
       name: intent.entities.name || intent.entities.client_name,
       phone: intent.entities.phone,
-    });
+    };
+    store.logTrace('sub_agent', { agent: 'client', action: 'create', payload });
+    executeClientCreate(payload);
     return;
   }
 
@@ -503,6 +523,7 @@ async function routeClient(
   }
 
   if (intent.action === 'open') {
+    store.logTrace('sub_agent', { agent: 'client', action: 'open', client_id: resolved.client_id });
     executeClientOpen({ client_id: resolved.client_id as string });
   } else if (intent.action === 'edit') {
     // Use a second AI call to compute the actual changes from the user's
@@ -520,6 +541,7 @@ async function routeClient(
     const originalText = resolved.originalText as string | undefined;
     if (originalText) {
       try {
+        store.logTrace('edge_call', { fn: 'agent-resolve-edit', body: { text: originalText, client: { name: client.name } } });
         const { data, error } = await supabase.functions.invoke('agent-resolve-edit', {
           body: {
             text: originalText,
@@ -532,22 +554,29 @@ async function routeClient(
         });
 
         if (error) {
-          console.error('agent-resolve-edit returned error:', error);
+          const errMsg = await describeFunctionError(error);
+          console.error('agent-resolve-edit returned error:', errMsg, error);
+          store.logTrace('edge_error', { fn: 'agent-resolve-edit', message: errMsg });
         } else if (data?.error) {
           console.error('agent-resolve-edit data error:', data.error);
+          store.logTrace('edge_error', { fn: 'agent-resolve-edit', message: data.error });
         } else if (data) {
-          executeClientEdit({
+          store.logTrace('edge_response', { fn: 'agent-resolve-edit', data });
+          const payload = {
             client_id: resolved.client_id as string,
             changes: {
               name: data.name,
               phone: data.phone,
               tags: data.tags,
             },
-          });
+          };
+          store.logTrace('sub_agent', { agent: 'client', action: 'edit', ...payload });
+          executeClientEdit(payload);
           return;
         }
       } catch (err) {
         console.error('agent-resolve-edit exception:', err);
+        store.logTrace('exception', { fn: 'agent-resolve-edit', message: err instanceof Error ? err.message : String(err) });
       }
     } else {
       console.warn('No originalText in resolved — skipping second AI call');
@@ -556,26 +585,30 @@ async function routeClient(
     // Fallback: use raw entities from the first parse (only for
     // direct-value edits like "update phone to 555-1234" where
     // the first parse already has the correct value)
-    executeClientEdit({
+    const fallbackPayload = {
       client_id: resolved.client_id as string,
       changes: {
         name: intent.entities.name,
         phone: intent.entities.phone,
         tags: intent.entities.tags,
       },
-    });
+    };
+    store.logTrace('sub_agent', { agent: 'client', action: 'edit', fallback: true, ...fallbackPayload });
+    executeClientEdit(fallbackPayload);
   }
 }
 
 // ─── Schedule Routing ───────────────────────────────────────────────
 
 async function routeSchedule(intent: AgentIntent) {
-  executeScheduleQuery({
+  const payload = {
     query_type: intent.entities.query_type || 'list',
     date_range_start: intent.entities.date_range_start,
     date_range_end: intent.entities.date_range_end,
     booking_type: intent.entities.booking_type,
-  });
+  };
+  useAgentStore.getState().logTrace('sub_agent', { agent: 'schedule', action: 'query', payload });
+  executeScheduleQuery(payload);
 }
 
 // ─── Messaging Routing ──────────────────────────────────────────────
@@ -666,6 +699,7 @@ async function routeMessaging(
 
   // Execute
   if (intent.action === 'open') {
+    store.logTrace('sub_agent', { agent: 'messaging', action: 'open', conversation_id: resolved.conversation_id });
     executeMessagingOpen({
       conversation_id: resolved.conversation_id as string,
     });
@@ -675,6 +709,7 @@ async function routeMessaging(
       (resolved.client_name as string) || '',
       intent.entities.draft_context
     );
+    store.logTrace('sub_agent', { agent: 'messaging', action: 'draft', conversation_id: resolved.conversation_id });
     executeMessagingDraft({
       conversation_id: resolved.conversation_id as string,
       client_name: (resolved.client_name as string) || '',
@@ -697,6 +732,7 @@ export async function handleSelection(
   const intent = store.pendingIntent;
   if (!intent) return;
 
+  store.logTrace('selection_made', { selectionType, selectedId });
   store.setLoading(true);
 
   switch (selectionType) {

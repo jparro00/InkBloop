@@ -1,6 +1,17 @@
 import { create } from 'zustand';
 import type { AgentIntent, AgentMessage } from '../agents/types';
 
+export interface TraceEvent {
+  t: number;          // ms since trace start
+  type: string;       // event type (user_input, edge_call, resolver, sub_agent, error, ...)
+  data?: unknown;     // event-specific payload
+}
+
+export interface FeedbackPromptState {
+  trace: TraceEvent[];
+  shownAt: number;
+}
+
 interface AgentStore {
   messages: AgentMessage[];
   isProcessing: boolean;
@@ -10,6 +21,16 @@ interface AgentStore {
   pendingIntent: AgentIntent | null;
   // Resolved entities accumulated so far (e.g. after client selection)
   pendingResolved: Record<string, unknown>;
+
+  // Trace of the current exchange (from processInput → all modals closed).
+  // Cleared when a new exchange starts or when the feedback prompt resolves.
+  trace: TraceEvent[];
+  traceStartedAt: number | null;
+  // True when an exchange is in-flight and eligible for feedback once it
+  // completes (panel closed, no modals open, not processing).
+  traceActive: boolean;
+  // When set, the feedback prompt is shown above the FAB for 2s.
+  feedbackPrompt: FeedbackPromptState | null;
 
   // Actions
   openPanel: () => void;
@@ -21,14 +42,24 @@ interface AgentStore {
   setPending: (intent: AgentIntent | null, resolved?: Record<string, unknown>) => void;
   updatePendingResolved: (key: string, value: unknown) => void;
   reset: () => void;
+
+  // Trace actions
+  startTrace: () => void;
+  logTrace: (type: string, data?: unknown) => void;
+  showFeedbackPrompt: () => void;
+  clearFeedback: () => void;
 }
 
-export const useAgentStore = create<AgentStore>((set) => ({
+export const useAgentStore = create<AgentStore>((set, get) => ({
   messages: [],
   isProcessing: false,
   panelOpen: false,
   pendingIntent: null,
   pendingResolved: {},
+  trace: [],
+  traceStartedAt: null,
+  traceActive: false,
+  feedbackPrompt: null,
 
   openPanel: () => set({ panelOpen: true, messages: [], pendingIntent: null, pendingResolved: {}, isProcessing: false }),
 
@@ -92,4 +123,38 @@ export const useAgentStore = create<AgentStore>((set) => ({
       pendingIntent: null,
       pendingResolved: {},
     }),
+
+  // Start a new trace. Any prior un-submitted trace is discarded.
+  startTrace: () =>
+    set({
+      trace: [],
+      traceStartedAt: Date.now(),
+      traceActive: true,
+      feedbackPrompt: null,
+    }),
+
+  logTrace: (type, data) => {
+    const started = get().traceStartedAt;
+    if (!get().traceActive || started === null) return;
+    set((s) => ({
+      trace: [...s.trace, { t: Date.now() - started, type, data }],
+    }));
+  },
+
+  // Called when the exchange is fully complete (all modals closed).
+  // Captures the current trace into feedbackPrompt for 2s display.
+  showFeedbackPrompt: () =>
+    set((s) => {
+      if (!s.traceActive || s.trace.length === 0) {
+        return { traceActive: false };
+      }
+      return {
+        feedbackPrompt: { trace: s.trace, shownAt: Date.now() },
+        trace: [],
+        traceStartedAt: null,
+        traceActive: false,
+      };
+    }),
+
+  clearFeedback: () => set({ feedbackPrompt: null }),
 }));

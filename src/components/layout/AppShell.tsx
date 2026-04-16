@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { Bot } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
+import { useEffect } from 'react';
 import Sidebar from './Sidebar';
 import AppHeader from './AppHeader';
 import MobileTabBar from './MobileTabBar';
@@ -10,6 +11,7 @@ import BookingForm from '../booking/BookingForm';
 import CreateClientForm from '../client/CreateClientForm';
 import ClientForm from '../client/ClientForm';
 import AgentPanel from '../agent/AgentPanel';
+import AgentFeedbackPrompt from '../agent/AgentFeedbackPrompt';
 import SearchOverlay from '../../pages/Search';
 import ConversationDrawer from '../messaging/ConversationDrawer';
 import ToastContainer from '../common/Toast';
@@ -31,6 +33,42 @@ export default function AppShell() {
   const editingClient = useClientStore((s) => editingClientId ? s.clients.find((c) => c.id === editingClientId) : undefined);
   const agentPanelOpen = useAgentStore((s) => s.panelOpen);
   const openAgentPanel = useAgentStore((s) => s.openPanel);
+  const isProcessing = useAgentStore((s) => s.isProcessing);
+  const traceActive = useAgentStore((s) => s.traceActive);
+  const showFeedbackPrompt = useAgentStore((s) => s.showFeedbackPrompt);
+
+  // When an exchange is active and everything settles (panel closed, no
+  // modals/drawers open, agent not processing), trigger the feedback prompt.
+  // Debounce briefly to absorb transient states (e.g. agent closing panel
+  // while a form is opening in the same tick).
+  useEffect(() => {
+    if (!traceActive) return;
+    if (isProcessing || agentPanelOpen) return;
+    if (
+      bookingFormOpen ||
+      selectedBookingId ||
+      createClientFormOpen ||
+      editingClientId ||
+      selectedConversationId ||
+      searchOpen
+    ) return;
+
+    const timer = setTimeout(() => {
+      showFeedbackPrompt();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [
+    traceActive,
+    isProcessing,
+    agentPanelOpen,
+    bookingFormOpen,
+    selectedBookingId,
+    createClientFormOpen,
+    editingClientId,
+    selectedConversationId,
+    searchOpen,
+    showFeedbackPrompt,
+  ]);
 
   return (
     <div className="h-full flex flex-col lg:flex-row">
@@ -98,6 +136,8 @@ export default function AppShell() {
       >
         <Bot size={40} />
       </button>
+
+      <AgentFeedbackPrompt />
 
       <MobileTabBar />
       <ToastContainer />
