@@ -68,7 +68,7 @@ export default function AgentPanel() {
       fullScreenMobile={true}
       canCollapse={false}
     >
-      <div className="flex flex-col -mx-5 -my-5 lg:-mx-6 lg:-my-5" style={{ height: 'calc(100vh - 120px)', maxHeight: '70vh' }}>
+      <div className="flex flex-col -mx-5 -my-5 lg:-mx-6 lg:-my-5 h-full lg:h-[70vh]">
         {/* Messages area */}
         <AgentMessages />
 

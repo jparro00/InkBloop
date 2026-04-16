@@ -263,6 +263,10 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
   const collapsedRef = useRef(false);
   const [traceTrigger, setTraceTrigger] = useState(0);
   const [xTraceTrigger, setXTraceTrigger] = useState(0);
+  // How much of the layout viewport is covered at the bottom by the keyboard
+  // (or any other UI chrome). We use this to shrink the sheet instead of
+  // letting iOS push the whole fixed element off-screen to reveal a focused input.
+  const [keyboardInset, setKeyboardInset] = useState(0);
 
   const setModalCollapsed = useUIStore((s) => s.setModalCollapsed);
 
@@ -342,6 +346,28 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
   useEffect(() => {
     return () => {
       if (dismissTimer.current) clearTimeout(dismissTimer.current);
+    };
+  }, []);
+
+  // Track the visual viewport to know how much space the keyboard takes.
+  // When a textarea/input inside the sheet is focused, iOS Safari tries to
+  // scroll the page to keep it visible — which on a `fixed` modal looks like
+  // the whole thing slides up off-screen. By applying the keyboard height as
+  // a `bottom` offset, we shrink the sheet to fit above the keyboard so the
+  // top stays visible and iOS has no reason to scroll.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setKeyboardInset(inset);
+    };
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    update();
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
     };
   }, []);
 
@@ -470,10 +496,12 @@ export default function Modal({ title, header, onClose, children, width = 'lg:ma
         onClick={handleBackdropClick}
       />
 
-      {/* Sheet — dragY is the sole controller of y position */}
+      {/* Sheet — dragY is the sole controller of y position.
+          `bottom: keyboardInset` shrinks the sheet when the keyboard is open
+          so the top stays visible instead of scrolling off-screen on iOS. */}
       <motion.div
         ref={sheetRef}
-        style={{ y: dragY }}
+        style={{ y: dragY, bottom: keyboardInset }}
         className={`fixed top-4 left-0 right-0 bottom-0 lg:inset-auto lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 ${width} bg-elevated shadow-lg z-50 flex flex-col overflow-hidden ${
           fullScreenMobile
             ? 'rounded-t-[28px] lg:rounded-xl lg:h-auto lg:max-h-[85vh]'
