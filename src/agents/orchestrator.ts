@@ -31,13 +31,23 @@ export async function processInput(text: string) {
     });
 
     if (error) {
-      // Supabase functions.invoke returns the error body in `error`
-      const errMsg = typeof error === 'object' && error !== null
-        ? (error as Record<string, unknown>).message || JSON.stringify(error)
-        : String(error);
-      console.error('Agent parse error:', error);
+      // Extract the actual error body from the FunctionsHttpError
+      let errMsg = '';
+      try {
+        // Supabase FunctionsHttpError has a .context (Response) we can read
+        const ctx = (error as { context?: Response }).context;
+        if (ctx && typeof ctx.json === 'function') {
+          const body = await ctx.json();
+          errMsg = body?.error || JSON.stringify(body);
+        } else {
+          errMsg = (error as Error).message || String(error);
+        }
+      } catch {
+        errMsg = (error as Error).message || String(error);
+      }
+      console.error('Agent parse error:', errMsg, error);
       store.replaceLastLoading({
-        text: `Something went wrong: ${errMsg}`,
+        text: `Error: ${errMsg}`,
       });
       return;
     }
