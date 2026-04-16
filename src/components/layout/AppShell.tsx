@@ -37,7 +37,7 @@ export default function AppShell() {
 
       {/* Main content — full width on mobile, offset on desktop */}
       <div
-        className={`flex-1 flex flex-col pb-[116px] lg:pb-0 transition-all duration-300 overflow-hidden ${
+        className={`flex-1 flex flex-col pb-[100px] lg:pb-0 transition-all duration-300 overflow-hidden ${
           sidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-[240px]'
         }`}
       >
