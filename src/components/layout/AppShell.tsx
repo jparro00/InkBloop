@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom';
-import { Pen } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import Sidebar from './Sidebar';
 import AppHeader from './AppHeader';
@@ -81,10 +81,10 @@ export default function AppShell() {
       {/* Quick Booking FAB */}
       <button
         onClick={() => setQuickBookingOpen(true)}
-        className="fixed bottom-[116px] right-5 lg:bottom-8 lg:right-8 w-14 h-14 bg-accent text-bg rounded-xl shadow-lg shadow-glow flex items-center justify-center z-30 cursor-pointer press-scale transition-transform active:shadow-glow-strong"
+        className="fixed bottom-[116px] right-5 lg:bottom-8 lg:right-8 w-[84px] h-[84px] bg-accent text-bg rounded-2xl shadow-lg shadow-glow flex items-center justify-center z-30 cursor-pointer press-scale transition-transform active:shadow-glow-strong"
         title="Quick Booking"
       >
-        <Pen size={20} />
+        <Bot size={30} />
       </button>
 
       <MobileTabBar />
