@@ -21,8 +21,8 @@ A merge to `main` only ships the frontend. Database schema changes, RLS policies
 - Broadens `bookings_type_check` to allow `'Cover Up'`. Non-breaking (existing rows are unaffected; rejects nothing that was previously accepted).
 
 ### 3. Edge function `agent-parse`
-- **Status on dev:** deployed (knows about Cover Up)
-- **Status on prod:** **ALREADY DEPLOYED** with Cover Up support via MCP earlier
+- **Status on dev:** deployed (knows about Cover Up, `--no-verify-jwt`)
+- **Status on prod:** deployed (knows about Cover Up, `--no-verify-jwt`)
 - Safe to leave — prod frontend can't produce `type: "Cover Up"` yet, and the function tolerates older inputs.
 
 ### 4. Edge function `parse-booking`
@@ -58,9 +58,11 @@ npx supabase db push --linked
 
 ### Deploy an edge function
 ```
-npx supabase functions deploy <name> --project-ref <dev_or_prod_ref>
+npx supabase functions deploy <name> --project-ref <dev_or_prod_ref> --no-verify-jwt
 ```
 Docker is not required (CLI falls back to bundling locally).
+
+**ALWAYS pass `--no-verify-jwt`.** The `verify_jwt` setting is reset on every deploy (it does not inherit from the prior version), defaulting to `true`. This project uses ES256-signed user tokens, which the gateway verifier cannot handle — leaving verify_jwt on causes every call to return `HTTP 401 UNAUTHORIZED_UNSUPPORTED_TOKEN_ALGORITHM` before the function code even runs. Each function authenticates internally via `supabase.auth.getUser()`, so disabling gateway verification is safe. Same rule when deploying via the `mcp__supabase__deploy_edge_function` tool — pass `verify_jwt: false`.
 
 ### Deploy frontend
 - Dev: `npm run deploy:dev` → aliased to `inkbloop-dev.vercel.app`
