@@ -373,6 +373,62 @@
     },
 
     {
+      "id": "booking-edit-reschedule-to-different-day",
+      "category": "booking/edit",
+      "prompt": "reschedule Sam's appointment to thursday",
+      "context": "Sam Donovan has an appointment on Wednesday. Thursday is a different day — the date is the TARGET, not the current booking date.",
+      "expected_parse": { "agent": "booking", "action": "edit", "entities": { "client_name": "sam", "date": "thursday ISO", "rescheduled": true } },
+      "resolution": "Single match on 'sam' → resolves to Sam Donovan → finds booking by client (NOT by target date) → edit form opens with new date + rescheduled flag",
+      "expected_outcome": "BookingForm opens in edit mode with date changed to Thursday, rescheduled=true, both highlighted as 'AI updated'"
+    },
+    {
+      "id": "booking-edit-move-to-day",
+      "category": "booking/edit",
+      "prompt": "move sarah's booking to next wednesday",
+      "context": "Sarah Kim has a booking on Monday. 'move' implies reschedule.",
+      "expected_parse": { "agent": "booking", "action": "edit", "entities": { "client_name": "sarah", "date": "next wednesday ISO", "rescheduled": true } },
+      "resolution": "Single match → finds booking by client → edit with new date",
+      "expected_outcome": "BookingForm opens with date changed to Wednesday, rescheduled=true"
+    },
+
+    {
+      "id": "date-same-day-as-today",
+      "category": "edge/dates",
+      "prompt": "book sarah thursday",
+      "context": "Today IS Thursday. 'Thursday' should mean NEXT Thursday (7 days from now), not today. Only 'today' means today.",
+      "expected_parse": { "agent": "booking", "action": "create", "entities": { "client_name": "sarah", "date": "next thursday ISO (7 days from now)" } },
+      "resolution": "Single match on 'sarah' → BookingForm opens with date = next Thursday",
+      "expected_outcome": "BookingForm opens with date set to next Thursday (7 days from now), NOT today"
+    },
+    {
+      "id": "date-next-day-from-today",
+      "category": "edge/dates",
+      "prompt": "book sarah friday",
+      "context": "Today is Thursday. 'Friday' should mean tomorrow (1 day from now), not 8 days from now.",
+      "expected_parse": { "agent": "booking", "action": "create", "entities": { "client_name": "sarah", "date": "friday ISO (tomorrow)" } },
+      "resolution": "Single match on 'sarah' → BookingForm opens with date = tomorrow Friday",
+      "expected_outcome": "BookingForm opens with date set to tomorrow (Friday), the next strictly-future occurrence"
+    },
+    {
+      "id": "date-explicit-today",
+      "category": "edge/dates",
+      "prompt": "book sarah today at 2pm",
+      "context": "The word 'today' is the only way to mean today's date.",
+      "expected_parse": { "agent": "booking", "action": "create", "entities": { "client_name": "sarah", "date": "today 2pm ISO" } },
+      "resolution": "Single match on 'sarah' → BookingForm opens with date = today at 2pm",
+      "expected_outcome": "BookingForm opens with date set to today at 2pm"
+    },
+    {
+      "id": "date-tomorrow",
+      "category": "edge/dates",
+      "prompt": "schedule alex for tomorrow morning",
+      "context": "'tomorrow' should always mean the next calendar day.",
+      "expected_parse": { "agent": "booking", "action": "create", "entities": { "client_name": "alex", "date": "tomorrow ISO", "timeSlot": "morning" } },
+      "resolution": "Single match on 'alex' → BookingForm opens with date = tomorrow, timeSlot = morning",
+      "expected_outcome": "BookingForm opens with date = tomorrow, time slot = morning"
+    },
+
+    {
       "id": "unknown-gibberish",
       "category": "unknown",
       "prompt": "asdfghjkl",
