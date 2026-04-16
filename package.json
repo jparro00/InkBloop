@@ -11,7 +11,12 @@
     "sim": "node simulator/server.js",
     "sim:dev": "node --watch simulator/server.js",
     "deploy:prod": "npx vercel --prod --yes",
-    "deploy:dev": "node scripts/deploy-dev.mjs"
+    "deploy:dev": "node scripts/deploy-dev.mjs",
+    "eval": "node scripts/run-evals.mjs",
+    "eval:booking": "node scripts/run-evals.mjs booking",
+    "eval:client": "node scripts/run-evals.mjs client",
+    "eval:schedule": "node scripts/run-evals.mjs schedule",
+    "eval:messaging": "node scripts/run-evals.mjs messaging"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.103.0",
