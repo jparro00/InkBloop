@@ -30,7 +30,26 @@ export async function processInput(text: string) {
       body: { text },
     });
 
-    if (error) throw error;
+    if (error) {
+      // Supabase functions.invoke returns the error body in `error`
+      const errMsg = typeof error === 'object' && error !== null
+        ? (error as Record<string, unknown>).message || JSON.stringify(error)
+        : String(error);
+      console.error('Agent parse error:', error);
+      store.replaceLastLoading({
+        text: `Something went wrong: ${errMsg}`,
+      });
+      return;
+    }
+
+    // Check if the response itself contains an error (from the edge function)
+    if (data?.error) {
+      console.error('Agent parse returned error:', data.error);
+      store.replaceLastLoading({
+        text: `Error: ${data.error}`,
+      });
+      return;
+    }
 
     const intent = data as AgentIntent;
 
@@ -45,9 +64,10 @@ export async function processInput(text: string) {
     store.setPending(intent);
     await routeIntent(intent);
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
     console.error('Agent parse error:', err);
     store.replaceLastLoading({
-      text: 'Something went wrong. Please try again.',
+      text: `Something went wrong: ${msg}`,
     });
   }
 }
