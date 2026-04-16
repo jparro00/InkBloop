@@ -48,8 +48,15 @@ export function executeClientEdit(data: ResolvedClientEdit) {
   const store = useAgentStore.getState();
   const ui = useUIStore.getState();
 
-  // Store which fields are being changed by the agent
-  ui.setChangedClientFields(new Set(Object.keys(data.changes)));
+  // Filter to only defined changes
+  const definedChanges: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(data.changes)) {
+    if (v !== undefined) definedChanges[k] = v;
+  }
+
+  // Store which fields are being changed and their values
+  ui.setChangedClientFields(new Set(Object.keys(definedChanges)));
+  ui.setPendingClientChanges(data.changes);
 
   store.replaceLastLoading({
     status: 'action_taken',

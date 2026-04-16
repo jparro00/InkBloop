@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { X, ChevronDown } from 'lucide-react';
 import Modal from '../common/Modal';
 import { useClientStore } from '../../stores/clientStore';
+import { useUIStore } from '../../stores/uiStore';
 import { fetchAvailableProfiles } from '../../services/clientService';
 import type { Client, LinkedProfile } from '../../types';
 
@@ -130,6 +131,8 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
   const updateClient = useClientStore((s) => s.updateClient);
   const linkedProfiles = useClientStore((s) => s.linkedProfiles);
   const allClients = useClientStore((s) => s.clients);
+  const pendingChanges = useUIStore((s) => s.pendingClientChanges);
+  const changedFields = useUIStore((s) => s.changedClientFields);
 
   const parseDob = (dob: string) => {
     if (!dob) return { dobMonth: '', dobDay: '', dobYear: '' };
@@ -139,14 +142,15 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
   const initDob = parseDob(client?.dob ?? '');
   const defaultYear = String(new Date().getFullYear() - 18);
 
+  // Apply agent's pending changes over existing client data
   const [form, setForm] = useState({
-    name: client?.name ?? '',
+    name: pendingChanges?.name ?? client?.name ?? '',
     display_name: client?.display_name ?? '',
-    phone: client?.phone ?? '',
+    phone: pendingChanges?.phone ?? client?.phone ?? '',
     dobMonth: initDob.dobMonth,
     dobDay: initDob.dobDay,
     dobYear: initDob.dobYear || defaultYear,
-    tags: client?.tags.join(', ') ?? '',
+    tags: pendingChanges?.tags?.join(', ') ?? client?.tags.join(', ') ?? '',
   });
 
   const [igPsid, setIgPsid] = useState<string | undefined>(client?.instagram);
@@ -225,19 +229,29 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
 
   const inputClass =
     'w-full bg-input border border-border/60 rounded-md px-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors min-h-[48px]';
+  const changedInputClass =
+    'w-full bg-input border border-accent/60 rounded-md px-4 py-3.5 text-base text-text-p placeholder:text-text-t focus:outline-none focus:border-accent/40 transition-colors min-h-[48px]';
   const labelClass = 'text-sm text-text-t uppercase tracking-wider mb-2 block font-medium';
+  const changedLabel = (field: string, text: string) => (
+    <label className={labelClass}>
+      {text}
+      {changedFields.has(field) && (
+        <span className="ml-2 text-accent text-xs normal-case tracking-normal font-normal">AI updated</span>
+      )}
+    </label>
+  );
 
   return (
     <Modal title={client ? 'Edit Client' : 'New Client'} onClose={onClose} width="lg:max-w-[520px]" canCollapse={dirty}>
       <div className="space-y-5">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           <div>
-            <label className={labelClass}>Name *</label>
+            {changedLabel('name', 'Name *')}
             <input
               type="text"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              className={inputClass}
+              className={changedFields.has('name') ? changedInputClass : inputClass}
             />
           </div>
           <div>
@@ -253,12 +267,12 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
         </div>
 
         <div>
-          <label className={labelClass}>Phone</label>
+          {changedLabel('phone', 'Phone')}
           <input
             type="tel"
             value={form.phone}
             onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-            className={inputClass}
+            className={changedFields.has('phone') ? changedInputClass : inputClass}
           />
         </div>
 
@@ -337,13 +351,13 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
         </div>
 
         <div>
-          <label className={labelClass}>Tags (comma separated)</label>
+          {changedLabel('tags', 'Tags (comma separated)')}
           <input
             type="text"
             value={form.tags}
             onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
             placeholder="returning, cover-up specialist"
-            className={inputClass}
+            className={changedFields.has('tags') ? changedInputClass : inputClass}
           />
         </div>
 

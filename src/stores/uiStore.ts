@@ -50,6 +50,8 @@ interface UIStore {
   setChangedBookingFields: (fields: Set<string>) => void;
   changedClientFields: Set<string>;
   setChangedClientFields: (fields: Set<string>) => void;
+  pendingClientChanges: Partial<{ name: string; phone: string; tags: string[] }> | null;
+  setPendingClientChanges: (changes: UIStore['pendingClientChanges']) => void;
   selectedConversationId: string | null;
   setSelectedConversationId: (id: string | null) => void;
   modalCollapsed: boolean;
@@ -135,12 +137,19 @@ export const useUIStore = create<UIStore>((set) => ({
   setChangedBookingFields: (fields) => set({ changedBookingFields: fields }),
   changedClientFields: new Set<string>(),
   setChangedClientFields: (fields) => set({ changedClientFields: fields }),
+  pendingClientChanges: null,
+  setPendingClientChanges: (changes) => set({ pendingClientChanges: changes }),
   setEditingClientId: (id) => {
     if (id && useUIStore.getState().modalCollapsed) {
       set((s) => ({ blockedOpenTrigger: s.blockedOpenTrigger + 1 }));
       return;
     }
-    set({ editingClientId: id });
+    // Clear agent data when closing
+    if (!id) {
+      set({ editingClientId: null, pendingClientChanges: null, changedClientFields: new Set() });
+    } else {
+      set({ editingClientId: id });
+    }
   },
   selectedConversationId: null,
   setSelectedConversationId: (id) => {
