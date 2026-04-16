@@ -5,7 +5,7 @@ import type { ConversationSummary } from '../services/messageService';
 
 export interface AgentIntent {
   agent: 'booking' | 'client' | 'schedule' | 'messaging' | 'unknown';
-  action: 'create' | 'open' | 'edit' | 'query' | 'draft' | 'unknown';
+  action: 'create' | 'open' | 'edit' | 'search' | 'query' | 'draft' | 'unknown';
   entities: {
     // Booking entities
     client_name?: string;
@@ -68,6 +68,7 @@ export interface AgentMessage {
     context:
       | 'ambiguous_client'
       | 'no_match'
+      | 'search_results'
       | 'ambiguous_booking'
       | 'platform_choice'
       | 'draft_template';

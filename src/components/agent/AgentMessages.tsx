@@ -130,8 +130,8 @@ function SelectionCards({
     handleSelection(selections.type, id);
   };
 
-  // For no_match: show suggestions, then a search field to find anyone
-  const isNoMatch = selections.context === 'no_match' && selections.type === 'client';
+  // For no_match or search_results: show suggestions/results, search field to find anyone
+  const isNoMatch = (selections.context === 'no_match' || selections.context === 'search_results') && selections.type === 'client';
   const suggestions = selections.items as Client[];
 
   // Search results: filter all clients by search query

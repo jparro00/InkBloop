@@ -277,6 +277,71 @@ async function routeClient(
     return;
   }
 
+  // Search — always show results as cards, never auto-open
+  if (intent.action === 'search') {
+    // If user already tapped a search result card, open that client
+    if (resolved.client_id) {
+      executeClientOpen({ client_id: resolved.client_id as string });
+      return;
+    }
+
+    const nameQuery = intent.entities.client_name || intent.entities.name;
+    const clients = useClientStore.getState().clients;
+
+    if (!nameQuery) {
+      store.replaceLastLoading({
+        text: 'Search for a client:',
+        selections: {
+          type: 'client',
+          items: clients.slice(0, 8),
+          mode: 'single',
+          context: 'search_results',
+        },
+      });
+      return;
+    }
+
+    const result = resolveClient(nameQuery, clients);
+    switch (result.type) {
+      case 'exact':
+        store.replaceLastLoading({
+          text: `Found "${nameQuery}":`,
+          selections: {
+            type: 'client',
+            items: [result.client],
+            mode: 'single',
+            context: 'search_results',
+          },
+        });
+        return;
+      case 'single':
+        store.replaceLastLoading({
+          text: `Found a match for "${nameQuery}":`,
+          selections: {
+            type: 'client',
+            items: [result.client],
+            mode: 'single',
+            context: 'search_results',
+          },
+        });
+        return;
+      case 'multiple':
+        store.replaceLastLoading({
+          text: `Found ${result.clients.length} clients matching "${nameQuery}":`,
+          selections: {
+            type: 'client',
+            items: result.clients,
+            mode: 'single',
+            context: 'search_results',
+          },
+        });
+        return;
+      case 'none':
+        showNoMatch(nameQuery, result.suggestions);
+        return;
+    }
+  }
+
   // open / edit both need a resolved client
   const nameQuery =
     intent.entities.client_name || intent.entities.name;

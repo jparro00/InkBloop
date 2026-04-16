@@ -39,7 +39,8 @@ AGENTS AND ACTIONS:
 - booking/open: User wants to view an existing booking (e.g. "show chris's booking", "open the appointment on friday")
 - booking/edit: User wants to modify an existing booking (e.g. "move chris to 3pm", "change the estimate to 500", "reschedule sarah")
 - client/create: User wants to add a new client (e.g. "add a new client named alex", "create client")
-- client/open: User wants to view a client profile (e.g. "open chris's profile", "show me chris")
+- client/search: User wants to look up or check if a client exists (e.g. "do I have a client named cindy", "search for chris", "find client sarah", "look up alex")
+- client/open: User wants to view a specific client profile they already know exists (e.g. "open chris's profile", "show me chris")
 - client/edit: User wants to modify client info (e.g. "update chris's phone number", "add VIP tag to sarah")
 - schedule/query: User wants information about their schedule (e.g. "how many tattoos this week", "am I free friday", "what's on my schedule tomorrow")
 - messaging/open: User wants to open a message thread (e.g. "message chris", "open chat with sarah")
@@ -72,13 +73,14 @@ Return raw client names as-is (do NOT try to match to IDs). The app handles matc
 RESPONSE FORMAT — return ONLY valid JSON, no markdown, no explanation:
 {
   "agent": "booking" | "client" | "schedule" | "messaging",
-  "action": "create" | "open" | "edit" | "query" | "draft",
+  "action": "create" | "open" | "edit" | "search" | "query" | "draft",
   "entities": { ... }
 }
 
 RULES:
 - Always extract every entity you can. A missing client name must NOT prevent you from extracting date, type, etc.
 - If the intent is ambiguous between open and edit, prefer "open" (editing requires explicit change language).
+- If the user is asking WHETHER a client exists, searching for a client, or looking up a client by name, use "search" NOT "open". Use "open" only when the user clearly wants to navigate to a known client's profile.
 - If no clear agent/action can be determined, return: {"agent":"unknown","action":"unknown","entities":{}}
 - For schedule queries without explicit dates, default to "this week" (date_range_start = today, date_range_end = end of week).
 - NEVER add error messages or explanations in any field. Return ONLY the JSON object.`;
@@ -211,7 +213,7 @@ Deno.serve(async (req: Request) => {
 
     // Validate agent and action
     const validAgents = ["booking", "client", "schedule", "messaging", "unknown"];
-    const validActions = ["create", "open", "edit", "query", "draft", "unknown"];
+    const validActions = ["create", "open", "edit", "search", "query", "draft", "unknown"];
 
     if (!validAgents.includes(parsed.agent)) parsed.agent = "unknown";
     if (!validActions.includes(parsed.action)) parsed.action = "unknown";
