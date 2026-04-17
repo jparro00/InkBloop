@@ -45,7 +45,19 @@ A merge to `main` only ships the frontend. Database schema changes, RLS policies
   npx supabase functions deploy parse-booking --project-ref jpjvexfldouobiiczhax --no-verify-jwt
   ```
 
-### 6. Frontend
+### 6. Edge function `transcribe-audio` (new)
+- **Status on dev:** deployed (voice input → Groq Whisper Large V3 Turbo)
+- **Status on prod:** NOT YET DEPLOYED — function does not exist on prod
+- **Prereq secret:** `GROQ_API_KEY` must be set on the prod project before deploy
+  ```
+  npx supabase secrets set GROQ_API_KEY=<key> --project-ref jpjvexfldouobiiczhax
+  ```
+- **Action when ready for prod:**
+  ```
+  npx supabase functions deploy transcribe-audio --project-ref jpjvexfldouobiiczhax --no-verify-jwt
+  ```
+
+### 7. Frontend
 Rolls up every pending frontend-visible change:
 - Cover Up booking type + blue swatch + 3h default
 - "Inklet - AI Assistant" rename + agent feedback UI
@@ -55,11 +67,13 @@ Rolls up every pending frontend-visible change:
 - Smart availability query response (morning/evening breakdown)
 - First-available-slot finder (`find_slot`) wired through booking create
 - Compound flow: no-match "Create new client" from booking/create resumes into BookingForm
+- Voice input: mic button in agent composer (Groq Whisper transcription, silence-detection auto-stop, 15s cap, iOS PWA compatible)
+- Feedback prompt extended to 3s; schedule-response bookings are clickable
 - **Status on dev:** deployed to `inkbloop-dev.vercel.app`
 - **Status on prod:** NOT YET DEPLOYED
 - **Action when ready for prod:** merge `dev` → `main`, then `npm run deploy:prod` (or push to main if auto-deploy is wired).
 
-**Prod deploy order:** apply the migrations first (they're already applied — safe), then deploy the 3 edge functions (each with `--no-verify-jwt`), then the frontend. The frontend is the last step so users only see new UI once the backend can serve it.
+**Prod deploy order:** apply the migrations first (they're already applied — safe), set the `GROQ_API_KEY` secret on prod, then deploy the 4 edge functions (each with `--no-verify-jwt`), then the frontend. The frontend is the last step so users only see new UI once the backend can serve it.
 
 ---
 
