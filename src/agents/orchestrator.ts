@@ -3,7 +3,7 @@ import { useAgentStore } from '../stores/agentStore';
 import { useClientStore } from '../stores/clientStore';
 import { useBookingStore } from '../stores/bookingStore';
 import { useMessageStore } from '../stores/messageStore';
-import { resolveClient, resolveBooking, resolveConversation } from './resolvers';
+import { resolveClient, resolveBooking, resolveConversation, findAllNameMatches } from './resolvers';
 import { executeBookingCreate, executeBookingOpen, executeBookingEdit, executeBookingDelete } from './bookingAgent';
 import { executeClientCreate, executeClientOpen, executeClientEdit, executeClientDelete } from './clientAgent';
 import { executeScheduleQuery, findFirstAvailableSlot } from './scheduleAgent';
@@ -124,6 +124,54 @@ function showNoMatch(query: string, suggestions: import('../types').Client[]) {
       },
     });
   }
+}
+
+/**
+ * When `resolveClient` commits to one client (exact/single) but that client
+ * has no bookings matching the requested action, check whether other
+ * name-siblings do. If so, show them as a disambiguation card so the user
+ * can correct the pick rather than dead-ending on "No matching booking
+ * found." Returns true if the fallback fired (caller must return).
+ *
+ * Triggered by e.g. a client named just "John" (exact match, no bookings)
+ * eclipsing "John Taylor" (partial match, has the actual booking).
+ */
+function trySiblingClientFallback(
+  nameQuery: string | undefined,
+  committedClientId: string
+): boolean {
+  if (!nameQuery) return false;
+  const store = useAgentStore.getState();
+  const clients = useClientStore.getState().clients;
+  const bookings = useBookingStore.getState().bookings;
+  const siblings = findAllNameMatches(nameQuery, clients).filter(
+    (c) =>
+      c.id !== committedClientId &&
+      bookings.some(
+        (b) =>
+          b.client_id === c.id &&
+          b.status !== 'Cancelled' &&
+          b.status !== 'No-show'
+      )
+  );
+  if (siblings.length === 0) return false;
+  store.logTrace('client_sibling_fallback', {
+    reason: 'primary_had_no_bookings',
+    sibling_count: siblings.length,
+  });
+  // Un-commit the primary pick so the user's selection replaces it when
+  // routing resumes in handleSelection.
+  store.updatePendingResolved('client_id', undefined);
+  store.replaceLastLoading({
+    text: `Which ${nameQuery}?`,
+    selections: {
+      type: 'client',
+      items: siblings,
+      mode: 'single',
+      context: 'ambiguous_client',
+    },
+  });
+  return true;
 }
 
 export async function processInput(text: string) {
@@ -267,6 +315,10 @@ async function routeBooking(
     if (intent.entities.client_name && !resolved.client_id) {
       const clients = useClientStore.getState().clients;
       const result = resolveClient(intent.entities.client_name, clients);
+      store.logTrace('client_resolved', {
+        outcome: result.type,
+        count: result.type === 'multiple' ? result.clients.length : result.type === 'none' ? 0 : 1,
+      });
 
       switch (result.type) {
         case 'exact':
@@ -334,6 +386,10 @@ async function routeBooking(
     if (intent.entities.client_name && !resolved.client_id) {
       const clients = useClientStore.getState().clients;
       const result = resolveClient(intent.entities.client_name, clients);
+      store.logTrace('client_resolved', {
+        outcome: result.type,
+        count: result.type === 'multiple' ? result.clients.length : result.type === 'none' ? 0 : 1,
+      });
 
       switch (result.type) {
         case 'exact':
@@ -367,6 +423,10 @@ async function routeBooking(
       },
       bookings
     );
+    store.logTrace('booking_resolved', {
+      outcome: bookingResult.type,
+      count: bookingResult.type === 'multiple' ? bookingResult.bookings.length : bookingResult.type === 'none' ? 0 : 1,
+    });
 
     const clientName = intent.entities.client_name || '';
 
@@ -407,6 +467,10 @@ async function routeBooking(
     if (intent.entities.client_name && !resolved.client_id) {
       const clients = useClientStore.getState().clients;
       const result = resolveClient(intent.entities.client_name, clients);
+      store.logTrace('client_resolved', {
+        outcome: result.type,
+        count: result.type === 'multiple' ? result.clients.length : result.type === 'none' ? 0 : 1,
+      });
 
       switch (result.type) {
         case 'exact':
@@ -444,6 +508,10 @@ async function routeBooking(
         },
         bookings
       );
+      store.logTrace('booking_resolved', {
+        outcome: bookingResult.type,
+        count: bookingResult.type === 'multiple' ? bookingResult.bookings.length : bookingResult.type === 'none' ? 0 : 1,
+      });
 
       switch (bookingResult.type) {
         case 'exact':
@@ -461,6 +529,16 @@ async function routeBooking(
           });
           return;
         case 'none':
+          // Before dead-ending, check if the user's name query had sibling
+          // matches that DO have bookings (e.g. we committed to exact "John"
+          // with zero bookings while "John Taylor" has one). If so, offer a
+          // disambiguation card instead of a cold "not found."
+          if (
+            typeof resolved.client_id === 'string' &&
+            trySiblingClientFallback(intent.entities.client_name, resolved.client_id)
+          ) {
+            return;
+          }
           store.replaceLastLoading({
             text: 'No matching booking found.',
           });
@@ -569,6 +647,10 @@ async function routeClient(
     }
 
     const result = resolveClient(nameQuery, clients);
+    store.logTrace('client_resolved', {
+      outcome: result.type,
+      count: result.type === 'multiple' ? result.clients.length : result.type === 'none' ? 0 : 1,
+    });
     switch (result.type) {
       case 'exact':
         store.replaceLastLoading({
@@ -616,6 +698,10 @@ async function routeClient(
   if (nameQuery && !resolved.client_id) {
     const clients = useClientStore.getState().clients;
     const result = resolveClient(nameQuery, clients);
+    store.logTrace('client_resolved', {
+      outcome: result.type,
+      count: result.type === 'multiple' ? result.clients.length : result.type === 'none' ? 0 : 1,
+    });
 
     switch (result.type) {
       case 'exact':
@@ -786,6 +872,10 @@ async function routeMessaging(
   if (nameQuery && !resolved.client_id) {
     const clients = useClientStore.getState().clients;
     const result = resolveClient(nameQuery, clients);
+    store.logTrace('client_resolved', {
+      outcome: result.type,
+      count: result.type === 'multiple' ? result.clients.length : result.type === 'none' ? 0 : 1,
+    });
 
     switch (result.type) {
       case 'exact':

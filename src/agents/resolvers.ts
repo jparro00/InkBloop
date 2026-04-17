@@ -53,6 +53,24 @@ export function resolveClient(query: string, clients: Client[]): ClientResolutio
 }
 
 /**
+ * Return every client whose name touches the query (exact, contains, or
+ * first-name match). Used as a fallback when the primary `resolveClient`
+ * result commits to one client but that client has no action target — e.g.
+ * an exact-name "John" with zero bookings while a sibling "John Taylor"
+ * has one. Without this fallback, the exact match wins and the flow
+ * dead-ends.
+ */
+export function findAllNameMatches(query: string, clients: Client[]): Client[] {
+  if (!query || !query.trim()) return [];
+  const q = query.trim().toLowerCase();
+  return clients.filter((c) => {
+    const fullName = c.name.toLowerCase();
+    const firstName = fullName.split(' ')[0];
+    return fullName === q || fullName.includes(q) || firstName === q;
+  });
+}
+
+/**
  * Compute a fuzzy match score between a query and a client name.
  * Returns 0 for no meaningful match, higher = better match.
  *
