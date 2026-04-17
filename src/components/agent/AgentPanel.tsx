@@ -69,6 +69,22 @@ export default function AgentPanel() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Auto-start voice recording as soon as the panel opens. Zero-friction:
+  // tap bot icon → immediately start listening. On iOS the browser requires
+  // getUserMedia to fire close to a user gesture; the 150ms delay is well
+  // within that window and lets the modal finish animating in. If permission
+  // has never been granted the prompt appears here, which is still tied to
+  // the FAB tap that opened this panel.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      voice.start();
+    }, 150);
+    return () => clearTimeout(timer);
+    // Intentionally run only once on mount — voice.start() itself is a
+    // no-op if we're not in idle state, so no re-run guard needed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleSubmit = () => {
     const text = input.trim();
     if (!text || isProcessing) return;
