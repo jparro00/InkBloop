@@ -17,7 +17,7 @@ import { useEffect, useState } from 'react';
 
 // Build a closed SVG path for an N-point rounded polygon given the radii.
 // Uses Catmull-Rom → Bezier conversion so every shape has an identical
-// command structure (8 cubic beziers + close). This is what lets Framer
+// command structure (N cubic beziers + close). This is what lets Framer
 // Motion smoothly morph between them — both paths must have matching
 // command sequences.
 function makePath(radii: number[]): string {
@@ -50,15 +50,40 @@ function makePath(radii: number[]): string {
   return d;
 }
 
-// 8-point radius arrays. Every array length is 8 so every generated path
-// has the same structure (8 cubic bezier segments).
+// Every shape uses the same total point count so their paths share command
+// structure and morph smoothly. 84 = LCM(4, 6, 7) gives exact symmetry for
+// 4-, 6-, and 7-fold shapes.
+const TOTAL_POINTS = 84;
+
+// Smooth cosine profile — pure N-sided cookie. Rounded peaks AND rounded
+// valleys (no cusps). Good for cookie-style shapes.
+function cookieRadii(N: number, peak: number, valley: number): number[] {
+  const pointsPerPetal = TOTAL_POINTS / N;
+  return Array.from({ length: TOTAL_POINTS }, (_, i) => {
+    const p = (i % pointsPerPetal) / pointsPerPetal; // 0 at peak, 0.5 at valley
+    const t = (Math.cos(p * 2 * Math.PI) + 1) / 2; // 1 at peak, 0 at valley
+    return valley + (peak - valley) * t;
+  });
+}
+
+// Clover profile — flatter (more circular) petals with sharp V-shape
+// valleys between them. Uses |cos|^0.5 which creates the signature cusp
+// at each valley crossing.
+function cloverRadii(N: number, peak: number, valley: number, exp = 0.5): number[] {
+  const pointsPerPetal = TOTAL_POINTS / N;
+  return Array.from({ length: TOTAL_POINTS }, (_, i) => {
+    const p = (i % pointsPerPetal) / pointsPerPetal;
+    const t = Math.pow(Math.abs(Math.cos(p * Math.PI)), exp);
+    return valley + (peak - valley) * t;
+  });
+}
+
+// Order: 6-cookie → 4-cookie → 7-cookie → 4-leaf clover → back to 6-cookie
 const SHAPES: string[] = [
-  makePath([42, 42, 42, 42, 42, 42, 42, 42]),     // softBurst (circle)
-  makePath([45, 28, 45, 28, 45, 28, 45, 28]),     // 4-petal flower (cookie4)
-  makePath([40, 38, 42, 38, 40, 38, 42, 38]),     // subtle scallop
-  makePath([38, 43, 38, 43, 38, 43, 38, 43]),     // soft 4-corner square
-  makePath([44, 32, 44, 32, 44, 32, 44, 32]),     // softer flower
-  makePath([42, 40, 44, 40, 42, 40, 44, 40]),     // wavy circle
+  makePath(cookieRadii(6, 44, 34)),    // 6-sided cookie
+  makePath(cookieRadii(4, 45, 30)),    // 4-sided cookie
+  makePath(cookieRadii(7, 44, 36)),    // 7-sided cookie
+  makePath(cloverRadii(4, 48, 20)),    // 4-leaf clover
 ];
 
 const MORPH_INTERVAL_MS = 1100; // dwell on each shape
