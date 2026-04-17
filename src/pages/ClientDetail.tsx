@@ -418,7 +418,10 @@ export default function ClientDetailPage() {
 
       {confirmDelete && (
         <div
-          className="fixed inset-0 z-[100] bg-black/60 flex items-end lg:items-center justify-center px-4 pb-6 lg:pb-0"
+          // pb-[116px] keeps the dialog card above the 100px mobile tab bar
+          // (matches the FAB's bottom-[116px] anchor). lg:pb-0 centers it on
+          // desktop where there is no tab bar.
+          className="fixed inset-0 z-[100] bg-black/60 flex items-end lg:items-center justify-center px-4 pb-[116px] lg:pb-0"
           onClick={() => !deleting && setConfirmDelete(false)}
         >
           <div

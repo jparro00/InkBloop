@@ -4,7 +4,7 @@ import { useAgentStore } from '../stores/agentStore';
 
 // Config (tunable constants)
 const MAX_DURATION_MS = 15_000;      // hard cap on recording length
-const SILENCE_MS = 3_000;            // 3s of silence → auto-stop
+const SILENCE_MS = 2_000;            // 2s of silence → auto-stop
 const SILENCE_THRESHOLD = 0.02;      // RMS below this counts as silence (0-1)
 const LEVEL_UPDATE_MS = 100;         // throttle level updates to the UI
 
@@ -23,7 +23,7 @@ interface Options {
 
 /**
  * Tap-to-record voice input. Starts MediaRecorder + AudioContext when `start()`
- * is called. Stops automatically after 3s of silence, on manual `stopManual()`,
+ * is called. Stops automatically after 2s of silence, on manual `stopManual()`,
  * or at a 15s hard cap. On stop, sends the audio blob to the `transcribe-audio`
  * edge function and calls `onTranscript` with the result.
  *
