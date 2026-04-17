@@ -1,7 +1,9 @@
 {
+  "id": "/",
   "name": "Ink Bloop",
   "short_name": "Ink Bloop",
-  "start_url": ".",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#121212",
   "theme_color": "#0F0E0D",
