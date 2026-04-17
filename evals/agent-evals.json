@@ -666,6 +666,25 @@
       "expected_parse": { "agent": "booking", "action": "create", "entities": { "client_name": "sam", "date": "friday 2pm ISO" } },
       "resolution": "Explicit date → agent-parse should NOT set find_slot. If find_slot slips through, orchestrator preserves the explicit date anyway.",
       "expected_outcome": "BookingForm opens with date=Friday 2pm. No slot-finding logic runs."
+    },
+
+    {
+      "id": "booking-create-compound-create-and-book",
+      "category": "booking/create",
+      "prompt": "Create Levi as a client and then schedule a touchup for him next Sunday",
+      "context": "Compound prompt: create a new client AND book an appointment in one shot. No client named Levi exists. Must parse as booking/create (not client/create) so the no-match flow can chain through to the booking form.",
+      "expected_parse": { "agent": "booking", "action": "create", "entities": { "client_name": "Levi", "type": "Touch Up", "date": "next sunday ISO" } },
+      "resolution": "agent-parse returns booking/create with client_name=Levi + booking entities. Orchestrator resolves Levi → none → showNoMatch with 'Create new client' hint. User taps → CreateClientForm opens with name=Levi. Save → onCreated fires → agentHandleSelection('client', newClientId) → routeBooking resumes with the stashed booking entities intact → BookingForm opens with client=Levi, type=Touch Up, date=next Sunday. Safety net: if AI returns client/create, orchestrator's hasBookingIntent() check rewrites it to booking/create client-side.",
+      "expected_outcome": "Zero-retyping compound flow: one prompt → one tap on 'Create new client' → one save on CreateClientForm → BookingForm opens with everything filled."
+    },
+    {
+      "id": "booking-create-compound-add-and-book",
+      "category": "booking/create",
+      "prompt": "add a new client Sam and book him Friday 2pm",
+      "context": "Compound prompt variant. Sam might ambiguously match existing Sam Donovan / Samuel Wright, but the explicit 'add a new client' phrasing signals a new client. Must parse as booking/create so the new-client flow happens.",
+      "expected_parse": { "agent": "booking", "action": "create", "entities": { "client_name": "Sam", "date": "friday 2pm ISO" } },
+      "resolution": "agent-parse returns booking/create with client_name=Sam. resolveClient('Sam') → multiple matches → disambiguation cards. User either picks an existing Sam or (better UX) sees 'Create new client Sam' option. Current implementation shows disambiguation first.",
+      "expected_outcome": "Panel shows 'Which Sam?' disambiguation. After selecting or creating, BookingForm opens with Friday 2pm."
     }
   ]
 }

@@ -66,6 +66,35 @@ async function describeFunctionError(error: unknown): Promise<string> {
   return parts.join(' — ');
 }
 
+/**
+ * Heuristic: does this user text clearly describe a booking on top of
+ * whatever other action it mentions? Used as a safety net when agent-parse
+ * misclassifies a compound "create X as a client and then book Y" prompt
+ * as a plain client/create.
+ */
+function hasBookingIntent(text: string): boolean {
+  const t = text.toLowerCase();
+  // Booking verbs/nouns
+  const keywords = [
+    'book',
+    'schedule',
+    'appointment',
+    'session',
+    'touch up',
+    'touchup',
+    'touch-up',
+    'consultation',
+    'full day',
+    'full-day',
+    'cover up',
+    'cover-up',
+    'coverup',
+    'regular',
+    'tattoo',
+  ];
+  return keywords.some((k) => t.includes(k));
+}
+
 /** Show a no-match message with fuzzy suggestions + search prompt */
 function showNoMatch(query: string, suggestions: import('../types').Client[]) {
   const store = useAgentStore.getState();
@@ -109,9 +138,20 @@ export async function processInput(text: string) {
 
   try {
     store.logTrace('edge_call', { fn: 'agent-parse', body: { text } });
-    const { data, error } = await supabase.functions.invoke('agent-parse', {
+
+    // Timeout wrapper — supabase.functions.invoke has no built-in timeout,
+    // so if the Anthropic API hangs or the network stalls the await would
+    // never resolve and the spinner would clock forever. Cap at 30s.
+    const invokePromise = supabase.functions.invoke('agent-parse', {
       body: { text },
     });
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('agent-parse timed out after 30s')), 30000)
+    );
+    const { data, error } = (await Promise.race([
+      invokePromise,
+      timeoutPromise,
+    ])) as Awaited<typeof invokePromise>;
 
     if (error) {
       const errMsg = await describeFunctionError(error);
@@ -146,6 +186,39 @@ export async function processInput(text: string) {
     }
 
     store.logTrace('intent_parsed', { agent: intent.agent, action: intent.action, entities: intent.entities });
+
+    // Safety net for compound "create-and-book" prompts.
+    // If the AI misclassified (returned client/create even though the text
+    // also mentions scheduling an appointment), reroute to booking/create.
+    // The no-match flow will then offer to create the new client first and
+    // auto-continue into the booking form.
+    if (
+      intent.agent === 'client' &&
+      intent.action === 'create' &&
+      hasBookingIntent(text)
+    ) {
+      const clientName = intent.entities.name || intent.entities.client_name;
+      if (clientName) {
+        store.logTrace('compound_rewrite', {
+          from: 'client/create',
+          to: 'booking/create',
+          clientName,
+        });
+        const rewritten: AgentIntent = {
+          agent: 'booking',
+          action: 'create',
+          entities: {
+            ...intent.entities,
+            client_name: clientName,
+            name: undefined,
+          },
+        };
+        store.setPending(rewritten);
+        store.updatePendingResolved('originalText', text);
+        await routeIntent(rewritten);
+        return;
+      }
+    }
 
     // Stash intent and original text for potential follow-up AI calls
     store.setPending(intent);

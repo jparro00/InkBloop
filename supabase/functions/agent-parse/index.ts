@@ -88,6 +88,7 @@ RULES:
 - If the user is asking WHETHER a client exists, searching for a client, or looking up a client by name, use "search" NOT "open". Use "open" only when the user clearly wants to navigate to a known client's profile.
 - If the user mentions "appointment", "booking", "session", or "scheduled", route to the booking agent, NOT the client agent. "Do I have an appointment for cindy" = booking/search, NOT client/search.
 - If the user is asking WHETHER a booking exists or looking up appointments, use "search" NOT "open". Use "open" only when the user clearly wants to navigate to a specific booking.
+- COMPOUND CREATE-AND-BOOK: If the user mentions creating a client AND booking/scheduling an appointment in the same request (e.g. "Create Levi as a client and then schedule a touchup for him next Sunday", "add a new client Sam and book him Friday 2pm", "make a new client called Jess and schedule her for a consultation"), return agent="booking", action="create" with client_name=X AND all booking entities (type, date, etc.). The app's no-match flow will prompt to create the client first, then auto-continue into the booking form. Do NOT return client/create for these — the booking entities would be lost.
 - If no clear agent/action can be determined, return: {"agent":"unknown","action":"unknown","entities":{}}
 - For schedule queries without explicit dates, default to "this week" (date_range_start = today, date_range_end = end of week).
 - NEVER add error messages or explanations in any field. Return ONLY the JSON object.`;
