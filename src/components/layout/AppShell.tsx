@@ -17,6 +17,7 @@ import ConversationDrawer from '../messaging/ConversationDrawer';
 import ToastContainer from '../common/Toast';
 import { useClientStore } from '../../stores/clientStore';
 import { useAgentStore } from '../../stores/agentStore';
+import { handleSelection as agentHandleSelection } from '../../agents/orchestrator';
 
 export default function AppShell() {
   const {
@@ -120,6 +121,21 @@ export default function AppShell() {
               ? { name: useUIStore.getState().prefillClientData?.name }
               : undefined
             }
+            onCreated={(newClientId) => {
+              // Compound flow: if there's a pending agent booking/create intent,
+              // resume it with the new client_id so the user flows straight into
+              // the booking form without typing again.
+              const agent = useAgentStore.getState();
+              const pending = agent.pendingIntent;
+              if (
+                pending &&
+                pending.agent === 'booking' &&
+                pending.action === 'create'
+              ) {
+                agent.logTrace('compound_continue', { newClientId });
+                agentHandleSelection('client', newClientId);
+              }
+            }}
           />
         )}
       </AnimatePresence>

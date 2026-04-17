@@ -39,10 +39,12 @@ AGENTS AND ACTIONS:
 - booking/search: User wants to check if a booking exists or look up appointments (e.g. "do I have an appointment for chris", "is cindy booked", "any bookings on friday", "what's chris's next booking")
 - booking/open: User wants to directly view/open a specific booking they know exists (e.g. "show chris's booking", "open the appointment on friday")
 - booking/edit: User wants to modify an existing booking (e.g. "move chris to 3pm", "change the estimate to 500", "reschedule sarah")
+- booking/delete: User wants to delete/remove/cancel a booking (e.g. "delete chris's friday appointment", "cancel sarah's booking", "remove that session")
 - client/create: User wants to add a new client (e.g. "add a new client named alex", "create client")
 - client/search: User wants to look up or check if a client exists (e.g. "do I have a client named cindy", "search for chris", "find client sarah", "look up alex")
 - client/open: User wants to view a specific client profile they already know exists (e.g. "open chris's profile", "show me chris")
 - client/edit: User wants to modify client info (e.g. "update chris's phone number", "add VIP tag to sarah")
+- client/delete: User wants to delete/remove a client (e.g. "delete sandy", "remove sarah from clients")
 - schedule/query: User wants information about their schedule (e.g. "how many tattoos this week", "am I free friday", "what's on my schedule tomorrow")
 - messaging/open: User wants to open a message thread (e.g. "message chris", "open chat with sarah")
 - messaging/draft: User wants to draft a message to a client (e.g. "send chris a reminder", "draft a follow-up for sarah")
@@ -55,12 +57,14 @@ Return raw client names as-is (do NOT try to match to IDs). The app handles matc
 - duration: number (hours). ONLY if explicitly mentioned.
 - type: one of the booking types above
 - timeSlot: "morning" or "evening" if the user says AM/morning or PM/afternoon/evening. If they give a specific time like "2pm", put it in the date field instead.
+- find_slot: "morning" | "evening" | "any" — ONLY set this when the user wants the NEXT/FIRST/SOONEST available slot and does NOT give a specific date. Examples: "book chris in the first available morning slot" → find_slot="morning". "book sarah next available" → find_slot="any". "next open evening" → find_slot="evening". If find_slot is set, DO NOT set date (the app will compute it).
 - estimate: number (dollars)
 - notes: ONLY verbatim tattoo details (placement, style, design). Never put client names or instructions here.
 - rescheduled: true ONLY if user explicitly says reschedule/rescheduled
 - name: for client/create — the new client's name
 - phone: for client/create or client/edit — phone number
 - tags: for client/edit — array of tag strings
+- dob: for client/edit — ISO date string YYYY-MM-DD. "birthday", "bday", "DOB", "date of birth" all refer to dob. If only month+day provided, still return YYYY-MM-DD (use any reasonable year — user can edit).
 - query_type: for schedule/query — one of "count", "list", "available", "summary"
   - count: "how many tattoos this week"
   - list: "what's on my schedule friday"
@@ -216,7 +220,7 @@ Deno.serve(async (req: Request) => {
 
     // Validate agent and action
     const validAgents = ["booking", "client", "schedule", "messaging", "unknown"];
-    const validActions = ["create", "open", "edit", "search", "query", "draft", "unknown"];
+    const validActions = ["create", "open", "edit", "search", "query", "draft", "delete", "unknown"];
 
     if (!validAgents.includes(parsed.agent)) parsed.agent = "unknown";
     if (!validActions.includes(parsed.action)) parsed.action = "unknown";
@@ -260,6 +264,22 @@ Deno.serve(async (req: Request) => {
       )
     ) {
       delete parsed.entities.draft_context;
+    }
+
+    // Validate dob — must be ISO date YYYY-MM-DD
+    if (
+      parsed.entities.dob &&
+      !(typeof parsed.entities.dob === "string" && /^\d{4}-\d{2}-\d{2}$/.test(parsed.entities.dob))
+    ) {
+      delete parsed.entities.dob;
+    }
+
+    // Validate find_slot
+    if (
+      parsed.entities.find_slot &&
+      !["morning", "evening", "any"].includes(parsed.entities.find_slot)
+    ) {
+      delete parsed.entities.find_slot;
     }
 
     return new Response(JSON.stringify(parsed), {

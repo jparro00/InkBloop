@@ -4,9 +4,9 @@ import { useClientStore } from '../stores/clientStore';
 import { useBookingStore } from '../stores/bookingStore';
 import { useMessageStore } from '../stores/messageStore';
 import { resolveClient, resolveBooking, resolveConversation } from './resolvers';
-import { executeBookingCreate, executeBookingOpen, executeBookingEdit } from './bookingAgent';
-import { executeClientCreate, executeClientOpen, executeClientEdit } from './clientAgent';
-import { executeScheduleQuery } from './scheduleAgent';
+import { executeBookingCreate, executeBookingOpen, executeBookingEdit, executeBookingDelete } from './bookingAgent';
+import { executeClientCreate, executeClientOpen, executeClientEdit, executeClientDelete } from './clientAgent';
+import { executeScheduleQuery, findFirstAvailableSlot } from './scheduleAgent';
 import { executeMessagingOpen, executeMessagingDraft, buildTemplates, applyDraftTemplate } from './messagingAgent';
 import type { AgentIntent, DraftTemplate } from './types';
 
@@ -69,9 +69,14 @@ async function describeFunctionError(error: unknown): Promise<string> {
 /** Show a no-match message with fuzzy suggestions + search prompt */
 function showNoMatch(query: string, suggestions: import('../types').Client[]) {
   const store = useAgentStore.getState();
+  const pending = store.pendingIntent;
+  const isBookingCreate = pending?.agent === 'booking' && pending.action === 'create';
+  const suffix = isBookingCreate
+    ? ' Tap "Create new client" to add them and continue the booking, or pick an existing match:'
+    : '';
   if (suggestions.length > 0) {
     store.replaceLastLoading({
-      text: `No exact match for "${query}". Did you mean:`,
+      text: `No exact match for "${query}".${suffix || ' Did you mean:'}`,
       selections: {
         type: 'client',
         items: suggestions,
@@ -81,7 +86,7 @@ function showNoMatch(query: string, suggestions: import('../types').Client[]) {
     });
   } else {
     store.replaceLastLoading({
-      text: `No client named "${query}". Try a different name.`,
+      text: `No client named "${query}".${suffix || ' Try a different name.'}`,
       selections: {
         type: 'client',
         items: useClientStore.getState().clients.slice(0, 8),
@@ -212,12 +217,29 @@ async function routeBooking(
       }
     }
 
+    // "first available" / "next open" — compute the slot from the schedule
+    let resolvedDate = intent.entities.date;
+    let resolvedTimeSlot = intent.entities.timeSlot;
+    if (!resolvedDate && intent.entities.find_slot) {
+      const slot = findFirstAvailableSlot(intent.entities.find_slot);
+      if (!slot) {
+        store.logTrace('no_slot_found', { preference: intent.entities.find_slot });
+        store.replaceLastLoading({
+          text: `No open ${intent.entities.find_slot === 'any' ? '' : intent.entities.find_slot + ' '}slots found in the next 60 days. Try picking a specific date.`,
+        });
+        return;
+      }
+      resolvedDate = slot.iso;
+      resolvedTimeSlot = slot.timeSlot;
+      store.logTrace('slot_found', { preference: intent.entities.find_slot, slot });
+    }
+
     const bookingPayload = {
       client_id: resolved.client_id as string | undefined,
-      date: intent.entities.date,
+      date: resolvedDate,
       duration: intent.entities.duration,
       type: intent.entities.type,
-      timeSlot: intent.entities.timeSlot,
+      timeSlot: resolvedTimeSlot,
       estimate: intent.entities.estimate,
       notes: intent.entities.notes,
       rescheduled: intent.entities.rescheduled,
@@ -306,8 +328,8 @@ async function routeBooking(
     }
   }
 
-  if (intent.action === 'open' || intent.action === 'edit') {
-    // For open/edit, we need to find the booking.
+  if (intent.action === 'open' || intent.action === 'edit' || intent.action === 'delete') {
+    // For open/edit/delete, we need to find the booking.
     // Client is just one way to narrow down — not required.
     if (intent.entities.client_name && !resolved.client_id) {
       const clients = useClientStore.getState().clients;
@@ -338,9 +360,9 @@ async function routeBooking(
     // Resolve booking
     if (!resolved.booking_id) {
       const bookings = useBookingStore.getState().bookings;
-      // For edit actions, the date in entities is the TARGET date (what to
-      // change to), not the current booking date. Don't use it as a filter
-      // or we'll fail to find the existing booking.
+      // For edit/delete actions, the date in entities is the TARGET date
+      // (what to change to), not the current booking date. Don't use it as
+      // a filter or we'll fail to find the existing booking.
       const bookingResult = resolveBooking(
         {
           client_id: resolved.client_id as string | undefined,
@@ -376,7 +398,7 @@ async function routeBooking(
     if (intent.action === 'open') {
       store.logTrace('sub_agent', { agent: 'booking', action: 'open', booking_id: resolved.booking_id });
       executeBookingOpen({ booking_id: resolved.booking_id as string });
-    } else {
+    } else if (intent.action === 'edit') {
       const changes = {
         date: intent.entities.date,
         duration: intent.entities.duration,
@@ -391,6 +413,41 @@ async function routeBooking(
         booking_id: resolved.booking_id as string,
         changes,
       });
+    } else {
+      // delete — show confirmation
+      if (!resolved.confirmed) {
+        const booking = useBookingStore
+          .getState()
+          .bookings.find((b) => b.id === resolved.booking_id);
+        const clientName = booking
+          ? useClientStore.getState().clients.find((c) => c.id === booking.client_id)?.name
+          : undefined;
+        const when = booking
+          ? new Date(booking.date).toLocaleString('en-US', {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+            })
+          : '';
+        store.logTrace('confirm_requested', { agent: 'booking', action: 'delete', booking_id: resolved.booking_id });
+        store.replaceLastLoading({
+          text: `Delete ${clientName ? clientName + "'s " : ''}${booking?.type.toLowerCase() ?? 'booking'} on ${when}? This can't be undone.`,
+          selections: {
+            type: 'confirm',
+            items: [
+              { id: 'yes', label: 'Yes, delete', kind: 'destructive' },
+              { id: 'cancel', label: 'Cancel', kind: 'safe' },
+            ],
+            mode: 'single',
+            context: 'confirm_delete_booking',
+          },
+        });
+        return;
+      }
+      store.logTrace('sub_agent', { agent: 'booking', action: 'delete', booking_id: resolved.booking_id });
+      executeBookingDelete({ booking_id: resolved.booking_id as string });
     }
     return;
   }
@@ -549,6 +606,7 @@ async function routeClient(
               name: client.name,
               phone: client.phone || '',
               tags: client.tags || [],
+              dob: client.dob || '',
             },
           },
         });
@@ -568,6 +626,7 @@ async function routeClient(
               name: data.name,
               phone: data.phone,
               tags: data.tags,
+              dob: data.dob,
             },
           };
           store.logTrace('sub_agent', { agent: 'client', action: 'edit', ...payload });
@@ -591,10 +650,40 @@ async function routeClient(
         name: intent.entities.name,
         phone: intent.entities.phone,
         tags: intent.entities.tags,
+        dob: intent.entities.dob,
       },
     };
     store.logTrace('sub_agent', { agent: 'client', action: 'edit', fallback: true, ...fallbackPayload });
     executeClientEdit(fallbackPayload);
+  } else if (intent.action === 'delete') {
+    if (!resolved.confirmed) {
+      const client = useClientStore
+        .getState()
+        .clients.find((c) => c.id === resolved.client_id);
+      const bookingCount = useBookingStore
+        .getState()
+        .bookings.filter((b) => b.client_id === resolved.client_id).length;
+      store.logTrace('confirm_requested', { agent: 'client', action: 'delete', client_id: resolved.client_id });
+      store.replaceLastLoading({
+        text: `Delete ${client?.name ?? 'client'}?${
+          bookingCount > 0
+            ? ` This will also remove ${bookingCount} booking${bookingCount === 1 ? '' : 's'} and associated history.`
+            : " This can't be undone."
+        }`,
+        selections: {
+          type: 'confirm',
+          items: [
+            { id: 'yes', label: 'Yes, delete', kind: 'destructive' },
+            { id: 'cancel', label: 'Cancel', kind: 'safe' },
+          ],
+          mode: 'single',
+          context: 'confirm_delete_client',
+        },
+      });
+      return;
+    }
+    store.logTrace('sub_agent', { agent: 'client', action: 'delete', client_id: resolved.client_id });
+    executeClientDelete({ client_id: resolved.client_id as string });
   }
 }
 
@@ -767,6 +856,16 @@ export async function handleSelection(
         );
       }
       return;
+    }
+    case 'confirm': {
+      if (selectedId === 'cancel') {
+        store.replaceLastLoading({ text: 'Cancelled.' });
+        store.setPending(null);
+        return;
+      }
+      // selectedId === 'yes' — mark confirmed and continue routing
+      store.updatePendingResolved('confirmed', true);
+      break;
     }
   }
 

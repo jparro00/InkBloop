@@ -18,6 +18,7 @@ export default function ClientDetailPage() {
   const clients = useClientStore((s) => s.clients);
   const client = useMemo(() => clients.find((c) => c.id === id), [clients, id]);
   const addNote = useClientStore((s) => s.addNote);
+  const deleteClient = useClientStore((s) => s.deleteClient);
   const linkedProfiles = useClientStore((s) => s.linkedProfiles);
   const allBookings = useBookingStore((s) => s.bookings);
   const clientBookings = useMemo(() => allBookings.filter((b) => b.client_id === id), [allBookings, id]);
@@ -25,9 +26,11 @@ export default function ClientDetailPage() {
   const allDocuments = useDocumentStore((s) => s.documents);
   const clientDocuments = useMemo(() => allDocuments.filter((d) => d.client_id === id), [allDocuments, id]);
   const removeDocument = useDocumentStore((s) => s.removeDocument);
-  const { setSelectedBookingId, openBookingForm, setPrefillBookingData, setEditingClientId } = useUIStore();
+  const { setSelectedBookingId, openBookingForm, setPrefillBookingData, setEditingClientId, addToast } = useUIStore();
   const [tab, setTab] = useState<Tab>('overview');
   const [noteText, setNoteText] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   if (!client) {
     return (
@@ -89,6 +92,21 @@ export default function ClientDetailPage() {
     }
   };
 
+  const handleDeleteClient = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      await deleteClient(client.id);
+      addToast(`Deleted ${client.name}`);
+      navigate('/clients');
+    } catch (e) {
+      console.error('Failed to delete client:', e);
+      addToast('Failed to delete client');
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  };
+
   return (
     <div className="px-5 pt-5 pb-32 lg:px-6 lg:pt-6 lg:pb-6">
       {/* Back + actions */}
@@ -101,6 +119,13 @@ export default function ClientDetailPage() {
           <span className="text-base">Clients</span>
         </button>
         <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="w-12 h-12 rounded-md flex items-center justify-center border border-border/60 text-text-s active:text-red-400 transition-colors cursor-pointer press-scale"
+            aria-label="Delete client"
+          >
+            <Trash2 size={18} />
+          </button>
           <button
             onClick={() => setEditingClientId(client.id)}
             className="w-12 h-12 rounded-md flex items-center justify-center border border-border/60 text-text-s active:text-text-p transition-colors cursor-pointer press-scale"
@@ -384,6 +409,40 @@ export default function ClientDetailPage() {
         </div>
       )}
 
+      {confirmDelete && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/60 flex items-end lg:items-center justify-center px-4 pb-6 lg:pb-0"
+          onClick={() => !deleting && setConfirmDelete(false)}
+        >
+          <div
+            className="bg-surface border border-border/60 rounded-2xl p-5 w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-display text-xl text-text-p mb-2">Delete {client.name}?</h2>
+            <p className="text-[14px] text-text-s mb-5">
+              {clientBookings.length > 0
+                ? `This will also remove ${clientBookings.length} booking${clientBookings.length === 1 ? '' : 's'} and all associated history. This can't be undone.`
+                : `This can't be undone.`}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleting}
+                className="flex-1 px-4 py-3 rounded-lg bg-surface/60 border border-border/40 text-text-s font-medium text-[14px] active:bg-surface transition-colors cursor-pointer press-scale disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteClient}
+                disabled={deleting}
+                className="flex-1 px-4 py-3 rounded-lg bg-red-500/15 border border-red-500/40 text-red-400 font-medium text-[14px] active:bg-red-500/25 transition-colors cursor-pointer press-scale disabled:opacity-50"
+              >
+                {deleting ? 'Deleting…' : 'Yes, delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

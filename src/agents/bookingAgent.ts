@@ -1,6 +1,10 @@
 import { useUIStore } from '../stores/uiStore';
 import { useAgentStore } from '../stores/agentStore';
-import type { ResolvedBookingCreate, ResolvedBookingOpen, ResolvedBookingEdit } from './types';
+import { useBookingStore } from '../stores/bookingStore';
+import { useClientStore } from '../stores/clientStore';
+import { useImageStore } from '../stores/imageStore';
+import { deleteImage as deleteImageBlob } from '../lib/imageDb';
+import type { ResolvedBookingCreate, ResolvedBookingOpen, ResolvedBookingEdit, ResolvedBookingDelete } from './types';
 
 /**
  * Booking Agent — pure executor.
@@ -51,6 +55,38 @@ export function executeBookingOpen(data: ResolvedBookingOpen) {
     store.closePanel();
     ui.setSelectedBookingId(data.booking_id);
   }, 300);
+}
+
+export async function executeBookingDelete(data: ResolvedBookingDelete) {
+  const store = useAgentStore.getState();
+  const ui = useUIStore.getState();
+  const bookingStore = useBookingStore.getState();
+  const clientStore = useClientStore.getState();
+  const imageStore = useImageStore.getState();
+
+  const booking = bookingStore.bookings.find((b) => b.id === data.booking_id);
+  const client = booking ? clientStore.clients.find((c) => c.id === booking.client_id) : null;
+  const descriptor = booking && client
+    ? `${client.name}'s ${booking.type.toLowerCase()}`
+    : 'booking';
+
+  store.replaceLastLoading({
+    status: 'action_taken',
+    actionLabel: `Deleting ${descriptor}...`,
+  });
+
+  try {
+    // Clean up associated images first (same pattern BookingDrawer uses)
+    imageStore.images
+      .filter((img) => img.booking_id === data.booking_id)
+      .forEach((img) => deleteImageBlob(img.id).catch(console.error));
+    await bookingStore.deleteBooking(data.booking_id);
+    ui.addToast(`Deleted ${descriptor}`);
+    setTimeout(() => store.closePanel(), 300);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    store.replaceLastLoading({ text: `Failed to delete: ${msg}` });
+  }
 }
 
 export function executeBookingEdit(data: ResolvedBookingEdit) {

@@ -1,6 +1,7 @@
 import { useUIStore } from '../stores/uiStore';
 import { useAgentStore } from '../stores/agentStore';
-import type { ResolvedClientCreate, ResolvedClientOpen, ResolvedClientEdit } from './types';
+import { useClientStore } from '../stores/clientStore';
+import type { ResolvedClientCreate, ResolvedClientOpen, ResolvedClientEdit, ResolvedClientDelete } from './types';
 
 /**
  * Client Agent — pure executor.
@@ -42,6 +43,29 @@ export function executeClientOpen(data: ResolvedClientOpen) {
       new CustomEvent('agent-navigate', { detail: `/clients/${data.client_id}` })
     );
   }, 300);
+}
+
+export async function executeClientDelete(data: ResolvedClientDelete) {
+  const store = useAgentStore.getState();
+  const ui = useUIStore.getState();
+  const clientStore = useClientStore.getState();
+
+  const client = clientStore.clients.find((c) => c.id === data.client_id);
+  const clientName = client?.name ?? 'client';
+
+  store.replaceLastLoading({
+    status: 'action_taken',
+    actionLabel: `Deleting ${clientName}...`,
+  });
+
+  try {
+    await clientStore.deleteClient(data.client_id);
+    ui.addToast(`Deleted ${clientName}`);
+    setTimeout(() => store.closePanel(), 300);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    store.replaceLastLoading({ text: `Failed to delete ${clientName}: ${msg}` });
+  }
 }
 
 export function executeClientEdit(data: ResolvedClientEdit) {

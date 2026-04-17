@@ -16,4 +16,14 @@ export const scheduleConfig = {
 
   /** Minimum free hours in a gap to count as "available" */
   minGapForAvailable: 2,
+
+  /**
+   * Morning/evening slot boundaries.
+   * The day is split into a morning block (workingHours.start → eveningStart)
+   * and an evening block (eveningStart → workingHours.end). A slot is "free"
+   * if a session of defaultSessionDuration can fit in its block without
+   * overlapping an existing booking.
+   */
+  morningStart: '10:00',
+  eveningStart: '14:00',
 };

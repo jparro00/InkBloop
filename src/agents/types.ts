@@ -5,7 +5,7 @@ import type { ConversationSummary } from '../services/messageService';
 
 export interface AgentIntent {
   agent: 'booking' | 'client' | 'schedule' | 'messaging' | 'unknown';
-  action: 'create' | 'open' | 'edit' | 'search' | 'query' | 'draft' | 'unknown';
+  action: 'create' | 'open' | 'edit' | 'search' | 'query' | 'draft' | 'delete' | 'unknown';
   entities: {
     // Booking entities
     client_name?: string;
@@ -16,10 +16,12 @@ export interface AgentIntent {
     estimate?: number;
     notes?: string;
     rescheduled?: boolean;
+    find_slot?: 'morning' | 'evening' | 'any';
     // Client entities
     name?: string;
     phone?: string;
     tags?: string[];
+    dob?: string;
     // Schedule entities
     query_type?: 'count' | 'list' | 'available' | 'summary';
     date_range_start?: string;
@@ -57,13 +59,19 @@ export interface DraftTemplate {
   text: string;
 }
 
+export interface ConfirmOption {
+  id: 'yes' | 'cancel';
+  label: string;
+  kind: 'destructive' | 'safe';
+}
+
 export interface AgentMessage {
   id: string;
   role: 'user' | 'agent';
   text?: string;
   selections?: {
-    type: 'client' | 'booking' | 'conversation' | 'template';
-    items: Array<Client | Booking | ConversationSummary | DraftTemplate>;
+    type: 'client' | 'booking' | 'conversation' | 'template' | 'confirm';
+    items: Array<Client | Booking | ConversationSummary | DraftTemplate | ConfirmOption>;
     mode: 'single';
     context:
       | 'ambiguous_client'
@@ -71,7 +79,9 @@ export interface AgentMessage {
       | 'search_results'
       | 'ambiguous_booking'
       | 'platform_choice'
-      | 'draft_template';
+      | 'draft_template'
+      | 'confirm_delete_client'
+      | 'confirm_delete_booking';
   };
   scheduleData?: {
     type: 'count' | 'list' | 'available' | 'summary';
@@ -128,7 +138,16 @@ export interface ResolvedClientEdit {
     name: string;
     phone: string;
     tags: string[];
+    dob: string;
   }>;
+}
+
+export interface ResolvedBookingDelete {
+  booking_id: string;
+}
+
+export interface ResolvedClientDelete {
+  client_id: string;
 }
 
 export interface ResolvedScheduleQuery {

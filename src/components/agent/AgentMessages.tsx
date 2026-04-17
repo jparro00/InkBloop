@@ -8,7 +8,7 @@ import BookingCard from './BookingCard';
 import ConversationCard from './ConversationCard';
 import TemplateCard from './TemplateCard';
 import ScheduleResponse from './ScheduleResponse';
-import type { AgentMessage, DraftTemplate } from '../../agents/types';
+import type { AgentMessage, DraftTemplate, ConfirmOption } from '../../agents/types';
 import type { Booking, Client } from '../../types';
 import type { ConversationSummary } from '../../services/messageService';
 
@@ -233,6 +233,24 @@ function SelectionCards({
             onSelect={onSelect}
           />
         ))}
+
+      {selections.type === 'confirm' && (
+        <div className="flex gap-2 mt-1">
+          {(selections.items as ConfirmOption[]).map((opt) => (
+            <button
+              key={opt.id}
+              onClick={() => onSelect(opt.id)}
+              className={
+                opt.kind === 'destructive'
+                  ? 'flex-1 px-4 py-3 rounded-lg bg-red-500/15 border border-red-500/40 text-red-400 font-medium text-[14px] active:bg-red-500/25 transition-colors cursor-pointer press-scale'
+                  : 'flex-1 px-4 py-3 rounded-lg bg-surface/60 border border-border/40 text-text-s font-medium text-[14px] active:bg-surface transition-colors cursor-pointer press-scale'
+              }
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

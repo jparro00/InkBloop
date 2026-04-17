@@ -21,22 +21,45 @@ A merge to `main` only ships the frontend. Database schema changes, RLS policies
 - Broadens `bookings_type_check` to allow `'Cover Up'`. Non-breaking (existing rows are unaffected; rejects nothing that was previously accepted).
 
 ### 3. Edge function `agent-parse`
-- **Status on dev:** deployed (knows about Cover Up, `--no-verify-jwt`)
-- **Status on prod:** deployed (knows about Cover Up, `--no-verify-jwt`)
-- Safe to leave — prod frontend can't produce `type: "Cover Up"` yet, and the function tolerates older inputs.
+- **Status on dev:** deployed (knows about Cover Up, delete actions, dob, find_slot, `--no-verify-jwt`)
+- **Status on prod:** deployed (older revision — knows Cover Up but NOT delete/dob/find_slot)
+- **Action when ready for prod:**
+  ```
+  npx supabase functions deploy agent-parse --project-ref jpjvexfldouobiiczhax --no-verify-jwt
+  ```
+- Safe to leave in the interim — prod frontend doesn't call the new code paths yet.
 
-### 4. Edge function `parse-booking`
+### 4. Edge function `agent-resolve-edit`
+- **Status on dev:** deployed (knows about `dob` field, `--no-verify-jwt`)
+- **Status on prod:** older revision — does NOT know about `dob`
+- **Action when ready for prod:**
+  ```
+  npx supabase functions deploy agent-resolve-edit --project-ref jpjvexfldouobiiczhax --no-verify-jwt
+  ```
+
+### 5. Edge function `parse-booking`
 - **Status on dev:** deployed (knows about Cover Up)
 - **Status on prod:** NOT YET DEPLOYED — still only knows the original 4 types
 - **Action when ready for prod:**
   ```
-  npx supabase functions deploy parse-booking --project-ref jpjvexfldouobiiczhax
+  npx supabase functions deploy parse-booking --project-ref jpjvexfldouobiiczhax --no-verify-jwt
   ```
 
-### 5. Frontend (Cover Up type + "Inklet - AI Assistant" rename + agent feedback UI)
+### 6. Frontend
+Rolls up every pending frontend-visible change:
+- Cover Up booking type + blue swatch + 3h default
+- "Inklet - AI Assistant" rename + agent feedback UI
+- Delete client UI (trash button + confirm modal on `ClientDetail`)
+- Agent delete actions (`booking/delete`, `client/delete`) with confirmation cards
+- Agent `dob` editing (birthday support in ClientForm prefill + highlighting)
+- Smart availability query response (morning/evening breakdown)
+- First-available-slot finder (`find_slot`) wired through booking create
+- Compound flow: no-match "Create new client" from booking/create resumes into BookingForm
 - **Status on dev:** deployed to `inkbloop-dev.vercel.app`
 - **Status on prod:** NOT YET DEPLOYED
 - **Action when ready for prod:** merge `dev` → `main`, then `npm run deploy:prod` (or push to main if auto-deploy is wired).
+
+**Prod deploy order:** apply the migrations first (they're already applied — safe), then deploy the 3 edge functions (each with `--no-verify-jwt`), then the frontend. The frontend is the last step so users only see new UI once the backend can serve it.
 
 ---
 

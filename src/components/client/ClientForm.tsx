@@ -140,6 +140,7 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
     return { dobMonth: String(parseInt(m)), dobDay: String(parseInt(d)), dobYear: y };
   };
   const initDob = parseDob(client?.dob ?? '');
+  const pendingDob = pendingChanges?.dob ? parseDob(pendingChanges.dob) : null;
   const defaultYear = String(new Date().getFullYear() - 18);
 
   // Apply agent's pending changes over existing client data
@@ -147,9 +148,9 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
     name: pendingChanges?.name ?? client?.name ?? '',
     display_name: client?.display_name ?? '',
     phone: pendingChanges?.phone ?? client?.phone ?? '',
-    dobMonth: initDob.dobMonth,
-    dobDay: initDob.dobDay,
-    dobYear: initDob.dobYear || defaultYear,
+    dobMonth: pendingDob?.dobMonth ?? initDob.dobMonth,
+    dobDay: pendingDob?.dobDay ?? initDob.dobDay,
+    dobYear: pendingDob?.dobYear ?? (initDob.dobYear || defaultYear),
     tags: pendingChanges?.tags?.join(', ') ?? client?.tags.join(', ') ?? '',
   });
 
@@ -304,12 +305,12 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
         </div>
 
         <div>
-          <label className={labelClass}>Date of Birth</label>
+          {changedLabel('dob', 'Date of Birth')}
           <div className="grid grid-cols-3 gap-2">
             <select
               value={form.dobMonth}
               onChange={(e) => setForm((f) => ({ ...f, dobMonth: e.target.value }))}
-              className={`${inputClass} cursor-pointer`}
+              className={`${changedFields.has('dob') ? changedInputClass : inputClass} cursor-pointer`}
             >
               <option value="">Month</option>
               {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(
@@ -323,7 +324,7 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
             <select
               value={form.dobDay}
               onChange={(e) => setForm((f) => ({ ...f, dobDay: e.target.value }))}
-              className={`${inputClass} cursor-pointer`}
+              className={`${changedFields.has('dob') ? changedInputClass : inputClass} cursor-pointer`}
             >
               <option value="">Day</option>
               {Array.from({ length: 31 }, (_, i) => (
@@ -335,7 +336,7 @@ export default function ClientForm({ client, onClose }: ClientFormProps) {
             <select
               value={form.dobYear}
               onChange={(e) => setForm((f) => ({ ...f, dobYear: e.target.value }))}
-              className={`${inputClass} cursor-pointer`}
+              className={`${changedFields.has('dob') ? changedInputClass : inputClass} cursor-pointer`}
             >
               <option value="">Year</option>
               {Array.from({ length: 100 }, (_, i) => {

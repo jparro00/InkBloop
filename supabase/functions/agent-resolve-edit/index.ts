@@ -34,13 +34,16 @@ Return ONLY valid JSON with the fields that should be updated:
 {
   "name": "new full name if changed",
   "phone": "new phone if changed",
-  "tags": ["new", "tags", "if changed"]
+  "tags": ["new", "tags", "if changed"],
+  "dob": "ISO date string YYYY-MM-DD if changed"
 }
 
 RULES:
 - Only include fields that the user wants to change. Omit unchanged fields entirely.
 - For name changes, return the FULL name (first + last), not just the part that changed.
 - For tags, return the complete final tag list (existing tags + additions, minus removals).
+- For dob (date of birth / birthday), always return a full ISO date YYYY-MM-DD. If the user only gives month+day (e.g. "April 15"), use the most recent past year that would make the person a plausible adult (e.g. if today is 2026-04-16 and the user says "April 15", use 1990-04-15 — pick a reasonable default year; the user can edit it).
+- "birthday", "bday", "b-day", "DOB", "date of birth" all refer to the dob field.
 - Return ONLY valid JSON, no markdown, no explanation.`;
 
 Deno.serve(async (req: Request) => {
@@ -119,7 +122,10 @@ Deno.serve(async (req: Request) => {
 
     const apiKey = await decrypt(settings.anthropic_key, secret);
 
-    const userMessage = `Client's current data: ${JSON.stringify(client)}
+    const today = new Date().toISOString().split("T")[0];
+    const userMessage = `Today's date: ${today}
+
+Client's current data: ${JSON.stringify(client)}
 
 User's edit request: "${text}"`;
 
@@ -178,6 +184,13 @@ User's edit request: "${text}"`;
     if (typeof parsed.phone === "string") result.phone = parsed.phone;
     if (Array.isArray(parsed.tags)) {
       result.tags = parsed.tags.filter((t: unknown) => typeof t === "string");
+    }
+    // Accept dob only if it's an ISO date string YYYY-MM-DD
+    if (
+      typeof parsed.dob === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(parsed.dob)
+    ) {
+      result.dob = parsed.dob;
     }
 
     return new Response(JSON.stringify(result), {

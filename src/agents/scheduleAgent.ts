@@ -2,7 +2,6 @@ import { useBookingStore } from '../stores/bookingStore';
 import { useAgentStore } from '../stores/agentStore';
 import { scheduleConfig } from './scheduleConfig';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, addDays } from 'date-fns';
-import type { Booking } from '../types';
 import type { ResolvedScheduleQuery } from './types';
 
 /**
@@ -69,15 +68,21 @@ export function executeScheduleQuery(data: ResolvedScheduleQuery) {
 
     case 'available': {
       const days = eachDayOfInterval({ start: rangeStart, end: rangeEnd });
-      const { workingDays, workingHours, minGapForAvailable } = scheduleConfig;
-      const [startH, startM] = workingHours.start.split(':').map(Number);
-      const [endH, endM] = workingHours.end.split(':').map(Number);
+      const { workingDays, workingHours, morningStart, eveningStart, defaultSessionDuration } = scheduleConfig;
+      const dayStartMin = toMinutes(workingHours.start);
+      const dayEndMin = toMinutes(workingHours.end);
+      const morningStartMin = toMinutes(morningStart);
+      const eveningStartMin = toMinutes(eveningStart);
+      const sessionMin = defaultSessionDuration * 60;
 
-      const availableDays: string[] = [];
+      const lines: string[] = [];
 
       for (const day of days) {
         const dow = day.getDay();
-        if (!workingDays.includes(dow)) continue;
+        if (!workingDays.includes(dow)) {
+          // Non-working day — note it but mark as not counted
+          continue;
+        }
 
         const dayBookings = inRange
           .filter((b) => {
@@ -86,29 +91,54 @@ export function executeScheduleQuery(data: ResolvedScheduleQuery) {
           })
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
+        const dayLabel = format(day, 'EEEE, MMM d');
+
         if (dayBookings.length === 0) {
-          availableDays.push(format(day, 'EEEE, MMM d'));
+          lines.push(`• ${dayLabel} — fully open`);
           continue;
         }
 
-        // Calculate biggest gap
-        const biggestGap = findBiggestGap(dayBookings, startH, startM, endH, endM);
-        if (biggestGap >= minGapForAvailable) {
-          availableDays.push(format(day, 'EEEE, MMM d'));
+        // Build occupied ranges
+        const occupied = dayBookings.map((b) => {
+          const d = new Date(b.date);
+          const start = d.getHours() * 60 + d.getMinutes();
+          const end = start + b.duration * 60;
+          return { start, end };
+        });
+
+        // Morning block: dayStart → eveningStart
+        const morningFree = hasFreeSlot(
+          occupied,
+          Math.max(dayStartMin, morningStartMin),
+          eveningStartMin,
+          sessionMin
+        );
+        // Evening block: eveningStart → dayEnd
+        const eveningFree = hasFreeSlot(occupied, eveningStartMin, dayEndMin, sessionMin);
+
+        if (morningFree && eveningFree) {
+          lines.push(`• ${dayLabel} — morning & evening free`);
+        } else if (morningFree) {
+          lines.push(`• ${dayLabel} — morning free (evening booked)`);
+        } else if (eveningFree) {
+          lines.push(`• ${dayLabel} — evening free (morning booked)`);
+        } else {
+          const count = dayBookings.length;
+          lines.push(`• ${dayLabel} — fully booked (${count} session${count === 1 ? '' : 's'})`);
         }
       }
 
-      if (availableDays.length === 0) {
+      if (lines.length === 0) {
         store.replaceLastLoading({
-          text: `No available days ${rangeLabel} based on your schedule config.`,
+          text: `No working days ${rangeLabel} based on your schedule config.`,
           scheduleData: { type: 'available' },
         });
       } else {
         store.replaceLastLoading({
-          text: `Available days ${rangeLabel}:`,
+          text: `Availability ${rangeLabel}:`,
           scheduleData: {
             type: 'available',
-            summary: availableDays.map((d) => `• ${d}`).join('\n'),
+            summary: lines.join('\n'),
           },
         });
       }
@@ -143,40 +173,121 @@ export function executeScheduleQuery(data: ResolvedScheduleQuery) {
   }
 }
 
-function findBiggestGap(
-  bookings: Booking[],
-  startH: number,
-  startM: number,
-  endH: number,
-  endM: number
-): number {
-  const dayStart = startH * 60 + startM;
-  const dayEnd = endH * 60 + endM;
+/** Convert "HH:MM" to minutes from midnight. */
+function toMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+}
 
-  // Convert bookings to minute ranges
-  const slots = bookings.map((b) => {
-    const d = new Date(b.date);
-    const start = d.getHours() * 60 + d.getMinutes();
-    const end = start + b.duration * 60;
-    return { start, end };
-  });
+/**
+ * Find the soonest open booking slot that matches the preference.
+ * Scans up to 60 days forward starting today, respecting workingDays
+ * and excluding already-past hours on today.
+ *
+ * Returns { iso, timeSlot } where iso is the datetime for the booking
+ * and timeSlot indicates which block ('morning' | 'evening') was picked.
+ * Returns null if nothing open found in the search window.
+ */
+export function findFirstAvailableSlot(
+  preference: 'morning' | 'evening' | 'any'
+): { iso: string; timeSlot: 'morning' | 'evening' } | null {
+  const bookings = useBookingStore.getState().bookings;
+  const {
+    workingDays,
+    workingHours,
+    morningStart,
+    eveningStart,
+    defaultSessionDuration,
+  } = scheduleConfig;
+  const dayStartMin = toMinutes(workingHours.start);
+  const dayEndMin = toMinutes(workingHours.end);
+  const morningStartMin = toMinutes(morningStart);
+  const eveningStartMin = toMinutes(eveningStart);
+  const sessionMin = defaultSessionDuration * 60;
 
-  let maxGap = 0;
-  let cursor = dayStart;
+  const now = new Date();
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
 
-  for (const slot of slots) {
-    if (slot.start > cursor) {
-      maxGap = Math.max(maxGap, slot.start - cursor);
+  for (let i = 0; i < 60; i++) {
+    const day = addDays(todayStart, i);
+    const dow = day.getDay();
+    if (!workingDays.includes(dow)) continue;
+
+    const dayBookings = bookings.filter((b) => {
+      if (b.status === 'Cancelled' || b.status === 'No-show') return false;
+      const bd = new Date(b.date);
+      return format(bd, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
+    });
+
+    const occupied: Array<{ start: number; end: number }> = dayBookings.map((b) => {
+      const d = new Date(b.date);
+      const start = d.getHours() * 60 + d.getMinutes();
+      const end = start + b.duration * 60;
+      return { start, end };
+    });
+
+    // If checking today, treat already-passed minutes as occupied so we never
+    // suggest a slot in the past.
+    if (i === 0) {
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+      occupied.push({ start: 0, end: nowMin });
     }
-    cursor = Math.max(cursor, slot.end);
+
+    if (preference === 'morning' || preference === 'any') {
+      if (
+        hasFreeSlot(
+          occupied,
+          Math.max(dayStartMin, morningStartMin),
+          eveningStartMin,
+          sessionMin
+        )
+      ) {
+        return { iso: combineDateTime(day, morningStart), timeSlot: 'morning' };
+      }
+    }
+
+    if (preference === 'evening' || preference === 'any') {
+      if (hasFreeSlot(occupied, eveningStartMin, dayEndMin, sessionMin)) {
+        return { iso: combineDateTime(day, eveningStart), timeSlot: 'evening' };
+      }
+    }
   }
 
-  // Gap after last booking
-  if (dayEnd > cursor) {
-    maxGap = Math.max(maxGap, dayEnd - cursor);
-  }
+  return null;
+}
 
-  return maxGap / 60; // Convert to hours
+function combineDateTime(day: Date, hhmm: string): string {
+  const [h, m] = hhmm.split(':').map(Number);
+  const d = new Date(day);
+  d.setHours(h, m, 0, 0);
+  return d.toISOString();
+}
+
+/**
+ * Check whether a gap of at least `sessionMin` minutes exists within
+ * the [blockStart, blockEnd) window that does not overlap any occupied range.
+ */
+function hasFreeSlot(
+  occupied: Array<{ start: number; end: number }>,
+  blockStart: number,
+  blockEnd: number,
+  sessionMin: number
+): boolean {
+  if (blockEnd - blockStart < sessionMin) return false;
+
+  // Clip occupied ranges to the block window and sort
+  const inBlock = occupied
+    .map((o) => ({ start: Math.max(o.start, blockStart), end: Math.min(o.end, blockEnd) }))
+    .filter((o) => o.start < o.end)
+    .sort((a, b) => a.start - b.start);
+
+  let cursor = blockStart;
+  for (const o of inBlock) {
+    if (o.start - cursor >= sessionMin) return true;
+    cursor = Math.max(cursor, o.end);
+  }
+  return blockEnd - cursor >= sessionMin;
 }
 
 function formatRange(start: Date, end: Date): string {

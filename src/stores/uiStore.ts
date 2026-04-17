@@ -50,7 +50,7 @@ interface UIStore {
   setChangedBookingFields: (fields: Set<string>) => void;
   changedClientFields: Set<string>;
   setChangedClientFields: (fields: Set<string>) => void;
-  pendingClientChanges: Partial<{ name: string; phone: string; tags: string[] }> | null;
+  pendingClientChanges: Partial<{ name: string; phone: string; tags: string[]; dob: string }> | null;
   setPendingClientChanges: (changes: UIStore['pendingClientChanges']) => void;
   selectedConversationId: string | null;
   setSelectedConversationId: (id: string | null) => void;
