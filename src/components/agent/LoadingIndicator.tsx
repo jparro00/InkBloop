@@ -51,9 +51,9 @@ function makePath(radii: number[]): string {
 }
 
 // Every shape uses the same total point count so their paths share command
-// structure and morph smoothly. 84 = LCM(4, 6, 7) gives exact symmetry for
-// 4-, 6-, and 7-fold shapes.
-const TOTAL_POINTS = 84;
+// structure and morph smoothly. 252 = LCM(4, 6, 7, 9) gives exact symmetry
+// for 4-, 6-, 7-, and 9-fold shapes.
+const TOTAL_POINTS = 252;
 
 // Smooth cosine profile — pure N-sided cookie. Rounded peaks AND rounded
 // valleys (no cusps). Good for cookie-style shapes.
@@ -66,24 +66,12 @@ function cookieRadii(N: number, peak: number, valley: number): number[] {
   });
 }
 
-// Clover profile — flatter (more circular) petals with sharp V-shape
-// valleys between them. Uses |cos|^0.5 which creates the signature cusp
-// at each valley crossing.
-function cloverRadii(N: number, peak: number, valley: number, exp = 0.5): number[] {
-  const pointsPerPetal = TOTAL_POINTS / N;
-  return Array.from({ length: TOTAL_POINTS }, (_, i) => {
-    const p = (i % pointsPerPetal) / pointsPerPetal;
-    const t = Math.pow(Math.abs(Math.cos(p * Math.PI)), exp);
-    return valley + (peak - valley) * t;
-  });
-}
-
-// Order: 6-cookie → 4-cookie → 7-cookie → 4-leaf clover → back to 6-cookie
+// Order: 6-cookie → 4-cookie → 7-cookie → 9-cookie → back to 6-cookie
 const SHAPES: string[] = [
   makePath(cookieRadii(6, 40, 34)),    // 6-sided cookie
   makePath(cookieRadii(4, 40, 30)),    // 4-sided cookie
   makePath(cookieRadii(7, 40, 36)),    // 7-sided cookie
-  makePath(cloverRadii(4, 42, 24)),    // 4-leaf clover
+  makePath(cookieRadii(9, 40, 37)),    // 9-sided cookie
 ];
 
 const MORPH_INTERVAL_MS = 1100; // dwell on each shape
