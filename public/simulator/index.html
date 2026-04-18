@@ -146,6 +146,9 @@
     </div>
   </div>
 
+  <!-- resizeImage.js exposes window.resizeImage. Must load before app.js
+       since the upload handlers depend on it. -->
+  <script src="resizeImage.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

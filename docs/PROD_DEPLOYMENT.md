@@ -10,9 +10,31 @@ A merge to `main` only ships the frontend. Database schema changes, RLS policies
 
 ## Pending prod changes
 
-_No pending changes — dev and prod are in sync as of the last sync._
+### Avatar Storage refactor
 
-When new changes are made on dev, add entries here so the next prod push knows what needs to ship (migrations, edge functions, secrets, frontend).
+Moved client profile pics out of `sim_profiles.profile_pic` / `participant_profiles.profile_pic` (where they lived as base64 data URLs, 3.6 MB on disk for 4 rows) into a new **private** `avatars` Storage bucket. DB columns now hold a short filename path; clients generate short-lived signed URLs to render the images. Cuts per-row DB size from ~900 KB to ~220 B and shifts image bytes off PostgREST egress onto Storage CDN.
+
+**Prod apply steps, in this order:**
+
+1. Apply migration `00015_avatars_bucket.sql`:
+   ```
+   npx supabase link --project-ref jpjvexfldouobiiczhax
+   npx supabase db push --linked
+   ```
+   If history drift prevents `db push`, paste the migration body directly into prod's SQL Editor. It's idempotent (`on conflict (id) do nothing` on the bucket insert; the policy create will error if it already exists, which is fine).
+
+2. Deploy the updated `sim-api` edge function to prod:
+   ```
+   npx supabase functions deploy sim-api --project-ref jpjvexfldouobiiczhax --no-verify-jwt
+   ```
+
+3. Verify prod's `avatars` bucket exists and is marked **Private** in Dashboard → Storage.
+
+4. Frontend changes (main app's `resolveAvatarUrls` helper + updated `clientService` / `messageService` fetch paths + simulator UI Blob pipeline) ship via the normal `npm run deploy:prod` as part of the frontend batch.
+
+**Backward compat:** Existing rows with `data:` prefix base64 data URLs will continue rendering (the resolver passes them through unchanged). Those rows remain bloated until a separate cleanup task (tracked in the plan's "Follow-ups" section) clears them out. No immediate prod action required.
+
+**Pre-deploy sanity check on prod:** after applying the migration and deploying sim-api, the `GET /sim/config` call from the simulator UI (`?env=prod` or default) should still return 200 with the existing webhook config — nothing about config paths changed.
 
 ---
 

@@ -78,7 +78,13 @@ let conversations = [];
 let selectedPsid = null;
 let typingTimeout = null;
 let newContactPlatform = 'instagram';
-let newContactAvatarDataUrl = null;
+// Resized Blob ready to POST as the avatar body. Populated by
+// previewNewContactAvatar and consumed by submitNewContact. Null when
+// the user didn't pick a file.
+let newContactAvatarBlob = null;
+// Object URL held for the modal's preview <img> so we can revoke it on
+// close. Separate from the blob so we can null them independently.
+let newContactAvatarPreviewUrl = null;
 let avatarUpdatePsid = null;
 let realtimeChannel = null;
 
@@ -494,9 +500,16 @@ function addWebhookLogEntry(entry) {
 function toggleNewContact() {
   const modal = document.getElementById('new-contact-modal');
   modal.classList.toggle('hidden');
+  // Always release any pending preview object URL — whether we're opening
+  // (fresh state) or closing (cleanup). Blob can be GC'd once the URL is
+  // revoked and the <img> reference goes away.
+  if (newContactAvatarPreviewUrl) {
+    URL.revokeObjectURL(newContactAvatarPreviewUrl);
+    newContactAvatarPreviewUrl = null;
+  }
+  newContactAvatarBlob = null;
   if (!modal.classList.contains('hidden')) {
     newContactPlatform = 'instagram';
-    newContactAvatarDataUrl = null;
     document.getElementById('nc-name').value = '';
     document.getElementById('nc-handle').value = '';
     const preview = document.getElementById('nc-avatar-preview');
@@ -516,17 +529,25 @@ function setNewContactPlatform(platform) {
   document.getElementById('nc-handle-field').style.display = platform === 'instagram' ? 'block' : 'none';
 }
 
-function previewNewContactAvatar(input) {
+async function previewNewContactAvatar(input) {
   const file = input.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    newContactAvatarDataUrl = e.target.result;
+  try {
+    // Resize now (synchronously on user gesture) so the Blob is ready to
+    // POST when they submit. Also means the preview reflects what will
+    // actually be uploaded, not the original huge image.
+    const blob = await resizeImage(file);
+    // Revoke any prior preview before replacing it.
+    if (newContactAvatarPreviewUrl) URL.revokeObjectURL(newContactAvatarPreviewUrl);
+    newContactAvatarBlob = blob;
+    newContactAvatarPreviewUrl = URL.createObjectURL(blob);
     const preview = document.getElementById('nc-avatar-preview');
     preview.textContent = '';
-    preview.style.backgroundImage = `url(${newContactAvatarDataUrl})`;
-  };
-  reader.readAsDataURL(file);
+    preview.style.backgroundImage = `url(${newContactAvatarPreviewUrl})`;
+  } catch (err) {
+    console.error('Failed to resize avatar:', err);
+    alert('Could not read that image. Try a different file.');
+  }
 }
 
 async function submitNewContact() {
@@ -536,6 +557,7 @@ async function submitNewContact() {
   let instagram = document.getElementById('nc-handle').value.trim();
   if (instagram && !instagram.startsWith('@')) instagram = '@' + instagram;
 
+  // Step 1: create the contact (JSON body, no avatar).
   const res = await fetch(SIM_API + '/contacts', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -543,11 +565,26 @@ async function submitNewContact() {
       name,
       platform: newContactPlatform,
       instagram: newContactPlatform === 'instagram' && instagram ? instagram : undefined,
-      profilePic: newContactAvatarDataUrl,
     }),
   });
 
   const profile = await res.json();
+
+  // Step 2: if the user picked an avatar, POST it as raw binary. Avatar
+  // upload is best-effort — a failure here shouldn't block contact
+  // creation (the user can retry by clicking the avatar in the contact
+  // list). Log and move on.
+  if (profile?.psid && newContactAvatarBlob) {
+    try {
+      await fetch(SIM_API + '/contacts/' + profile.psid + '/avatar', {
+        method: 'POST',
+        headers: { 'Content-Type': newContactAvatarBlob.type || 'image/jpeg' },
+        body: newContactAvatarBlob,
+      });
+    } catch (err) {
+      console.error('Avatar upload failed for new contact:', err);
+    }
+  }
 
   // Realtime will pick up the new profile + conversation inserts,
   // but we can select immediately for responsiveness
@@ -571,26 +608,45 @@ async function handleAvatarUpdate(input) {
   if (!file || !avatarUpdatePsid) return;
   input.value = '';
 
-  const dataUrl = await new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.readAsDataURL(file);
-  });
+  let blob;
+  try {
+    blob = await resizeImage(file);
+  } catch (err) {
+    console.error('Failed to resize avatar:', err);
+    alert('Could not read that image. Try a different file.');
+    avatarUpdatePsid = null;
+    return;
+  }
 
-  await fetch(SIM_API + '/contacts/' + avatarUpdatePsid + '/avatar', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ dataUrl }),
-  });
+  const psid = avatarUpdatePsid;
+  let updatedProfile = null;
+  try {
+    const res = await fetch(SIM_API + '/contacts/' + psid + '/avatar', {
+      method: 'POST',
+      headers: { 'Content-Type': blob.type || 'image/jpeg' },
+      body: blob,
+    });
+    if (res.ok) {
+      updatedProfile = await res.json();
+    } else {
+      console.error('Avatar upload failed:', res.status, await res.text());
+    }
+  } catch (err) {
+    console.error('Avatar upload error:', err);
+  }
 
-  // Optimistic local update (Realtime will confirm)
-  const p = profiles.find(p => p.psid === avatarUpdatePsid);
-  if (p) p.profilePic = dataUrl;
-  const c = conversations.find(c => c.participant?.psid === avatarUpdatePsid);
-  if (c?.participant) c.participant.profilePic = dataUrl;
-
-  renderContacts();
-  renderChatHeader();
+  // Optimistic local update using the signed URL the server returned,
+  // so the sidebar and header reflect the new avatar without waiting
+  // for the Realtime UPDATE. If the server call failed we skip this —
+  // the UI stays on the previous avatar.
+  if (updatedProfile?.profilePic) {
+    const p = profiles.find(p => p.psid === psid);
+    if (p) p.profilePic = updatedProfile.profilePic;
+    const c = conversations.find(c => c.participant?.psid === psid);
+    if (c?.participant) c.participant.profilePic = updatedProfile.profilePic;
+    renderContacts();
+    renderChatHeader();
+  }
   avatarUpdatePsid = null;
 }
 

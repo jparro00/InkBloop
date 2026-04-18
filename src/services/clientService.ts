@@ -1,12 +1,18 @@
 import { supabase } from '../lib/supabase';
 import type { Client, ClientNote, LinkedProfile } from '../types';
 import type { Database, Json } from '../types/database';
+import { resolveAvatarUrls } from './messageService';
 
 type ClientRow = Database['public']['Tables']['clients']['Row'];
 type ClientInsert = Database['public']['Tables']['clients']['Insert'];
 type ClientUpdate = Database['public']['Tables']['clients']['Update'];
 
-/** Transform a Supabase row into a frontend Client object. */
+/** Transform a Supabase row into a frontend Client object. Note: profile_pic
+ *  here is still the RAW column value (path or data URL). Callers that need
+ *  to render it should either resolve via resolveAvatarUrls, or rely on the
+ *  linkedProfiles fallback in ClientCard / BookingDrawer (which IS resolved).
+ *  Today the clients.profile_pic column is never written, so this is
+ *  effectively always null. */
 function toClient(row: ClientRow): Client {
   return {
     id: row.id,
@@ -31,10 +37,25 @@ export async function fetchClients(): Promise<Client[]> {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return (data ?? []).map(toClient);
+  const clients = (data ?? []).map(toClient);
+
+  // If any client has a populated profile_pic (future feature once the
+  // column starts being written — empty today), resolve paths → signed
+  // URLs. Legacy data URLs pass through unchanged. This is a no-op when
+  // no clients have a profile_pic set.
+  const withPic = clients.filter((c) => c.profile_pic);
+  if (withPic.length === 0) return clients;
+
+  const urlMap = await resolveAvatarUrls(
+    withPic.map((c) => ({ id: c.id, pic: c.profile_pic }))
+  );
+  return clients.map((c) =>
+    c.profile_pic ? { ...c, profile_pic: urlMap.get(c.id) ?? undefined } : c
+  );
 }
 
-/** Fetch participant profiles for all linked PSIDs so we can display handles/names. */
+/** Fetch participant profiles for all linked PSIDs so we can display handles/names.
+ *  profilePic is returned as a renderable URL (signed, or legacy data URL). */
 export async function fetchLinkedProfiles(psids: string[]): Promise<Record<string, LinkedProfile>> {
   if (psids.length === 0) return {};
   const { data } = await supabase
@@ -42,19 +63,25 @@ export async function fetchLinkedProfiles(psids: string[]): Promise<Record<strin
     .select('psid, name, platform, profile_pic')
     .in('psid', psids);
 
+  const rows = data ?? [];
+  const urlMap = await resolveAvatarUrls(
+    rows.map((p) => ({ id: p.psid, pic: p.profile_pic }))
+  );
+
   const map: Record<string, LinkedProfile> = {};
-  for (const p of data ?? []) {
+  for (const p of rows) {
     map[p.psid] = {
       psid: p.psid,
       name: p.name ?? 'Unknown',
       platform: p.platform as 'instagram' | 'messenger',
-      profilePic: p.profile_pic ?? undefined,
+      profilePic: urlMap.get(p.psid) ?? undefined,
     };
   }
   return map;
 }
 
-/** Fetch all participant profiles for a platform (for the link picker in client form). */
+/** Fetch all participant profiles for a platform (for the link picker in client form).
+ *  profilePic is returned as a renderable URL (signed, or legacy data URL). */
 export async function fetchAvailableProfiles(platform: 'instagram' | 'messenger'): Promise<LinkedProfile[]> {
   const { data } = await supabase
     .from('participant_profiles')
@@ -62,11 +89,16 @@ export async function fetchAvailableProfiles(platform: 'instagram' | 'messenger'
     .eq('platform', platform)
     .order('name');
 
-  return (data ?? []).map((p) => ({
+  const rows = data ?? [];
+  const urlMap = await resolveAvatarUrls(
+    rows.map((p) => ({ id: p.psid, pic: p.profile_pic }))
+  );
+
+  return rows.map((p) => ({
     psid: p.psid,
     name: p.name ?? 'Unknown',
     platform: p.platform as 'instagram' | 'messenger',
-    profilePic: p.profile_pic ?? undefined,
+    profilePic: urlMap.get(p.psid) ?? undefined,
   }));
 }
 

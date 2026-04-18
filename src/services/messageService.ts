@@ -52,6 +52,32 @@ export interface ConversationSummary {
 
 const profileCache = new Map<string, GraphProfile>();
 
+/**
+ * Fetch a profile from the Meta Graph API.
+ *
+ * RESERVED FOR FUTURE REAL-META PRODUCTION USE. Currently DORMANT.
+ *
+ * In the simulator flow (dev and today's prod), profile data flows
+ * through sim_profiles → webhook → participant_profiles → `fetchAllParticipantProfiles`.
+ * Nothing in the active code path calls this function.
+ *
+ * When the app is wired to real Meta webhooks, there will be no
+ * sim_profiles to read from. The intended future flow is:
+ *   1. Webhook arrives with an unknown PSID → participant_profiles row
+ *      is created with null name / profile_pic.
+ *   2. First time the UI renders that PSID, it detects missing data and
+ *      calls this function exactly ONCE.
+ *   3. The result is written into participant_profiles (via
+ *      upsertParticipantProfile) and the avatar bytes copied into our
+ *      own `avatars` Storage bucket (so we don't depend on Meta's CDN
+ *      per render and don't count toward the 200/hr rate limit).
+ *   4. Subsequent renders read from participant_profiles — no Graph
+ *      API calls.
+ *
+ * Leaving this function (and invalidateProfileCache / fetchConversationsForId
+ * below) in place so that future integration doesn't require re-implementing
+ * the Graph-side profile fetch from scratch.
+ */
 export async function fetchProfile(psid: string): Promise<GraphProfile> {
   const cached = profileCache.get(psid);
   if (cached) return cached;
@@ -297,7 +323,107 @@ export async function fetchSingleMessage(mid: string): Promise<BroadcastMessageD
   };
 }
 
-/** Fetch all participant profiles for the current user (for profile-updated broadcasts). */
+// ── Avatar URL resolution ───────────────────────────────────────────────────
+// participant_profiles.profile_pic holds one of three kinds of value:
+//   (a) null — no avatar
+//   (b) a legacy base64 data URL (`data:image/...`) — pre-refactor rows we
+//       haven't cleaned up yet; these render directly in <img src>
+//   (c) a short Storage path (e.g. `igsid-abc12345-1713369600000.jpg`) —
+//       the current format; needs a signed URL to render
+//
+// This module-level cache avoids re-signing paths on every fetch. Signed
+// URLs are granted for 24 h but we refresh at 20 h to give a margin of
+// safety for long-lived sessions. The cache key is the PATH (not the
+// PSID) — if the path changes, the new path is signed fresh and the old
+// entry is left to be overwritten on next hit for that path (which will
+// not happen since we never reuse paths).
+//
+// SECURITY NOTE: signed URLs are effectively bearer tokens for the
+// underlying Storage object. Do not log them, do not send them to
+// analytics, do not embed them in URLs. Treat as credential material.
+
+const SIGNED_URL_TTL_SECONDS = 86400; // 24 h
+const SIGNED_URL_REFRESH_MS = 20 * 60 * 60 * 1000; // 20 h
+const signedUrlCache = new Map<string, { url: string; generatedAt: number }>();
+
+/**
+ * Resolve a list of {id, pic} entries into an id → renderable URL map.
+ *
+ * The `id` is any string — PSID, client UUID, whatever — the caller uses
+ * it only to look up the resolved URL in the returned map. `pic` is the
+ * raw value stored in a profile_pic column.
+ *
+ * - Null/empty pic → null (no avatar)
+ * - `data:` prefix → passes through (legacy base64 rows)
+ * - Anything else → treated as a Storage path, batch-signed via the
+ *   `avatars` bucket with a 24 h TTL, and cached.
+ *
+ * All Storage paths that need signing are collected and sent in ONE
+ * createSignedUrls call so we don't round-trip per avatar.
+ */
+export async function resolveAvatarUrls(
+  entries: { id: string; pic: string | null | undefined }[]
+): Promise<Map<string, string | null>> {
+  const result = new Map<string, string | null>();
+  const toSign: { id: string; path: string }[] = [];
+  const now = Date.now();
+
+  for (const e of entries) {
+    const pic = e.pic;
+    if (!pic) {
+      result.set(e.id, null);
+      continue;
+    }
+    if (pic.startsWith('data:')) {
+      result.set(e.id, pic);
+      continue;
+    }
+    const cached = signedUrlCache.get(pic);
+    if (cached && now - cached.generatedAt < SIGNED_URL_REFRESH_MS) {
+      result.set(e.id, cached.url);
+      continue;
+    }
+    toSign.push({ id: e.id, path: pic });
+  }
+
+  if (toSign.length > 0) {
+    const { data, error } = await supabase.storage
+      .from('avatars')
+      .createSignedUrls(
+        toSign.map((x) => x.path),
+        SIGNED_URL_TTL_SECONDS
+      );
+    if (error || !data) {
+      // Signing failed for the whole batch — surface null and let the
+      // UI render a placeholder avatar. Don't throw: a missing avatar
+      // should never take down the conversation list.
+      for (const { id } of toSign) result.set(id, null);
+    } else {
+      for (let i = 0; i < toSign.length; i++) {
+        const { id, path } = toSign[i];
+        const row = data[i];
+        if (row?.signedUrl) {
+          signedUrlCache.set(path, { url: row.signedUrl, generatedAt: now });
+          result.set(id, row.signedUrl);
+        } else {
+          result.set(id, null);
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+/** Invalidate the signed-URL cache for a specific path. Call after an avatar
+ *  update so the next render re-signs with the fresh URL. */
+export function invalidateAvatarUrlCache(path: string | null | undefined): void {
+  if (path) signedUrlCache.delete(path);
+}
+
+/** Fetch all participant profiles for the current user (for profile-updated broadcasts).
+ *  The returned `profilePic` is always renderable: either null, a legacy data URL,
+ *  or a fresh (or cached) signed URL for the Storage-backed avatar. */
 export async function fetchAllParticipantProfiles(): Promise<Map<string, { name: string | null; profilePic: string | null }>> {
   const { data: { session } } = await supabase.auth.getSession();
   const user = session?.user;
@@ -308,14 +434,21 @@ export async function fetchAllParticipantProfiles(): Promise<Map<string, { name:
     .select('psid, name, profile_pic')
     .eq('user_id', user.id);
 
+  const rows = data ?? [];
+  // Batch-resolve all avatar paths → signed URLs in one round trip.
+  const urlMap = await resolveAvatarUrls(
+    rows.map((p) => ({ id: p.psid, pic: p.profile_pic }))
+  );
+
   const map = new Map<string, { name: string | null; profilePic: string | null }>();
-  for (const p of data ?? []) {
-    map.set(p.psid, { name: p.name, profilePic: p.profile_pic });
+  for (const p of rows) {
+    map.set(p.psid, { name: p.name, profilePic: urlMap.get(p.psid) ?? null });
   }
   return map;
 }
 
-/** Fetch a single participant profile by psid (for new conversations via broadcast). */
+/** Fetch a single participant profile by psid (for new conversations via broadcast).
+ *  `profilePic` is resolved (signed URL or legacy data URL) so it's render-ready. */
 export async function fetchParticipantProfile(psid: string): Promise<{ name: string | null; profilePic: string | null } | null> {
   const { data: { session } } = await supabase.auth.getSession();
   const user = session?.user;
@@ -328,7 +461,9 @@ export async function fetchParticipantProfile(psid: string): Promise<{ name: str
     .eq('user_id', user.id)
     .maybeSingle();
 
-  return data ? { name: data.name, profilePic: data.profile_pic } : null;
+  if (!data) return null;
+  const urlMap = await resolveAvatarUrls([{ id: psid, pic: data.profile_pic }]);
+  return { name: data.name, profilePic: urlMap.get(psid) ?? null };
 }
 
 // ── Graph API (legacy, used for send + load older) ──────────────────────────
@@ -443,6 +578,13 @@ export async function fetchConversationsFromDB(readMids?: Record<string, string>
     (dbProfiles ?? []).map(p => [p.psid, p])
   );
 
+  // Resolve all avatar paths → signed URLs in a single batched call
+  // before building the conversation summaries. Avoids per-conversation
+  // round-trips to Storage and shares the cache across fetches.
+  const urlMap = await resolveAvatarUrls(
+    (dbProfiles ?? []).map((p) => ({ id: p.psid, pic: p.profile_pic }))
+  );
+
   const results: ConversationSummary[] = entries.map(([convId, { lastMsg, unreadCount }], i) => {
     const clientPsid = psids[i];
     // Only flag as "from client" (= unread) if there are actually unread messages.
@@ -451,7 +593,7 @@ export async function fetchConversationsFromDB(readMids?: Record<string, string>
     const lastMessageFromClient = !lastMsg.is_echo && unreadCount > 0;
     const profile = profileMap.get(clientPsid);
     const participantName = profile?.name || lastMsg.sender_name || clientPsid;
-    const profilePic = profile?.profile_pic || undefined;
+    const profilePic = urlMap.get(clientPsid) ?? undefined;
     const lastMessage = lastMsg.text || (lastMsg.attachments ? 'Sent an image' : undefined);
 
     return {

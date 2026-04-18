@@ -38,6 +38,28 @@ async function deliverWebhook(webhookUrl: string, payload: unknown, appSecret: s
   }
 }
 
+// ── Avatar URL resolution ───────────────────────────────────────────────────
+// profile_pic in sim_profiles is now a short storage PATH within the private
+// `avatars` bucket (e.g. "igsid-abc12345-1713369600000.jpg"). The simulator
+// UI authenticates via publishable/anon key and has no storage RLS access, so
+// this function runs server-side (service role) and hands back a signed URL
+// the UI can bind directly to <img src>. 1 h TTL is plenty since the sim UI
+// refetches profiles on Realtime updates anyway.
+//
+// Legacy rows still hold base64 data URLs (pre-refactor). Those pass through
+// unchanged so the UI renders them directly without a Storage round-trip.
+
+// deno-lint-ignore no-explicit-any
+async function resolveAvatarUrl(supabase: any, path: string | null): Promise<string | null> {
+  if (!path) return null;
+  if (path.startsWith("data:")) return path;
+  const { data, error } = await supabase.storage
+    .from("avatars")
+    .createSignedUrl(path, 3600);
+  if (error || !data) return null;
+  return data.signedUrl;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -76,12 +98,18 @@ Deno.serve(async (req: Request) => {
         .eq("conversation_id", c.id)
         .order("timestamp", { ascending: true });
 
+      // profile_pic is a storage path; resolve to a signed URL the UI can
+      // render directly. Legacy data URLs pass through unchanged.
+      const profilePic = profile
+        ? await resolveAvatarUrl(supabase, profile.profile_pic)
+        : null;
+
       results.push({
         id: c.id,
         platform: c.platform,
         participant: profile ? {
           psid: profile.psid, name: profile.name,
-          instagram: profile.instagram, profilePic: profile.profile_pic,
+          instagram: profile.instagram, profilePic,
         } : null,
         updatedTime: c.updated_time,
         readWatermark: c.read_watermark,
@@ -98,11 +126,20 @@ Deno.serve(async (req: Request) => {
   // ── GET profiles ──────────────────────────────────────────────────────────
   if (req.method === "GET" && simPath === "profiles") {
     const { data: profiles } = await supabase.from("sim_profiles").select("*").order("created_at");
-    return json((profiles ?? []).map(p => ({
-      psid: p.psid, firstName: p.first_name, lastName: p.last_name,
-      name: p.name, platform: p.platform, profilePic: p.profile_pic,
-      instagram: p.instagram,
-    })));
+    // Resolve avatar paths → signed URLs in parallel so the UI gets
+    // render-ready values. Legacy data URLs pass through unchanged.
+    const resolved = await Promise.all(
+      (profiles ?? []).map(async (p) => ({
+        psid: p.psid,
+        firstName: p.first_name,
+        lastName: p.last_name,
+        name: p.name,
+        platform: p.platform,
+        profilePic: await resolveAvatarUrl(supabase, p.profile_pic),
+        instagram: p.instagram,
+      }))
+    );
+    return json(resolved);
   }
 
   // ── GET/POST config ───────────────────────────────────────────────────────
@@ -216,8 +253,11 @@ Deno.serve(async (req: Request) => {
   }
 
   // ── POST contacts — create new contact ────────────────────────────────────
+  // Avatars are NOT accepted here. Callers that want to set an avatar issue
+  // a follow-up POST /contacts/:psid/avatar with the binary image body.
+  // Two-step flow avoids mixing JSON + binary in one request.
   if (req.method === "POST" && simPath === "contacts") {
-    const { name, instagram, platform, profilePic } = await req.json();
+    const { name, instagram, platform } = await req.json();
     if (!name?.trim() || !platform) return json({ error: "name and platform required" }, 400);
 
     const parts = name.trim().split(" ");
@@ -225,7 +265,7 @@ Deno.serve(async (req: Request) => {
 
     await supabase.from("sim_profiles").insert({
       psid, first_name: parts[0], last_name: parts.slice(1).join(" ") || "",
-      name: name.trim(), platform, profile_pic: profilePic || null,
+      name: name.trim(), platform, profile_pic: null,
       instagram: instagram || null,
     });
 
@@ -237,42 +277,89 @@ Deno.serve(async (req: Request) => {
     const { data: profile } = await supabase.from("sim_profiles").select("*").eq("psid", psid).maybeSingle();
     return json(profile ? {
       psid: profile.psid, firstName: profile.first_name, lastName: profile.last_name,
-      name: profile.name, platform: profile.platform, profilePic: profile.profile_pic,
+      name: profile.name, platform: profile.platform, profilePic: null,
       instagram: profile.instagram,
     } : { psid });
   }
 
   // ── POST contacts/:psid/avatar ────────────────────────────────────────────
+  // Accepts a raw binary image body (Content-Type: image/{jpeg,png,webp}).
+  // Client is expected to resize before upload (see public/simulator/
+  // resizeImage.js); the 256 KB cap here is a hard safety limit, not the
+  // target size (target ~15-25 KB). Flow:
+  //   1. Validate body size + content-type.
+  //   2. Upload to the private `avatars` bucket at `{psid}-{ts}.{ext}`.
+  //   3. Write the bucket PATH (not the URL) into sim_profiles.profile_pic.
+  //   4. Fire profile_update webhook with the PATH — the Ink Bloop webhook
+  //      handler copies it verbatim into participant_profiles.profile_pic.
+  //   5. Resolve the path back to a signed URL for the response so the
+  //      simulator UI can render the new avatar immediately.
   const avatarMatch = simPath.match(/^contacts\/([^/]+)\/avatar$/);
   if (req.method === "POST" && avatarMatch) {
     const psid = avatarMatch[1];
-    const { dataUrl } = await req.json();
+    const contentType = req.headers.get("content-type") || "";
+    if (!contentType.startsWith("image/")) {
+      return json({ error: "Content-Type must be image/*" }, 400);
+    }
+    const bytes = new Uint8Array(await req.arrayBuffer());
+    if (bytes.length === 0) return json({ error: "Empty body" }, 400);
+    if (bytes.length > 262144) {
+      return json({ error: "Avatar exceeds 256 KB (did you skip client-side resize?)" }, 413);
+    }
+
+    const ext = contentType.startsWith("image/png") ? "png"
+              : contentType.startsWith("image/webp") ? "webp"
+              : "jpg";
+    const path = `${psid}-${Date.now()}.${ext}`;
+
+    const { error: upErr } = await supabase.storage
+      .from("avatars")
+      .upload(path, bytes, {
+        contentType,
+        cacheControl: "2592000", // 30 days; filename is timestamped so it's immutable
+        upsert: false,
+      });
+    if (upErr) {
+      return json({ error: "Upload failed", detail: upErr.message }, 500);
+    }
 
     const { data: profile, error } = await supabase
       .from("sim_profiles")
-      .update({ profile_pic: dataUrl })
+      .update({ profile_pic: path })
       .eq("psid", psid)
       .select("*")
       .maybeSingle();
 
-    if (error || !profile) return json({ error: "Unknown PSID" }, 404);
+    if (error || !profile) {
+      // Best-effort orphan cleanup so we don't leave a file pointing at
+      // a row that failed to update.
+      await supabase.storage.from("avatars").remove([path]).catch(() => {});
+      return json({ error: "Unknown PSID" }, 404);
+    }
 
-    // Fire profile_update webhook
+    // Fire profile_update webhook with the PATH. The Ink Bloop webhook
+    // handler is a pass-through (stores whatever string it receives into
+    // participant_profiles.profile_pic), so the main app will pick up the
+    // new path on its next Realtime broadcast.
     const profilePayload = {
       object: "profile_update",
       entry: [{
         id: psid, time: Date.now(),
         messaging: [{
           sender: { id: psid },
-          profile_update: { name: profile.name, profile_pic: dataUrl },
+          profile_update: { name: profile.name, profile_pic: path },
         }],
       }],
     };
     deliverWebhook(cfg.webhook_url, profilePayload, cfg.app_secret).catch(() => {});
 
+    // Resolve the path to a signed URL for the response body so the
+    // simulator UI can render the new avatar immediately without a refetch.
+    const signedUrl = await resolveAvatarUrl(supabase, path);
+
     return json({
       psid: profile.psid, firstName: profile.first_name, lastName: profile.last_name,
-      name: profile.name, platform: profile.platform, profilePic: profile.profile_pic,
+      name: profile.name, platform: profile.platform, profilePic: signedUrl,
       instagram: profile.instagram,
     });
   }
