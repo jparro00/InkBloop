@@ -16,7 +16,13 @@
         Meta API Simulator
         <span style="color: var(--text-t); font-weight: 400;">for Ink Bloop</span>
       </h1>
-      <button class="config-btn" onclick="toggleConfig()">⚙ Config</button>
+      <div class="header-actions">
+        <!-- Env badge: text + color are populated by app.js once the env is
+             resolved. Click to toggle between prod and dev — reloads the
+             page with ?env=<other> so every API call re-binds. -->
+        <span id="env-badge" class="env-badge" onclick="toggleEnv()"></span>
+        <button class="config-btn" onclick="toggleConfig()">⚙ Config</button>
+      </div>
     </div>
 
     <!-- Main: contacts + chat -->

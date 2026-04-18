@@ -1,8 +1,75 @@
 // ── Config ────────────────────────────────────────────────────────────────────
+// Runtime-switchable between the prod and dev Supabase projects so the
+// simulator can drive either environment's sim-api / webhook end-to-end.
+//
+// Resolution priority:
+//   1) ?env=dev|prod URL query param  (also persists to localStorage)
+//   2) localStorage key 'sim-env'
+//   3) 'prod' — backward compatible default
+//
+// Click the env badge in the header to toggle. Toggling reloads the page
+// with the new env in the query string so every subsequent request (sim-api,
+// Realtime channels, Supabase client) re-binds to the new project.
+//
+// The two projects have separate sim_profiles / sim_conversations / sim_config
+// tables, so switching env effectively switches the entire simulator state.
 
-const SUPABASE_URL = 'https://jpjvexfldouobiiczhax.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_pB2UiR6VPGNwsbR4qhuC8g_9d88JO5E';
+const ENVS = {
+  prod: {
+    label: 'PROD',
+    url: 'https://jpjvexfldouobiiczhax.supabase.co',
+    anon: 'sb_publishable_pB2UiR6VPGNwsbR4qhuC8g_9d88JO5E',
+  },
+  dev: {
+    label: 'DEV',
+    url: 'https://kshwkljbhbwyqumnxuzu.supabase.co',
+    anon: 'sb_publishable_jUbzIZIS32lqTWs7ddSHbg_vM7HIPCP',
+  },
+};
+
+function resolveEnv() {
+  const params = new URLSearchParams(window.location.search);
+  const fromQuery = params.get('env');
+  if (fromQuery === 'dev' || fromQuery === 'prod') {
+    localStorage.setItem('sim-env', fromQuery);
+    return fromQuery;
+  }
+  const fromStorage = localStorage.getItem('sim-env');
+  if (fromStorage === 'dev' || fromStorage === 'prod') return fromStorage;
+  return 'prod';
+}
+
+const ENV_KEY = resolveEnv();
+const ACTIVE = ENVS[ENV_KEY];
+
+const SUPABASE_URL = ACTIVE.url;
+const SUPABASE_ANON_KEY = ACTIVE.anon;
 const SIM_API = SUPABASE_URL + '/functions/v1/sim-api/sim';
+
+function toggleEnv() {
+  const next = ENV_KEY === 'prod' ? 'dev' : 'prod';
+  localStorage.setItem('sim-env', next);
+  const params = new URLSearchParams(window.location.search);
+  params.set('env', next);
+  window.location.search = params.toString();
+}
+
+function updateEnvBadge() {
+  const badge = document.getElementById('env-badge');
+  if (!badge) return;
+  badge.textContent = ACTIVE.label;
+  badge.classList.add(ENV_KEY === 'prod' ? 'env-badge-prod' : 'env-badge-dev');
+  badge.title = `Currently ${ACTIVE.label} — click to switch to ${ENV_KEY === 'prod' ? 'DEV' : 'PROD'}`;
+}
+
+// The <script> tag lives at the bottom of <body>, so #env-badge is already
+// in the DOM by the time this executes. Guard on readyState as a belt-and-
+// suspenders against future script-position changes.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', updateEnvBadge);
+} else {
+  updateEnvBadge();
+}
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
