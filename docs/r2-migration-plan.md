@@ -153,6 +153,42 @@ Same pattern. Smaller dataset, so backfill is faster. Includes the `getPublicUrl
 - Delete Supabase Storage RLS policies (migrations 00001 lines 173–215, 00015) via a new migration that explicitly drops them (migrations are append-only per supabase/CLAUDE.md).
 - Archive this plan doc.
 
+## Reversal path (R2 → Supabase Storage)
+
+R2 is framed as a temporary chapter to survive egress limits pre-paying-customers. Before paying customers with real PII (client consent forms, etc.), we likely move back to Supabase Storage to regain the RLS backstop. The migration is designed to be reversible with a day's work, not a rewrite.
+
+**What makes reversal cheap**
+
+- Path columns in the DB (`remote_path`, `storage_path`, `profile_pic`) are backend-agnostic. Unchanged on reversal.
+- Phase 5 is skipped in practice: Supabase buckets and their RLS policies stay in place for the duration of the R2 era. Empty buckets cost nothing.
+- Supabase Storage blobs written before Phase 2/3/4 cutovers are still there (we never deleted them).
+- The frontend call sites touched in Phase 2/3/4 are a small, discrete diff. Reverting them is a git revert + redeploy, not a rewrite.
+
+**Reversal steps**
+
+1. **Freeze new writes to R2.** Deploy a frontend build that routes uploads back to Supabase Storage (`git revert` the Phase 2/3/4 service-layer commits; `imageSync.ts`, `documentService.ts`, `sim-api` avatar path).
+2. **Backfill R2 → Supabase.** Run `scripts/backfill-from-r2.ts` — the mirror of `backfill-r2.ts`. For every object in R2, check whether a blob exists at the same key in the corresponding Supabase bucket; if not, copy it over. Idempotent, re-runnable. Safe to re-run at any point.
+3. **Swap reads.** Deploy frontend with Supabase Storage reads restored (same revert commit as step 1 if bundled). Worker URL references are replaced with `supabase.storage.*` calls again.
+4. **Tear down R2 infrastructure.** Delete the CF Worker route, the `r2-upload-url` Supabase edge function, and the `images.inkbloop.com` subdomain DNS. Keep the R2 bucket populated for ~30 days as a safety copy in case of missed rows.
+5. **Verify.** Sentry / logs show zero Worker traffic and zero `r2-upload-url` invocations for a full week before deleting the R2 bucket.
+
+**Write both backfill scripts up front**
+
+`scripts/backfill-r2.ts` and `scripts/backfill-from-r2.ts` are mirror images of each other — same iteration, same idempotency, opposite source/destination. Writing the reverse script during Phase 2 (when the forward script is fresh) costs half a day and means reversal is not a "figure it out later" problem.
+
+**What reversal does NOT restore**
+
+- Objects uploaded during the R2 era and *deleted by the user* never made it to Supabase Storage. There's no backup to restore. Same semantics as today.
+- Signed-URL caches and any client-side state that depended on the Worker are wiped on frontend redeploy, which is fine.
+- The sim-api avatar path (Phase 4) reverts cleanly since we kept the Supabase code path intact until cutover.
+
+**Trigger for reversal**
+
+Not a hard gate, but the triggers I'd watch:
+- First paying customer onboarded.
+- First non-test user storing a consent form / ID document.
+- Any near-miss incident traced to the Worker (e.g. an integration test regression caught in staging — treat as a signal that the RLS backstop's absence is starting to bite).
+
 ## Security review checklist
 
 Before Phase 2 ships to prod:
