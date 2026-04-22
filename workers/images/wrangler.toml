@@ -15,8 +15,10 @@ workers_dev = false
 # ──────────────────────────────────────────────────────────────
 [env.dev]
 name = "inkbloop-images-dev"
+# custom_domain=true makes Wrangler manage the DNS record automatically.
+# Plain "routes" requires a pre-existing DNS record.
 routes = [
-  { pattern = "images-dev.inkbloop.com/*", zone_name = "inkbloop.com" }
+  { pattern = "images-dev.inkbloop.com", custom_domain = true }
 ]
 
 [[env.dev.r2_buckets]]
@@ -34,7 +36,7 @@ COOKIE_NAME = "sb-access-token"
 [env.prod]
 name = "inkbloop-images-prod"
 routes = [
-  { pattern = "images.inkbloop.com/*", zone_name = "inkbloop.com" }
+  { pattern = "images.inkbloop.com", custom_domain = true }
 ]
 
 [[env.prod.r2_buckets]]
