@@ -9,21 +9,35 @@ const corsHeaders = {
 
 // ── R2 shadow-write ─────────────────────────────────────────────────────────
 // Avatars uploaded through sim-api are written to Supabase Storage first,
-// then shadow-copied to Cloudflare R2 under `avatars/{path}`. When the R2
-// write succeeds we flag the row `profile_pic_backend = 'r2'` via the
-// profile_update webhook payload; the frontend's resolveAvatarUrls reads
-// via the Worker for 'r2' rows and falls back to a Supabase signed URL
-// otherwise. Best-effort: R2 failures never fail the upload.
+// then shadow-copied to Cloudflare R2 under `avatars/{path}` in the BACKGROUND
+// via EdgeRuntime.waitUntil. The handler does not await this — a slow or
+// unreachable R2 must never block the avatar save response.
+//
+// We optimistically flag `profile_pic_backend = 'r2'` in the profile_update
+// webhook payload whenever R2 is configured. If the background PUT hasn't
+// landed yet (or fails), the frontend Worker fetch returns 404 and
+// resolveAvatarUrls falls back to a Supabase signed URL. This means:
+//   - Avatar save is always fast (bounded by Supabase Storage upload only)
+//   - R2 reads are eventually consistent
+//   - Fallback is transparent to the user
+function r2Configured(): boolean {
+  return !!(
+    Deno.env.get("R2_ACCOUNT_ID") &&
+    Deno.env.get("R2_ACCESS_KEY_ID") &&
+    Deno.env.get("R2_SECRET_ACCESS_KEY") &&
+    Deno.env.get("R2_BUCKET")
+  );
+}
+
 async function shadowWriteR2Avatar(
   path: string,
   bytes: Uint8Array,
   contentType: string,
-): Promise<boolean> {
-  const accountId = Deno.env.get("R2_ACCOUNT_ID");
-  const accessKeyId = Deno.env.get("R2_ACCESS_KEY_ID");
-  const secretAccessKey = Deno.env.get("R2_SECRET_ACCESS_KEY");
-  const bucket = Deno.env.get("R2_BUCKET");
-  if (!accountId || !accessKeyId || !secretAccessKey || !bucket) return false;
+): Promise<void> {
+  const accountId = Deno.env.get("R2_ACCOUNT_ID")!;
+  const accessKeyId = Deno.env.get("R2_ACCESS_KEY_ID")!;
+  const secretAccessKey = Deno.env.get("R2_SECRET_ACCESS_KEY")!;
+  const bucket = Deno.env.get("R2_BUCKET")!;
   try {
     const aws = new AwsClient({
       accessKeyId,
@@ -44,12 +58,9 @@ async function shadowWriteR2Avatar(
         resp.status,
         await resp.text(),
       );
-      return false;
     }
-    return true;
   } catch (e) {
     console.error("[sim-api] R2 shadow-write threw:", e);
-    return false;
   }
 }
 
@@ -370,11 +381,24 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Upload failed", detail: upErr.message }, 500);
     }
 
-    // Shadow-write to R2. If this succeeds, the profile_update webhook
-    // below flags the row 'r2' so the frontend reads via the Worker.
-    // If it fails, stay on 'supabase' and reads go through signed URLs.
-    const r2Ok = await shadowWriteR2Avatar(path, bytes, contentType);
-    const profilePicBackend: "supabase" | "r2" = r2Ok ? "r2" : "supabase";
+    // Shadow-write to R2 in the background — never await. The profile_update
+    // webhook below optimistically flags 'r2' whenever R2 is configured; if
+    // the background PUT hasn't landed or fails, the Worker returns 404 and
+    // the frontend falls back to a Supabase signed URL.
+    const profilePicBackend: "supabase" | "r2" = r2Configured()
+      ? "r2"
+      : "supabase";
+    if (profilePicBackend === "r2") {
+      const task = shadowWriteR2Avatar(path, bytes, contentType);
+      // deno-lint-ignore no-explicit-any
+      const runtime = (globalThis as any).EdgeRuntime;
+      if (runtime?.waitUntil) {
+        runtime.waitUntil(task);
+      } else {
+        // Local dev / non-Supabase runtime — just let it run, don't await.
+        task.catch(() => {});
+      }
+    }
 
     const { data: profile, error } = await supabase
       .from("sim_profiles")
