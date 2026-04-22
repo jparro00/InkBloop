@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Edit, Plus, MessageCircle, Camera, FileText, Trash2 } from 'lucide-react';
@@ -37,7 +37,6 @@ export default function ClientDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [viewingImageId, setViewingImageId] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const photoInputRef = useRef<HTMLInputElement>(null);
 
   // Tell the shell to hide the FAB while the delete confirm is visible so
   // the bot button doesn't visually cover the "Yes, delete" action.
@@ -291,37 +290,38 @@ export default function ClientDetailPage() {
       {tab === 'photos' && (
         <div>
           <div className="flex justify-end mb-4">
-            <button
-              onClick={() => photoInputRef.current?.click()}
-              disabled={uploadingPhoto}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-md bg-accent text-bg text-sm cursor-pointer press-scale shadow-glow active:shadow-glow-strong disabled:opacity-50 min-h-[40px]"
+            {/* <label>-wrapped input instead of button + ref.click() so the file
+                picker opens from a native user gesture on Safari/iOS PWA where
+                programmatic .click() on display:none inputs is unreliable. */}
+            <label
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-md bg-accent text-bg text-sm cursor-pointer press-scale shadow-glow active:shadow-glow-strong min-h-[40px] ${uploadingPhoto ? 'opacity-50 pointer-events-none' : ''}`}
             >
               <Plus size={16} />
               <span>{uploadingPhoto ? 'Uploading…' : 'Add Photo'}</span>
-            </button>
-            <input
-              ref={photoInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={async (e) => {
-                if (!e.target.files?.length) return;
-                setUploadingPhoto(true);
-                try {
-                  for (const file of Array.from(e.target.files)) {
-                    await uploadDocument(file, client.id);
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                disabled={uploadingPhoto}
+                onChange={async (e) => {
+                  if (!e.target.files?.length) return;
+                  setUploadingPhoto(true);
+                  try {
+                    for (const file of Array.from(e.target.files)) {
+                      await uploadDocument(file, client.id);
+                    }
+                    addToast('Photo uploaded');
+                  } catch (err) {
+                    console.error('Failed to upload photo:', err);
+                    addToast('Upload failed');
+                  } finally {
+                    setUploadingPhoto(false);
+                    e.target.value = '';
                   }
-                  addToast('Photo uploaded');
-                } catch (err) {
-                  console.error('Failed to upload photo:', err);
-                  addToast('Upload failed');
-                } finally {
-                  setUploadingPhoto(false);
-                  e.target.value = '';
-                }
-              }}
-              className="hidden"
-            />
+                }}
+                className="hidden"
+              />
+            </label>
           </div>
           {bookingThumbnails.length > 0 && (
             <div className="mb-6">

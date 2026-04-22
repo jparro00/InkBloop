@@ -121,3 +121,41 @@ export async function resumePendingImageUploads(): Promise<void> {
     });
   }
 }
+
+// Best-effort R2 backfill for images that uploaded to Supabase Storage but
+// whose R2 shadow-write failed (common on mobile/PWA: bigger photos, flaky
+// networks). If the original blob is still in IDB, we re-attempt the R2 PUT
+// and flip storage_backend='r2' on success so future reads go straight to R2.
+//
+// Silent on failure — this is a convergence mechanism, not a critical path.
+// Triggered from App.tsx after fetchImages; runs in the background.
+export async function reconcileR2Backend(): Promise<void> {
+  if (!isR2Enabled()) return;
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+
+  const store = useImageStore.getState();
+  const candidates = store.images.filter(
+    (img: BookingImage) =>
+      img.sync_status === 'synced' &&
+      img.storage_backend !== 'r2' &&
+      !!img.remote_path,
+  );
+
+  for (const img of candidates) {
+    const blob = await getOriginal(img.id);
+    if (!blob) continue; // nothing to re-upload from this device
+
+    const r2Key = `booking-images/${img.remote_path}`;
+    const ok = await uploadToR2(
+      r2Key,
+      blob,
+      img.mime_type || 'image/jpeg',
+    ).catch(() => false);
+
+    if (ok) {
+      store.updateSyncStatus(img.id, 'synced', img.remote_path, 'r2');
+    }
+  }
+}
