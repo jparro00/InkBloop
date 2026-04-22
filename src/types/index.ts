@@ -115,6 +115,7 @@ export interface Document {
   mime_type?: string;
   size_bytes?: number;
   notes?: string;
+  storage_backend?: StorageBackend;
 }
 
 export interface AgeVerificationLog {

@@ -311,7 +311,7 @@ export default function ClientDetailPage() {
                   <div key={doc.id} className="aspect-square rounded-lg bg-surface border border-border/30 overflow-hidden relative group">
                     <button
                       onClick={async () => {
-                        const url = await getSignedUrl(doc.storage_path);
+                        const url = await getSignedUrl(doc);
                         window.open(url, '_blank');
                       }}
                       className="w-full h-full flex items-center justify-center cursor-pointer press-scale"
@@ -350,7 +350,7 @@ export default function ClientDetailPage() {
                   <div className="flex-1 min-w-0">
                     <button
                       onClick={async () => {
-                        const url = await getSignedUrl(doc.storage_path);
+                        const url = await getSignedUrl(doc);
                         window.open(url, '_blank');
                       }}
                       className="text-base text-accent truncate block cursor-pointer press-scale"

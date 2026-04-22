@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
-import type { Document } from '../types';
+import { fetchR2Blob, isR2Enabled, uploadToR2 } from '../lib/r2';
+import type { Document, StorageBackend } from '../types';
 import type { Database } from '../types/database';
 
 type DocRow = Database['public']['Tables']['documents']['Row'];
@@ -17,6 +18,7 @@ function toDocument(row: DocRow): Document {
     mime_type: row.mime_type ?? undefined,
     size_bytes: row.size_bytes ?? undefined,
     notes: row.notes ?? undefined,
+    storage_backend: row.storage_backend,
   };
 }
 
@@ -53,11 +55,10 @@ export async function uploadDocument(
   const ext = file.name.split('.').pop() || 'bin';
   const storagePath = `${session.user.id}/${clientId}/${id}.${ext}`;
 
-  // Determine type from mime
   const isImage = file.type.startsWith('image/');
   const docType: Document['type'] = isImage ? 'image' : 'other';
 
-  // Upload to storage
+  // Upload to Supabase Storage (primary during shadow-write era).
   const { error: uploadError } = await supabase.storage
     .from('documents')
     .upload(storagePath, file, {
@@ -66,7 +67,21 @@ export async function uploadDocument(
     });
   if (uploadError) throw uploadError;
 
-  // Insert metadata row
+  // Shadow-write to R2. If it fails, row stays 'supabase' and reads go
+  // through Supabase — same safety net as booking-images in Phase 2.
+  let storageBackend: StorageBackend = 'supabase';
+  if (isR2Enabled()) {
+    const r2Ok = await uploadToR2(
+      `documents/${storagePath}`,
+      file,
+      file.type || 'application/octet-stream',
+    ).catch((e) => {
+      console.error('[documentService] R2 shadow-write threw:', e);
+      return false;
+    });
+    if (r2Ok) storageBackend = 'r2';
+  }
+
   const { data, error } = await supabase
     .from('documents')
     .insert({
@@ -79,6 +94,7 @@ export async function uploadDocument(
       is_sensitive: false,
       mime_type: file.type || null,
       size_bytes: file.size,
+      storage_backend: storageBackend,
     })
     .select()
     .single();
@@ -88,10 +104,10 @@ export async function uploadDocument(
 }
 
 export async function deleteDocument(doc: Document): Promise<void> {
-  // Delete from storage
+  // Supabase Storage blob. R2 blobs stay for ~30 days as a rollback safety
+  // net per docs/r2-migration-plan.md — no R2 delete endpoint yet.
   await supabase.storage.from('documents').remove([doc.storage_path]);
 
-  // Delete metadata row
   const { error } = await supabase
     .from('documents')
     .delete()
@@ -100,17 +116,25 @@ export async function deleteDocument(doc: Document): Promise<void> {
   if (error) throw error;
 }
 
-export function getDocumentUrl(storagePath: string): string {
-  const { data } = supabase.storage
-    .from('documents')
-    .getPublicUrl(storagePath);
-  return data.publicUrl;
-}
+// Resolve a Document to a URL usable by window.open / <a href>. R2-backed
+// rows fetch the blob via the Worker (bearer auth) and return an Object URL;
+// Supabase-backed rows use a 1-hour signed URL. The Object URL is live for
+// the lifetime of the current page — callers don't need to revoke it since
+// window.open / anchor navigation hands ownership to the target context.
+export async function getSignedUrl(doc: Document): Promise<string> {
+  if (doc.storage_backend === 'r2') {
+    try {
+      const blob = await fetchR2Blob(`documents/${doc.storage_path}`);
+      if (blob) return URL.createObjectURL(blob);
+    } catch (e) {
+      console.error('[documentService] R2 read failed, falling back:', e);
+    }
+    // Fall through to Supabase if R2 read fails — shadow-write era safety net.
+  }
 
-export async function getSignedUrl(storagePath: string): Promise<string> {
   const { data, error } = await supabase.storage
     .from('documents')
-    .createSignedUrl(storagePath, 3600);
+    .createSignedUrl(doc.storage_path, 3600);
 
   if (error) throw error;
   return data.signedUrl;

@@ -196,6 +196,7 @@ export interface Database {
           mime_type: string | null;
           size_bytes: number | null;
           notes: string | null;
+          storage_backend: 'supabase' | 'r2';
         };
         Insert: {
           id?: string;
@@ -210,6 +211,7 @@ export interface Database {
           mime_type?: string | null;
           size_bytes?: number | null;
           notes?: string | null;
+          storage_backend?: 'supabase' | 'r2';
         };
         Update: {
           id?: string;
@@ -224,6 +226,7 @@ export interface Database {
           mime_type?: string | null;
           size_bytes?: number | null;
           notes?: string | null;
+          storage_backend?: 'supabase' | 'r2';
         };
         Relationships: [
           {
