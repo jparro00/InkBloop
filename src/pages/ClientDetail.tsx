@@ -7,6 +7,7 @@ import { useClientStore } from '../stores/clientStore';
 import { useBookingStore } from '../stores/bookingStore';
 import { useImageStore } from '../stores/imageStore';
 import { useDocumentStore } from '../stores/documentStore';
+import { useMessageStore } from '../stores/messageStore';
 import { useUIStore } from '../stores/uiStore';
 import { getSignedUrl } from '../services/documentService';
 import { useImageThumbnails, useDocumentImageThumbnails } from '../hooks/useBookingImages';
@@ -30,7 +31,8 @@ export default function ClientDetailPage() {
   const clientDocuments = useMemo(() => allDocuments.filter((d) => d.client_id === id), [allDocuments, id]);
   const removeDocument = useDocumentStore((s) => s.removeDocument);
   const uploadDocument = useDocumentStore((s) => s.uploadDocument);
-  const { setSelectedBookingId, openBookingForm, setPrefillBookingData, setEditingClientId, addToast, setConfirmDialogOpen } = useUIStore();
+  const { setSelectedBookingId, setSelectedConversationId, openBookingForm, setPrefillBookingData, setEditingClientId, addToast, setConfirmDialogOpen } = useUIStore();
+  const conversations = useMessageStore((s) => s.conversations);
   const [tab, setTab] = useState<Tab>('overview');
   const [noteText, setNoteText] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -251,7 +253,14 @@ export default function ClientDetailPage() {
               f.psid ? (
                 <button
                   key={f.label}
-                  onClick={() => navigate('/messages', { state: { openPsid: f.psid } })}
+                  onClick={() => {
+                    const match = conversations.find((c) => c.participantPsid === f.psid);
+                    if (match) {
+                      setSelectedConversationId(match.id);
+                    } else {
+                      navigate('/messages', { state: { openPsid: f.psid } });
+                    }
+                  }}
                   className="w-full text-left bg-surface/60 rounded-lg p-5 border border-border/30 cursor-pointer press-scale active:bg-elevated/40 transition-colors"
                 >
                   <div className="text-sm text-text-t uppercase tracking-wider mb-1.5 font-medium">{f.label}</div>
