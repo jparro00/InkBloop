@@ -68,6 +68,40 @@
    swatches, overlays).
    -------------------------------------------------------------------------- */
 
+html[data-theme="gruvbox"] {
+  /* Gruvbox dark medium (morhetz): #282828 bg, bright_orange accent.
+     Elevation and booking-type colors pulled from the canonical dark
+     and bright palettes. */
+  --color-bg: #282828;        /* dark0 */
+  --color-surface: #32302F;   /* dark0_soft */
+  --color-elevated: #3C3836;  /* dark1 */
+  --color-input: #504945;     /* dark2 */
+  --color-border: #665C54;    /* dark3 */
+  --color-border-s: #7C6F64;  /* dark4 */
+
+  --color-accent: #FE8019;    /* bright_orange — gruvbox signature */
+  --color-accent-dim: #D65D0E;
+  --color-accent-glow: rgba(254, 128, 25, 0.14);
+  --accent-rgb: 254, 128, 25;
+
+  --color-danger: #FB4934;    /* bright_red */
+  --color-success: #B8BB26;   /* bright_green */
+  --color-today: #FABD2F;     /* bright_yellow */
+
+  /* Booking types — all drawn from gruvbox's bright palette (plus one
+     muted plum for consult so it reads distinct from the softer rose
+     used for regular). */
+  --color-type-regular: #D3869B;   /* bright_purple — soft rose */
+  --color-type-touchup: #FABD2F;   /* bright_yellow */
+  --color-type-consult: #B16286;   /* purple — plum */
+  --color-type-fullday: #FB4934;   /* bright_red */
+  --color-type-coverup: #83A598;   /* bright_blue — teal */
+  --color-type-personal: #8EC07C;  /* bright_aqua — sage */
+
+  --shadow-glow: 0 0 14px rgba(254, 128, 25, 0.22);
+  --shadow-glow-strong: 0 0 22px rgba(254, 128, 25, 0.34);
+}
+
 html[data-theme="dracula"] {
   /* Official Dracula palette: #282A36 bg, pastel-on-purple highlights */
   --color-bg: #282A36;
