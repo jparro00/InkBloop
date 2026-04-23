@@ -1,4 +1,4 @@
-export type ThemeId = 'crimson' | 'green' | 'noir' | 'electric' | 'sepia';
+export type ThemeId = 'crimson' | 'green' | 'noir' | 'electric' | 'sepia' | 'violet';
 
 export interface ThemePreset {
   id: ThemeId;
@@ -9,6 +9,7 @@ export interface ThemePreset {
 
 export const THEMES: ThemePreset[] = [
   { id: 'crimson',  name: 'Crimson',  bg: '#110D18', accent: '#DE0000' },
+  { id: 'violet',   name: 'Violet',   bg: '#0D0614', accent: '#8B5CF6' },
   { id: 'green',    name: 'Moss',     bg: '#121212', accent: '#4ADE80' },
   { id: 'noir',     name: 'Noir',     bg: '#0A0A0A', accent: '#E5E5E5' },
   { id: 'electric', name: 'Electric', bg: '#0A0E1A', accent: '#38BDF8' },

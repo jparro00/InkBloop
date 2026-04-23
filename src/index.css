@@ -68,6 +68,36 @@
    swatches, overlays).
    -------------------------------------------------------------------------- */
 
+html[data-theme="violet"] {
+  /* Fresh-ink violet: near-black violet base with a vivid violet accent */
+  --color-bg: #0D0614;
+  --color-surface: #16102A;
+  --color-elevated: #1F1838;
+  --color-input: #261D42;
+  --color-border: #2E244F;
+  --color-border-s: #38305C;
+
+  --color-accent: #8B5CF6;
+  --color-accent-dim: #6D28D9;
+  --color-accent-glow: rgba(139, 92, 246, 0.14);
+  --accent-rgb: 139, 92, 246;
+
+  --color-danger: #EF4444;
+  --color-success: #10B981;
+  --color-today: #F59E0B;
+
+  /* Booking types — spread across wheel, all distinct from violet accent */
+  --color-type-regular: #EC4899;
+  --color-type-touchup: #F97316;
+  --color-type-consult: #22D3EE;
+  --color-type-fullday: #F43F5E;
+  --color-type-coverup: #3B82F6;
+  --color-type-personal: #22C55E;
+
+  --shadow-glow: 0 0 14px rgba(139, 92, 246, 0.22);
+  --shadow-glow-strong: 0 0 22px rgba(139, 92, 246, 0.34);
+}
+
 html[data-theme="green"] {
   --color-bg: #121212;
   --color-surface: #1E1E1E;
