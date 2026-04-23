@@ -8,7 +8,8 @@ interface ClientStore {
   linkedProfiles: Record<string, LinkedProfile>;
   isLoading: boolean;
   error: string | null;
-  fetchClients: () => Promise<void>;
+  _fetchedAt: number | null;
+  fetchClients: (force?: boolean) => Promise<void>;
   getClient: (id: string) => Client | undefined;
   addClient: (client: Omit<Client, 'id' | 'created_at' | 'notes'>) => Promise<Client>;
   updateClient: (id: string, data: Partial<Client>) => Promise<void>;
@@ -22,13 +23,19 @@ interface ClientStore {
   unlinkPlatform: (clientId: string, platform: 'instagram' | 'messenger') => Promise<void>;
 }
 
+const FETCH_TTL = 60_000;
+
 export const useClientStore = create<ClientStore>()(persist((set, get) => ({
   clients: [],
   linkedProfiles: {},
   isLoading: false,
   error: null,
+  _fetchedAt: null,
 
-  fetchClients: async () => {
+  fetchClients: async (force = false) => {
+    const fetchedAt = get()._fetchedAt;
+    if (!force && fetchedAt && Date.now() - fetchedAt < FETCH_TTL) return;
+
     // Only show loading spinner if there's no cached data
     if (get().clients.length === 0) set({ isLoading: true });
     set({ error: null });
@@ -37,8 +44,20 @@ export const useClientStore = create<ClientStore>()(persist((set, get) => ({
       const allPsids = clients.flatMap((c) =>
         [c.instagram, c.facebook].filter(Boolean)
       ) as string[];
-      const linkedProfiles = await clientService.fetchLinkedProfiles(allPsids);
-      set({ clients, linkedProfiles, isLoading: false });
+
+      // Only fetch profiles we don't already have cached. Saves egress on
+      // re-fetches where most profiles haven't changed.
+      const existing = get().linkedProfiles;
+      const missingPsids = allPsids.filter((p) => !existing[p]);
+      const newProfiles = missingPsids.length > 0
+        ? await clientService.fetchLinkedProfiles(missingPsids)
+        : {};
+      set({
+        clients,
+        linkedProfiles: { ...existing, ...newProfiles },
+        isLoading: false,
+        _fetchedAt: Date.now(),
+      });
     } catch (e) {
       set({ error: (e as Error).message, isLoading: false });
     }
@@ -231,5 +250,6 @@ export const useClientStore = create<ClientStore>()(persist((set, get) => ({
   partialize: (state) => ({
     clients: state.clients,
     linkedProfiles: state.linkedProfiles,
+    _fetchedAt: state._fetchedAt,
   }),
 }));
