@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Edit, Plus, MessageCircle, FileText, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Edit, Plus, MessageCircle, FileText, Trash2, X, Camera, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useClientStore } from '../stores/clientStore';
 import { useBookingStore } from '../stores/bookingStore';
@@ -23,6 +23,7 @@ export default function ClientDetailPage() {
   const client = useMemo(() => clients.find((c) => c.id === id), [clients, id]);
   const addNote = useClientStore((s) => s.addNote);
   const deleteClient = useClientStore((s) => s.deleteClient);
+  const uploadAvatar = useClientStore((s) => s.uploadAvatar);
   const linkedProfiles = useClientStore((s) => s.linkedProfiles);
   const allBookings = useBookingStore((s) => s.bookings);
   const clientBookings = useMemo(() => allBookings.filter((b) => b.client_id === id), [allBookings, id]);
@@ -42,6 +43,7 @@ export default function ClientDetailPage() {
   const [viewingDocId, setViewingDocId] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // Tell the shell to hide the FAB while the delete confirm is visible so
   // the bot button doesn't visually cover the "Yes, delete" action.
@@ -185,12 +187,42 @@ export default function ClientDetailPage() {
           const pic = client.profile_pic
             || (client.instagram && linkedProfiles[client.instagram]?.profilePic)
             || (client.facebook && linkedProfiles[client.facebook]?.profilePic);
-          return pic ? (
-            <img src={pic} alt={client.name} className="w-16 h-16 rounded-2xl object-cover shrink-0" />
-          ) : (
-            <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center text-accent text-xl font-medium shrink-0">
-              {client.name.charAt(0)}
-            </div>
+          return (
+            <label className="relative cursor-pointer press-scale shrink-0 block">
+              {/* File input is label-wrapped so iOS Safari opens the picker
+                  from a native user gesture; programmatic .click() on a
+                  hidden input is unreliable there. */}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                disabled={uploadingAvatar}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = '';
+                  if (!file) return;
+                  setUploadingAvatar(true);
+                  try {
+                    await uploadAvatar(client.id, file);
+                  } catch (err) {
+                    console.error('Avatar upload failed', err);
+                    addToast('Could not upload photo. Try a smaller image.');
+                  } finally {
+                    setUploadingAvatar(false);
+                  }
+                }}
+              />
+              {pic ? (
+                <img src={pic} alt={client.name} className="w-16 h-16 rounded-2xl object-cover" />
+              ) : (
+                <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center text-accent text-xl font-medium">
+                  {client.name.charAt(0)}
+                </div>
+              )}
+              <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-surface border border-border/60 rounded-full flex items-center justify-center text-text-s">
+                {uploadingAvatar ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
+              </div>
+            </label>
           );
         })()}
         <div className="min-w-0">
@@ -244,8 +276,8 @@ export default function ClientDetailPage() {
         <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0 max-w-xl">
           {[
             { label: 'Phone', value: client.phone },
-            { label: 'Instagram', value: client.instagram ? linkedProfiles[client.instagram]?.name : undefined, psid: client.instagram },
-            { label: 'Facebook', value: client.facebook ? linkedProfiles[client.facebook]?.name : undefined, psid: client.facebook },
+            { label: 'Instagram', value: client.instagram ? linkedProfiles[client.instagram]?.name : undefined, psid: client.instagram, pic: client.instagram ? linkedProfiles[client.instagram]?.profilePic : undefined },
+            { label: 'Facebook', value: client.facebook ? linkedProfiles[client.facebook]?.name : undefined, psid: client.facebook, pic: client.facebook ? linkedProfiles[client.facebook]?.profilePic : undefined },
             { label: 'Date of Birth', value: client.dob ? format(new Date(client.dob), 'MMM d, yyyy') : undefined },
           ]
             .filter((f) => f.value)
@@ -264,9 +296,14 @@ export default function ClientDetailPage() {
                   className="w-full text-left bg-surface/60 rounded-lg p-5 border border-border/30 cursor-pointer press-scale active:bg-elevated/40 transition-colors"
                 >
                   <div className="text-sm text-text-t uppercase tracking-wider mb-1.5 font-medium">{f.label}</div>
-                  <div className="flex items-center gap-2 text-base text-accent">
-                    <span>{f.value}</span>
-                    <MessageCircle size={16} />
+                  <div className="flex items-center gap-3 text-base text-accent">
+                    {f.pic ? (
+                      <img src={f.pic} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-accent/10 shrink-0" />
+                    )}
+                    <span className="flex-1 truncate">{f.value}</span>
+                    <MessageCircle size={16} className="shrink-0" />
                   </div>
                 </button>
               ) : (

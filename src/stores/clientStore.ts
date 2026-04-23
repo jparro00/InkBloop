@@ -12,6 +12,7 @@ interface ClientStore {
   getClient: (id: string) => Client | undefined;
   addClient: (client: Omit<Client, 'id' | 'created_at' | 'notes'>) => Promise<Client>;
   updateClient: (id: string, data: Partial<Client>) => Promise<void>;
+  uploadAvatar: (id: string, file: File) => Promise<void>;
   deleteClient: (id: string) => Promise<void>;
   addNote: (clientId: string, text: string) => Promise<void>;
   searchClients: (query: string) => Client[];
@@ -78,6 +79,26 @@ export const useClientStore = create<ClientStore>()(persist((set, get) => ({
 
     try {
       await clientService.updateClient(id, data);
+    } catch (e) {
+      if (prev) {
+        set((s) => ({
+          clients: s.clients.map((c) => (c.id === id ? prev : c)),
+        }));
+      }
+      throw e;
+    }
+  },
+
+  uploadAvatar: async (id, file) => {
+    const prev = get().clients.find((c) => c.id === id);
+    try {
+      const { path, signedUrl } = await clientService.uploadClientAvatar(id, file);
+      await clientService.updateClient(id, { profile_pic: path });
+      // Store the signed URL (not the path) so <img src> renders immediately.
+      // On next fetchClients the path is re-resolved to a fresh signed URL.
+      set((s) => ({
+        clients: s.clients.map((c) => (c.id === id ? { ...c, profile_pic: signedUrl } : c)),
+      }));
     } catch (e) {
       if (prev) {
         set((s) => ({
