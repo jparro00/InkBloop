@@ -148,7 +148,7 @@ export default function SettingsPage() {
 
           <div className={`${cardClass} mt-4`}>
             <div className="text-base text-text-s mb-2">Theme</div>
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+            <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
               {THEMES.map((t) => {
                 const selected = theme === t.id;
                 return (

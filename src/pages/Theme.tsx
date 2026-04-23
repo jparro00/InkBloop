@@ -274,7 +274,7 @@ export default function ThemePage() {
         {/* Theme picker */}
         <section className="mb-10">
           <div className="text-xs text-accent uppercase tracking-wider font-medium mb-4">Theme</div>
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+          <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
             {THEMES.map((t) => {
               const selectedTheme = activeTheme === t.id;
               return (

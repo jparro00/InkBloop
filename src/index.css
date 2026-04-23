@@ -68,6 +68,38 @@
    swatches, overlays).
    -------------------------------------------------------------------------- */
 
+html[data-theme="dracula"] {
+  /* Official Dracula palette: #282A36 bg, pastel-on-purple highlights */
+  --color-bg: #282A36;
+  --color-surface: #2E3040;
+  --color-elevated: #363849;
+  --color-input: #3D3F54;
+  --color-border: #44475A;
+  --color-border-s: #50536E;
+
+  --color-accent: #BD93F9;       /* dracula purple */
+  --color-accent-dim: #9061E3;
+  --color-accent-glow: rgba(189, 147, 249, 0.14);
+  --accent-rgb: 189, 147, 249;
+
+  --color-danger: #FF5555;       /* dracula red */
+  --color-success: #50FA7B;      /* dracula green */
+  --color-today: #FFB86C;        /* dracula orange */
+
+  /* Booking types — each pulls from a different Dracula swatch for
+     distinct identity against the purple accent. Yellow for Full Day,
+     sky-blue for Cover Up since Dracula itself has no true blue. */
+  --color-type-regular: #FF79C6;   /* pink */
+  --color-type-touchup: #FFB86C;   /* orange */
+  --color-type-consult: #8BE9FD;   /* cyan */
+  --color-type-fullday: #F1FA8C;   /* yellow */
+  --color-type-coverup: #60A5FA;   /* sky (Dracula has no native blue) */
+  --color-type-personal: #50FA7B;  /* green */
+
+  --shadow-glow: 0 0 14px rgba(189, 147, 249, 0.22);
+  --shadow-glow-strong: 0 0 22px rgba(189, 147, 249, 0.34);
+}
+
 html[data-theme="violet"] {
   /* Fresh-ink violet: near-black violet base with a vivid violet accent */
   --color-bg: #0D0614;
