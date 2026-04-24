@@ -2,10 +2,13 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { writeServiceWorker } from './scripts/write-sw.ts'
+import { nonBlockingCssLink } from './scripts/non-blocking-css.ts'
 
 export default defineConfig({
   base: '/',
-  plugins: [react(), tailwindcss(), writeServiceWorker()],
+  // nonBlockingCssLink rewrites the HTML before writeServiceWorker so the
+  // SW caches the rewritten copy.
+  plugins: [react(), tailwindcss(), nonBlockingCssLink(), writeServiceWorker()],
   build: {
     rollupOptions: {
       output: {
