@@ -46,11 +46,13 @@ interface BarSegment {
 
 /**
  * Greedy per-week packer: returns segments for every bar-worthy booking that
- * touches the week, clipped to [weekStart, weekEnd), each with a lane index
- * (0-based row slot). Lanes are assigned by earliest-start / longest-first so
- * long multi-day bars stay on top.
+ * touches the week AND the rendered month, clipped to the intersection of
+ * [weekStart, weekEnd) and [monthStart, nextMonthStart). Clipping to the
+ * month matters because a grid week straddling two months is rendered twice
+ * (once in each month's grid) — without the extra month clip the same bar
+ * would be drawn on the hidden out-of-month cells of the neighboring month.
  */
-function computeWeekBars(weekDays: Date[], bookings: Booking[]): BarSegment[] {
+function computeWeekBars(weekDays: Date[], bookings: Booking[], month: Date): BarSegment[] {
   if (weekDays.length === 0) return [];
   const weekStart = new Date(weekDays[0]); weekStart.setHours(0, 0, 0, 0);
   const weekEnd = new Date(weekDays[weekDays.length - 1]); weekEnd.setHours(0, 0, 0, 0);
@@ -58,12 +60,18 @@ function computeWeekBars(weekDays: Date[], bookings: Booking[]): BarSegment[] {
   const weekStartMs = weekStart.getTime();
   const weekEndMs = weekEnd.getTime();
 
+  const monthStartMs = startOfMonth(month).getTime();
+  const nextMonthStartMs = startOfMonth(addMonths(month, 1)).getTime();
+  const visibleStartMs = Math.max(weekStartMs, monthStartMs);
+  const visibleEndMs = Math.min(weekEndMs, nextMonthStartMs);
+  if (visibleEndMs <= visibleStartMs) return [];
+
   const candidates = bookings
     .filter((b) => isBarBooking(b))
     .filter((b) => {
       const start = new Date(b.date).getTime();
       const end = new Date(b.end_date).getTime();
-      return start < weekEndMs && end > weekStartMs;
+      return start < visibleEndMs && end > visibleStartMs;
     })
     .sort((a, b) => {
       const aStart = new Date(a.date).getTime();
@@ -80,8 +88,9 @@ function computeWeekBars(weekDays: Date[], bookings: Booking[]): BarSegment[] {
   for (const b of candidates) {
     const bStart = new Date(b.date).getTime();
     const bEnd = new Date(b.end_date).getTime();
-    const clipStart = Math.max(bStart, weekStartMs);
-    const clipEnd = Math.min(bEnd, weekEndMs);
+    const clipStart = Math.max(bStart, visibleStartMs);
+    const clipEnd = Math.min(bEnd, visibleEndMs);
+    if (clipEnd <= clipStart) continue;
     const startCol = Math.floor((clipStart - weekStartMs) / MS_PER_DAY);
     const endCol = Math.ceil((clipEnd - weekStartMs) / MS_PER_DAY);
     const span = Math.max(1, endCol - startCol);
@@ -95,8 +104,10 @@ function computeWeekBars(weekDays: Date[], bookings: Booking[]): BarSegment[] {
       startCol,
       span,
       lane,
-      continuesLeft: bStart < weekStartMs,
-      continuesRight: bEnd > weekEndMs,
+      // Square off the ends when the booking extends past the visible
+      // (week ∩ month) range — covers both cross-week and cross-month cases.
+      continuesLeft: bStart < visibleStartMs,
+      continuesRight: bEnd > visibleEndMs,
     });
   }
 
@@ -368,7 +379,7 @@ export default function MonthView() {
                   weeks.push(days.slice(i, i + 7));
                 }
                 return weeks.map((weekDays, wIdx) => {
-                  const weekBars = computeWeekBars(weekDays, bookings);
+                  const weekBars = computeWeekBars(weekDays, bookings, month);
                   const laneCount = weekBars.reduce((max, s) => Math.max(max, s.lane + 1), 0);
                   const lanesHeight = laneCount > 0
                     ? laneCount * BAR_PX + Math.max(0, laneCount - 1) * BAR_GAP_PX
