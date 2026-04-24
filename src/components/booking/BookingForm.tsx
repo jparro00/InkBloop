@@ -342,32 +342,20 @@ export default function BookingForm() {
           </div>
         )}
 
-        {/* Date */}
-        <div>
-          <label className={labelClass}>{form.type === 'Personal' ? 'Starts *' : 'Date *'}{changedLabel('date')}</label>
-          <DatePicker
-            value={form.date}
-            onChange={(date) => {
-              setForm((f) => {
-                // Keep end_date ≥ start date
-                const nextEnd = f.end_date && f.end_date >= date ? f.end_date : date;
-                return { ...f, date, end_date: nextEnd };
-              });
-              setMissingFields((s) => { const n = new Set(s); n.delete('date'); return n; });
-            }}
-            missing={missingFields.has('date')}
-          />
-        </div>
-
-        {/* Personal-only: All-day + Show-as-busy checkboxes */}
+        {/* Personal-only: All-day + Show-as-busy checkboxes (above Starts/Ends) */}
         {form.type === 'Personal' && (
           <div className="space-y-1">
             <button
               type="button"
               onClick={() => setForm((f) => {
                 const nextAllDay = !f.is_all_day;
-                // Toggling all-day flips default Show-as-busy: timed=busy, all-day=free
-                return { ...f, is_all_day: nextAllDay, blocks_availability: !nextAllDay };
+                // Checking all-day → default Show-as-busy to false.
+                // Unchecking all-day → preserve user's current Show-as-busy choice.
+                return {
+                  ...f,
+                  is_all_day: nextAllDay,
+                  blocks_availability: nextAllDay ? false : f.blocks_availability,
+                };
               })}
               className={`flex items-center gap-3 w-full text-left py-1 cursor-pointer press-scale min-h-[44px] transition-colors ${form.is_all_day ? 'text-accent' : 'text-text-s'}`}
             >
@@ -388,6 +376,23 @@ export default function BookingForm() {
             </button>
           </div>
         )}
+
+        {/* Date (Starts for Personal) */}
+        <div>
+          <label className={labelClass}>{form.type === 'Personal' ? 'Starts *' : 'Date *'}{changedLabel('date')}</label>
+          <DatePicker
+            value={form.date}
+            onChange={(date) => {
+              setForm((f) => {
+                // Keep end_date ≥ start date
+                const nextEnd = f.end_date && f.end_date >= date ? f.end_date : date;
+                return { ...f, date, end_date: nextEnd };
+              });
+              setMissingFields((s) => { const n = new Set(s); n.delete('date'); return n; });
+            }}
+            missing={missingFields.has('date')}
+          />
+        </div>
 
         {/* Personal-only: End date picker (for multi-day) */}
         {form.type === 'Personal' && (

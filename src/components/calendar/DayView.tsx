@@ -91,10 +91,11 @@ function DayPanel({
     <div className="shrink-0 flex flex-col" style={{ width: 'calc(100% / 3)' }}>
       {/* All-day banner row. Height is set by the parent to the max across
           the 3 visible panels so the hour grid stays vertically aligned
-          during swipe animations. */}
+          during swipe animations. Sticky so it stays in view while the
+          user scrolls through the hour grid. */}
       {bannerHeight > 0 && (
         <div
-          className="shrink-0 px-3"
+          className="shrink-0 px-3 sticky top-0 z-30 bg-bg"
           style={{ height: bannerHeight, paddingTop: BANNER_PAD_Y, paddingBottom: BANNER_PAD_Y }}
         >
           <div className="flex flex-col" style={{ gap: BANNER_GAP }}>

@@ -370,21 +370,16 @@ export default function MonthView() {
                 return weeks.map((weekDays, wIdx) => {
                   const weekBars = computeWeekBars(weekDays, bookings);
                   const laneCount = weekBars.reduce((max, s) => Math.max(max, s.lane + 1), 0);
+                  const lanesHeight = laneCount > 0
+                    ? laneCount * BAR_PX + Math.max(0, laneCount - 1) * BAR_GAP_PX
+                    : 0;
 
                   return (
-                    <div key={wIdx} className="grid grid-cols-7">
+                    <div key={wIdx} className="relative grid grid-cols-7">
                       {weekDays.map((day) => {
                         const inMonth = isSameMonth(day, month);
                         const today = isToday(day);
                         const pills = inMonth ? getPillsForDay(day) : [];
-                        const dayCol = weekDays.findIndex((d) => isSameDay(d, day));
-                        // Per-lane slot for this day (null = empty lane).
-                        const lanes: (BarSegment | null)[] = Array.from({ length: laneCount }, () => null);
-                        for (const seg of weekBars) {
-                          if (dayCol >= seg.startCol && dayCol < seg.startCol + seg.span) {
-                            lanes[seg.lane] = seg;
-                          }
-                        }
 
                         return (
                           <button
@@ -410,56 +405,11 @@ export default function MonthView() {
                               </span>
                             </div>
 
-                            {/* Bar lanes. `-mx-0.5 lg:-mx-1` bleeds bars to the
-                                cell edges so adjacent days' segments visually
-                                connect into one continuous bar. Blocking events
-                                use solid fill; non-blocking get a lighter fill
-                                + italic text to read as informational. */}
-                            {laneCount > 0 && (
-                              <div
-                                className="w-full -mx-0.5 lg:-mx-1 flex flex-col mb-[2px] overflow-hidden"
-                                style={{ gap: BAR_GAP_PX }}
-                              >
-                                {lanes.map((seg, laneIdx) => {
-                                  if (!seg) {
-                                    return <div key={laneIdx} style={{ height: BAR_PX }} />;
-                                  }
-                                  const { booking, startCol, span, continuesLeft, continuesRight } = seg;
-                                  const isStart = dayCol === startCol && !continuesLeft;
-                                  const isEnd = dayCol === startCol + span - 1 && !continuesRight;
-                                  const showLabel = dayCol === startCol;
-                                  const client = getClient(booking.client_id ?? '');
-                                  const name = showLabel
-                                    ? getBookingLabel(booking, client?.display_name || client?.name)
-                                    : '';
-                                  const isBlocking = booking.blocks_availability;
-                                  return (
-                                    <div
-                                      key={laneIdx}
-                                      className="overflow-hidden whitespace-nowrap text-[10px] lg:text-[11px] font-medium flex items-center"
-                                      style={{
-                                        height: BAR_PX,
-                                        backgroundColor: isBlocking
-                                          ? getTypeColorAlpha(booking.type, 0.28)
-                                          : getTypeColorAlpha(booking.type, 0.1),
-                                        color: getTypeColor(booking.type),
-                                        fontStyle: isBlocking ? 'normal' : 'italic',
-                                        borderTopLeftRadius: isStart ? 3 : 0,
-                                        borderBottomLeftRadius: isStart ? 3 : 0,
-                                        borderTopRightRadius: isEnd ? 3 : 0,
-                                        borderBottomRightRadius: isEnd ? 3 : 0,
-                                        paddingLeft: isStart ? 4 : 2,
-                                        paddingRight: isEnd ? 4 : 2,
-                                        ...(booking.rescheduled
-                                          ? { outline: '1px solid var(--color-danger)', outlineOffset: -1 }
-                                          : {}),
-                                      }}
-                                    >
-                                      {name}
-                                    </div>
-                                  );
-                                })}
-                              </div>
+                            {/* Spacer reserves vertical room for the absolute bar overlay below.
+                                Keeping it per-cell (rather than a row-level spacer) lets each cell's
+                                flex column keep the date → lanes → pills stacking intact. */}
+                            {lanesHeight > 0 && (
+                              <div style={{ height: lanesHeight, marginBottom: 2 }} />
                             )}
 
                             {/* Single-day pills — same dual-mode rendering as
@@ -507,6 +457,56 @@ export default function MonthView() {
                           </button>
                         );
                       })}
+
+                      {/* Bar overlay: one element per BarSegment, rendered at
+                          the week level so the label can span the full width of
+                          a multi-day bar instead of being truncated per cell.
+                          Positioned over the per-cell spacer above — its `top`
+                          matches the date-block height (py-0.5 + h-10 + mb-1). */}
+                      {laneCount > 0 && (
+                        <div
+                          className="absolute left-0 right-0 pointer-events-none"
+                          style={{
+                            top: 'calc(0.125rem + 2.5rem + 0.25rem)',
+                            height: lanesHeight,
+                          }}
+                        >
+                          {weekBars.map((seg) => {
+                            const { booking, startCol, span, lane, continuesLeft, continuesRight } = seg;
+                            const client = getClient(booking.client_id ?? '');
+                            const name = getBookingLabel(booking, client?.display_name || client?.name);
+                            const isBlocking = booking.blocks_availability;
+                            return (
+                              <div
+                                key={booking.id + '-' + wIdx}
+                                className="absolute overflow-hidden whitespace-nowrap text-[10px] lg:text-[11px] font-medium flex items-center pointer-events-auto"
+                                style={{
+                                  left: `calc(${(startCol / 7) * 100}%)`,
+                                  width: `calc(${(span / 7) * 100}%)`,
+                                  top: lane * (BAR_PX + BAR_GAP_PX),
+                                  height: BAR_PX,
+                                  backgroundColor: isBlocking
+                                    ? getTypeColorAlpha(booking.type, 0.28)
+                                    : getTypeColorAlpha(booking.type, 0.1),
+                                  color: getTypeColor(booking.type),
+                                  fontStyle: isBlocking ? 'normal' : 'italic',
+                                  borderTopLeftRadius: continuesLeft ? 0 : 3,
+                                  borderBottomLeftRadius: continuesLeft ? 0 : 3,
+                                  borderTopRightRadius: continuesRight ? 0 : 3,
+                                  borderBottomRightRadius: continuesRight ? 0 : 3,
+                                  paddingLeft: continuesLeft ? 2 : 4,
+                                  paddingRight: continuesRight ? 2 : 4,
+                                  ...(booking.rescheduled
+                                    ? { outline: '1px solid var(--color-danger)', outlineOffset: -1 }
+                                    : {}),
+                                }}
+                              >
+                                {name}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 });
