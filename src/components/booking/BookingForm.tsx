@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { UserPlus, CalendarPlus } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
@@ -68,8 +68,17 @@ export default function BookingForm() {
   const morningRef = useRef<HTMLDivElement>(null);
   const timeRef = useRef<HTMLDivElement>(null);
   const durationRef = useRef<HTMLDivElement>(null);
+  const dateRef = useRef<HTMLDivElement>(null);
+  const endsRef = useRef<HTMLDivElement>(null);
   const timePickerOpen = useRef(false);
   const excludeRefs = useRef([morningRef, durationRef]);
+
+  const scrollIntoViewOnOpen = useCallback((isOpen: boolean, ref: React.RefObject<HTMLDivElement>) => {
+    if (!isOpen) return;
+    requestAnimationFrame(() => {
+      ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, []);
   const initialFormRef = useRef<typeof defaultForm | null>(null);
   const imageBookingId = editingBookingId ?? tempBookingId.current;
   const { thumbnails, addImages, removeImage, getOriginalUrl } = useBookingImages(imageBookingId);
@@ -378,7 +387,7 @@ export default function BookingForm() {
         )}
 
         {/* Date (Starts for Personal) */}
-        <div>
+        <div ref={dateRef} style={{ scrollMarginTop: 12 }}>
           <label className={labelClass}>{form.type === 'Personal' ? 'Starts *' : 'Date *'}{changedLabel('date')}</label>
           <DatePicker
             value={form.date}
@@ -391,12 +400,13 @@ export default function BookingForm() {
               setMissingFields((s) => { const n = new Set(s); n.delete('date'); return n; });
             }}
             missing={missingFields.has('date')}
+            onOpenChange={(isOpen) => scrollIntoViewOnOpen(isOpen, dateRef)}
           />
         </div>
 
-        {/* Personal-only: End date picker (for multi-day) */}
-        {form.type === 'Personal' && (
-          <div>
+        {/* Personal + all-day only: End date picker (for multi-day) */}
+        {form.type === 'Personal' && form.is_all_day && (
+          <div ref={endsRef} style={{ scrollMarginTop: 12 }}>
             <label className={labelClass}>Ends</label>
             <DatePicker
               value={form.end_date || form.date}
@@ -405,12 +415,13 @@ export default function BookingForm() {
                 const safeEnd = end_date >= form.date ? end_date : form.date;
                 setForm((f) => ({ ...f, end_date: safeEnd }));
               }}
+              onOpenChange={(isOpen) => scrollIntoViewOnOpen(isOpen, endsRef)}
             />
           </div>
         )}
 
-        {/* Morning / Evening (hidden for all-day Personal) */}
-        {!(form.type === 'Personal' && form.is_all_day) && (
+        {/* Morning / Evening (hidden for all Personal bookings) */}
+        {form.type !== 'Personal' && (
         <div ref={morningRef} className="flex gap-3 mt-2" style={{ scrollMarginTop: 12 }}>
           {['Morning', 'Evening'].map((slot) => {
             const time = slot === 'Morning'
@@ -542,18 +553,20 @@ export default function BookingForm() {
 
         <div className="h-px bg-border/40" />
 
-        {/* Estimate */}
-        <div>
-          <label className={labelClass}>Estimate ($){changedLabel('estimate')}</label>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={form.estimate}
-            onChange={(e) => { setForm((f) => ({ ...f, estimate: e.target.value.replace(/[^0-9.]/g, '') })); setMissingFields((s) => { const n = new Set(s); n.delete('estimate'); return n; }); }}
-            placeholder="0"
-            className={inputFor('estimate')}
-          />
-        </div>
+        {/* Estimate (hidden for Personal) */}
+        {form.type !== 'Personal' && (
+          <div>
+            <label className={labelClass}>Estimate ($){changedLabel('estimate')}</label>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={form.estimate}
+              onChange={(e) => { setForm((f) => ({ ...f, estimate: e.target.value.replace(/[^0-9.]/g, '') })); setMissingFields((s) => { const n = new Set(s); n.delete('estimate'); return n; }); }}
+              placeholder="0"
+              className={inputFor('estimate')}
+            />
+          </div>
+        )}
 
         {/* Notes */}
         <div>
@@ -579,17 +592,19 @@ export default function BookingForm() {
           <span className="text-base">Rescheduled</span>
         </button>
 
-        {/* Reference Images */}
-        <div>
-          <label className={labelClass}>Reference Images</label>
-          <ImageThumbnailGrid
-            thumbnails={thumbnails}
-            editable
-            onRemove={removeImage}
-            onView={(id) => setViewingImageId(id)}
-          />
-          <ImagePicker onFiles={addImages} />
-        </div>
+        {/* Reference Images (hidden for Personal) */}
+        {form.type !== 'Personal' && (
+          <div>
+            <label className={labelClass}>Reference Images</label>
+            <ImageThumbnailGrid
+              thumbnails={thumbnails}
+              editable
+              onRemove={removeImage}
+              onView={(id) => setViewingImageId(id)}
+            />
+            <ImagePicker onFiles={addImages} />
+          </div>
+        )}
 
         {/* Add to iOS / Save */}
         <div className="flex flex-col lg:flex-row lg:justify-end gap-3 pt-4 border-t border-border/40 sticky bottom-0 bg-elevated pb-2">
