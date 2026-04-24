@@ -125,19 +125,17 @@ function getMonthRange(center: Date, buffer: number) {
 }
 
 export default function MonthView() {
-  const { setCalendarDate, setCalendarView, openBookingForm, setTodayHandler, setScrollToCurrentMonth, setCalendarSearchOpen, setHeaderLeft, setHeaderRight } = useUIStore();
+  const { calendarDate, setCalendarDate, setCalendarView, openBookingForm, setTodayHandler, setScrollToCurrentMonth, setCalendarSearchOpen, setHeaderLeft, setHeaderRight } = useUIStore();
   const bookings = useBookingStore((s) => s.bookings);
   const getClient = useClientStore((s) => s.getClient);
 
-  // Always center the list on actual today at mount. `calendarDate` from
-  // the store can be stale: the user may have tapped an old booking, the
-  // agent may have navigated to a past date, or the PWA may have been
-  // backgrounded long enough for the store's initial `new Date()` (captured
-  // once at module load) to drift out of the current month. Rebuilding
-  // around a fresh `new Date()` on every mount guarantees today's month
-  // is always the scroll anchor.
-  const [months, setMonths] = useState(() => getMonthRange(new Date(), MONTHS_BUFFER));
-  const [visibleYear, setVisibleYear] = useState(() => new Date().getFullYear());
+  // Anchor the initial scroll on calendarDate — whatever month the user
+  // was last looking at (day view, agent navigation, tapped booking). The
+  // "Today" button is the dedicated path back to actual-today; it has its
+  // own handler further down that resets the list if today isn't in range.
+  const anchorDate = calendarDate ?? new Date();
+  const [months, setMonths] = useState(() => getMonthRange(anchorDate, MONTHS_BUFFER));
+  const [visibleYear, setVisibleYear] = useState(() => anchorDate.getFullYear());
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentMonthRef = useRef<HTMLDivElement>(null);
   const hasScrolled = useRef(false);
@@ -282,17 +280,13 @@ export default function MonthView() {
     setCalendarView('day');
   };
 
-  // "Current month" means actual today's month, NOT calendarDate's month.
-  // This is what drives currentMonthRef and the initial scroll anchor —
-  // using calendarDate here is how the scroll used to land on a stale
-  // month when the store's date had drifted.
-  const isCurrentMonth = (month: Date) => {
-    const today = new Date();
-    return (
-      month.getFullYear() === today.getFullYear() &&
-      month.getMonth() === today.getMonth()
-    );
-  };
+  // The "anchor month" is the month we want scrolled to on mount —
+  // derived from calendarDate so that pressing Month in day view returns
+  // to the same month. `currentMonthRef` below tracks this element.
+  const isAnchorMonth = (month: Date) => (
+    month.getFullYear() === anchorDate.getFullYear() &&
+    month.getMonth() === anchorDate.getMonth()
+  );
 
   // Register header buttons
   useEffect(() => {
@@ -349,7 +343,7 @@ export default function MonthView() {
           const gridStart = startOfWeek(monthStart, { weekStartsOn: 0 });
           const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
           const days = eachDayOfInterval({ start: gridStart, end: gridEnd });
-          const isCurrent = isCurrentMonth(month);
+          const isCurrent = isAnchorMonth(month);
 
           return (
             <div
