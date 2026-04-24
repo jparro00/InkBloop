@@ -484,12 +484,13 @@ export default function MonthView() {
                             return (
                               <div
                                 key={booking.id + '-' + wIdx}
-                                className="absolute overflow-hidden whitespace-nowrap text-[12px] leading-tight font-medium flex items-center pointer-events-auto"
+                                className="absolute overflow-hidden whitespace-nowrap text-[12px] font-medium pointer-events-auto"
                                 style={{
                                   left: `calc(${(startCol / 7) * 100}%)`,
                                   width: `calc(${(span / 7) * 100}%)`,
                                   top: lane * (BAR_PX + BAR_GAP_PX),
                                   height: BAR_PX,
+                                  lineHeight: `${BAR_PX}px`,
                                   backgroundColor: isBlocking
                                     ? getTypeColorAlpha(booking.type, 0.28)
                                     : getTypeColorAlpha(booking.type, 0.1),
@@ -506,7 +507,15 @@ export default function MonthView() {
                                     : {}),
                                 }}
                               >
-                                {name}
+                                <span
+                                  style={{
+                                    display: 'block',
+                                    maskImage: 'linear-gradient(to right, black 70%, transparent 100%)',
+                                    WebkitMaskImage: 'linear-gradient(to right, black 70%, transparent 100%)',
+                                  }}
+                                >
+                                  {name}
+                                </span>
                               </div>
                             );
                           })}
