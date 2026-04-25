@@ -25,6 +25,7 @@ Run:
 from __future__ import annotations
 
 import argparse
+import io
 import asyncio
 import json
 import os
@@ -469,8 +470,11 @@ def run_lighthouse(url: str, token: str, output_dir: Path, preset: str) -> dict[
     """Run Lighthouse via npx and return the parsed score summary. Lighthouse
     is a heavy dep (~50 MB), so we let npx fetch it on first run and rely on
     the npm cache thereafter."""
-    out_json = output_dir / f"lighthouse-{preset}.json"
-    out_html = output_dir / f"lighthouse-{preset}.html"
+    # Lighthouse appends .report.json/.report.html to the --output-path
+    # value, so we strip the suffix when passing it in and look for the
+    # appended path on read-back.
+    out_base = output_dir / f"lighthouse-{preset}"
+    out_json = output_dir / f"lighthouse-{preset}.report.json"
     extra_headers = json.dumps({
         "x-vercel-protection-bypass": token,
         "x-vercel-set-bypass-cookie": "true",
@@ -480,7 +484,7 @@ def run_lighthouse(url: str, token: str, output_dir: Path, preset: str) -> dict[
         url,
         f"--preset={preset}" if preset == "desktop" else "",
         f"--output=json", f"--output=html",
-        f"--output-path={out_json.with_suffix('').as_posix()}",
+        f"--output-path={out_base.as_posix()}",
         "--quiet",
         "--chrome-flags=--headless --no-sandbox",
         f"--extra-headers={extra_headers}",
@@ -488,8 +492,13 @@ def run_lighthouse(url: str, token: str, output_dir: Path, preset: str) -> dict[
     cmd = [c for c in cmd if c]
     print(f"[lighthouse:{preset}] running...")
     proc = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO_ROOT, shell=True)
+    # Lighthouse on Windows hits an EPERM at temp-dir cleanup that returns
+    # rc=1 *after* the report has already been written. Persist stderr
+    # for diagnosis but only treat the run as failed if the JSON is also
+    # missing.
     if proc.returncode != 0:
         (output_dir / f"lighthouse-{preset}.stderr.log").write_text(proc.stderr)
+    if not out_json.exists():
         print(f"[lighthouse:{preset}] failed (rc={proc.returncode}); stderr saved")
         return None
     try:
@@ -623,7 +632,7 @@ async def main() -> int:
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     output_dir = OUTPUT_ROOT / timestamp
     output_dir.mkdir(parents=True, exist_ok=True)
-    print(f"[audit] output → {output_dir.relative_to(REPO_ROOT)}")
+    print(f"[audit] output -> {output_dir.relative_to(REPO_ROOT)}")
 
     bundles: list[CaptureBundle] = []
     async with async_playwright() as pw:
@@ -648,10 +657,16 @@ async def main() -> int:
             lighthouses["mobile"] = run_lighthouse(args.url, token, output_dir, "mobile")
 
     summary = write_summary(output_dir, bundles, lighthouses)
-    print(f"[audit] summary → {summary.relative_to(REPO_ROOT)}")
+    print(f"[audit] summary -> {summary.relative_to(REPO_ROOT)}")
     print(summary.read_text(encoding="utf-8"))
     return 0
 
 
 if __name__ == "__main__":
+    # Windows consoles default to cp1252 which can't print non-ASCII
+    # characters in our summary. Force UTF-8 so the script doesn't crash
+    # on emoji or arrows in console output.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(asyncio.run(main()))

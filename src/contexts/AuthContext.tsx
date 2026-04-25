@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
 
 interface AuthState {
   session: Session | null;
@@ -42,6 +41,16 @@ function readPersistedSession(): Session | null {
   }
 }
 
+// Lazy-load the Supabase SDK so the ~50 KB gzipped chunk stays off the
+// cold critical path. The App renders against the persisted session
+// immediately; the SDK loads in the background to validate, refresh, and
+// install the auth-state-change listener. If the user lands on /login,
+// the Login chunk imports lib/supabase directly so the SDK loads with it.
+async function loadSupabase() {
+  const mod = await import('../lib/supabase');
+  return mod.supabase;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const persisted = typeof window !== 'undefined' ? readPersistedSession() : null;
   const [session, setSession] = useState<Session | null>(persisted);
@@ -51,24 +60,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(!persisted);
 
   useEffect(() => {
-    // Validate the optimistic session in the background. If Supabase
-    // disagrees, the new value (or null) flows in via setSession below.
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
+    let cancelled = false;
+    let unsubscribe: (() => void) | undefined;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+    loadSupabase().then((supabase) => {
+      if (cancelled) return;
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (cancelled) return;
         setSession(session);
         setLoading(false);
-      }
-    );
+      });
 
-    return () => subscription.unsubscribe();
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        (_event, session) => {
+          if (cancelled) return;
+          setSession(session);
+          setLoading(false);
+        }
+      );
+      unsubscribe = () => subscription.unsubscribe();
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
   }, []);
 
   const signOut = useCallback(async () => {
+    const supabase = await loadSupabase();
     await supabase.auth.signOut();
     setSession(null);
   }, []);

@@ -23,25 +23,32 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
-        // Split heavy vendors into their own chunks so:
+        // Split a small set of stable vendor packages into their own
+        // chunks so:
         //   - the main bundle stays small (boot + login path)
         //   - vendor chunks cache across deploys (their hash only changes
         //     when the library itself changes, not when app code does)
+        //
+        // KNOWN TRAP: Vite 8 / Rolldown 1.0-rc does not strictly honor
+        // manualChunks — if the function returns a chunk name for a
+        // module that's also a transitive dep of another manualChunks
+        // target, Rolldown may inline it. Specifically, splitting
+        // framer-motion into its own chunk caused React's runtime
+        // (createContext, useState) to get bundled INTO framer-motion,
+        // forcing every JSX-using chunk to import framer-motion. We
+        // verified this empirically. So we DO NOT split framer-motion,
+        // supabase, gesture, or icons here — Rolldown's automatic
+        // chunking handles them better, and modulePreload.resolveDeps
+        // above keeps them off the cold preload list either way.
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
-          if (id.includes('@supabase')) return 'supabase';
-          if (id.includes('framer-motion')) return 'framer-motion';
-          if (id.includes('@use-gesture')) return 'gesture';
-          if (id.includes('date-fns')) return 'date-fns';
-          if (id.includes('lucide-react')) return 'icons';
-          if (id.includes('react-router')) return 'react-router';
           if (
-            id.includes('/react/') ||
-            id.includes('/react-dom/') ||
-            id.includes('/scheduler/')
+            /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)
           ) {
             return 'react-vendor';
           }
+          if (id.includes('react-router')) return 'react-router';
+          if (id.includes('date-fns')) return 'date-fns';
         },
       },
     },
