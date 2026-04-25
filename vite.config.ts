@@ -10,6 +10,17 @@ export default defineConfig({
   // SW caches the rewritten copy.
   plugins: [react(), tailwindcss(), nonBlockingCssLink(), writeServiceWorker()],
   build: {
+    // Vite walks the lazy-import graph and promotes any chunk reachable
+    // from many lazy boundaries to a top-level <link rel="modulepreload">.
+    // That defeats the point of lazy-loading large vendors — framer-motion
+    // (~140 KB) and the Supabase SDK (~186 KB) end up downloaded with high
+    // priority on every cold visit even though only post-login surfaces
+    // need them. Filter them out so the cold critical path is just the
+    // entry, react-vendor, and react-router.
+    modulePreload: {
+      resolveDependencies: (_filename, deps) =>
+        deps.filter((d) => !/framer-motion|supabase|gesture/.test(d)),
+    },
     rollupOptions: {
       output: {
         // Split heavy vendors into their own chunks so:

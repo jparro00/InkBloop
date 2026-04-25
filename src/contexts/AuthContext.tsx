@@ -17,18 +17,47 @@ const AuthContext = createContext<AuthState>({
   signOut: async () => {},
 });
 
+// Read the persisted Supabase session synchronously from localStorage so we
+// can render the app optimistically on cold start instead of waiting for
+// supabase.auth.getSession() (which performs a token-refresh round-trip).
+// If the persisted session turns out to be invalid or expired, the
+// onAuthStateChange listener clears it below and ProtectedRoute redirects.
+function readPersistedSession(): Session | null {
+  try {
+    const raw = localStorage.getItem('inkbloop-auth');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const session = parsed?.currentSession ?? parsed?.session ?? null;
+    if (!session?.access_token) return null;
+    // Treat already-expired tokens as no session — Supabase will refresh
+    // them on its own once the SDK boots, but we shouldn't render the app
+    // shell against credentials we know are stale.
+    const expiresAt = session.expires_at;
+    if (typeof expiresAt === 'number' && expiresAt * 1000 < Date.now()) {
+      return null;
+    }
+    return session as Session;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const persisted = typeof window !== 'undefined' ? readPersistedSession() : null;
+  const [session, setSession] = useState<Session | null>(persisted);
+  // If we already have a plausible session, show the app immediately and
+  // let the SDK validate in the background. Only block on cold-start
+  // BootSplash when there's nothing in storage to render against.
+  const [loading, setLoading] = useState(!persisted);
 
   useEffect(() => {
-    // Get initial session
+    // Validate the optimistic session in the background. If Supabase
+    // disagrees, the new value (or null) flows in via setSession below.
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
